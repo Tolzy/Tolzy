@@ -15,6 +15,6 @@ struct BottomNavigation<Content: View>: View {
         }
         // Monochrome: blue is reserved for signals inside content.
         .tint(FLColor.textPrimary)
-        .sensoryFeedback(.selection, trigger: selection)
+        .flHaptic(.selection, trigger: selection)
     }
 }

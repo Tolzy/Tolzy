@@ -1,61 +1,117 @@
 import SwiftUI
 
 /// "Understanding your French…" with the pipeline's real stages.
+///
+/// Choreography: the lens pulses while work happens; each finished stage's
+/// dot is replaced by a check (symbol transition) and the next stage lights
+/// up; on completion the title swaps, the line fills and a checkmark draws
+/// itself before the lesson takes over.
 struct LoadingView: View {
     let stage: ProcessingStage
+    var isComplete = false
     var onCancel: (() -> Void)?
 
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var breathe = false
+    @Environment(\.motion) private var motion
+
+    private var visibleStages: [ProcessingStage] {
+        ProcessingStage.allCases.filter { $0 != .receiving }
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
                 BrandMark()
                 Spacer()
-                if let onCancel {
+                if let onCancel, !isComplete {
                     Button("Cancel", action: onCancel)
                         .font(.body.weight(.medium))
                         .foregroundStyle(FLColor.textSecondary)
+                        .transition(.opacity)
                 }
             }
 
             Spacer()
 
-            Text("Understanding\nyour French…")
-                .flTextStyle(.display)
-                .foregroundStyle(FLColor.textPrimary)
-                .opacity(breathe ? 1 : 0.72)
-                .accessibilityIdentifier("loading.title")
+            ZStack(alignment: .leading) {
+                if isComplete {
+                    DrawnCheckmark(size: 52)
+                        .transition(.flReveal)
+                } else {
+                    LensPulse(size: 52)
+                        .transition(.flSwap)
+                }
+            }
+            .frame(height: 52)
+            .padding(.bottom, FLSpacing.l)
 
-            ProgressLine(progress: stage.progress)
+            ZStack(alignment: .topLeading) {
+                if isComplete {
+                    Text("Your lesson\nis ready.")
+                        .transition(.flSwap)
+                } else {
+                    Text("Understanding\nyour French…")
+                        .flShimmer()
+                        .transition(.flSwap)
+                }
+            }
+            .flTextStyle(.display)
+            .foregroundStyle(FLColor.textPrimary)
+            .accessibilityIdentifier("loading.title")
+            .accessibilityAddTraits(.updatesFrequently)
+
+            ProgressLine(progress: isComplete ? 1 : stage.progress)
                 .padding(.vertical, FLSpacing.l)
 
             VStack(alignment: .leading, spacing: FLSpacing.s) {
-                ForEach(ProcessingStage.allCases.filter { $0 != .receiving }, id: \.self) { item in
-                    HStack(spacing: FLSpacing.s) {
-                        Image(systemName: item < stage ? "checkmark" : (item == stage ? "circle.fill" : "circle"))
-                            .font(.system(size: item == stage ? 7 : 11, weight: .bold))
-                            .frame(width: 16)
-                            .foregroundStyle(item == stage ? FLColor.accent : FLColor.textTertiary)
-                        Text(item.title)
-                            .font(.subheadline)
-                            .foregroundStyle(item <= stage ? FLColor.textPrimary : FLColor.textTertiary)
-                    }
-                    .accessibilityElement(children: .combine)
-                    .accessibilityValue(item < stage ? "Done" : (item == stage ? "In progress" : "Waiting"))
+                ForEach(Array(visibleStages.enumerated()), id: \.element) { index, item in
+                    StageRow(title: item.title, state: state(of: item))
+                        .flAppear(index + 2)
                 }
             }
-            .animation(FLMotion.gentle, value: stage)
 
             Spacer()
             Spacer()
         }
         .padding(.horizontal, FLSpacing.gutter)
         .padding(.vertical, FLSpacing.m)
-        .onAppear {
-            guard !reduceMotion else { breathe = true; return }
-            withAnimation(FLMotion.slow.repeatForever(autoreverses: true)) { breathe = true }
+        .flAnimation(.swap, value: stage)
+        .flAnimation(.reveal, value: isComplete)
+        .flHaptic(.progress, trigger: stage)
+        .flHaptic(.success, trigger: isComplete)
+    }
+
+    private func state(of item: ProcessingStage) -> StageRow.Status {
+        if isComplete || item < stage { return .done }
+        return item == stage ? .active : .pending
+    }
+}
+
+private struct StageRow: View {
+    enum Status { case pending, active, done }
+
+    let title: String
+    let state: Status
+
+    var body: some View {
+        HStack(spacing: FLSpacing.s) {
+            Image(systemName: symbol)
+                .font(.system(size: state == .active ? 7 : 11, weight: .bold))
+                .frame(width: 16)
+                .foregroundStyle(state == .active ? FLColor.accent : FLColor.textTertiary)
+                .contentTransition(.symbolEffect(.replace))
+            Text(title)
+                .font(.subheadline)
+                .foregroundStyle(state == .pending ? FLColor.textTertiary : FLColor.textPrimary)
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityValue(state == .done ? "Done" : (state == .active ? "In progress" : "Waiting"))
+    }
+
+    private var symbol: String {
+        switch state {
+        case .pending: "circle"
+        case .active: "circle.fill"
+        case .done: "checkmark"
         }
     }
 }
@@ -73,15 +129,19 @@ struct EmptyState: View {
             Image(systemName: symbol)
                 .font(.system(size: 26, weight: .regular))
                 .foregroundStyle(FLColor.textTertiary)
+                .symbolEffect(.pulse, options: .nonRepeating)
                 .padding(.bottom, FLSpacing.xs)
                 .accessibilityHidden(true)
+                .flAppear(0)
             Text(title)
                 .flTextStyle(.title)
                 .foregroundStyle(FLColor.textPrimary)
+                .flAppear(1)
             Text(message)
                 .flTextStyle(.body)
                 .foregroundStyle(FLColor.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
+                .flAppear(2)
             if let actionTitle, let action {
                 Button(action: action) {
                     HStack(spacing: 4) {
@@ -93,6 +153,7 @@ struct EmptyState: View {
                 }
                 .buttonStyle(.plain)
                 .padding(.top, FLSpacing.xs)
+                .flAppear(3)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -125,20 +186,24 @@ struct ErrorStateView: View {
             Image(systemName: error.symbol)
                 .font(.system(size: 28, weight: .regular))
                 .foregroundStyle(FLColor.textTertiary)
+                .symbolEffect(.pulse, options: .nonRepeating)
                 .padding(.bottom, FLSpacing.l)
                 .accessibilityHidden(true)
+                .flAppear(0)
 
             Text(error.title)
                 .flTextStyle(.title)
                 .foregroundStyle(FLColor.textPrimary)
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityIdentifier("error.title")
+                .flAppear(1)
 
             Text(error.message)
                 .flTextStyle(.body)
                 .foregroundStyle(FLColor.textSecondary)
                 .padding(.top, FLSpacing.s)
                 .fixedSize(horizontal: false, vertical: true)
+                .flAppear(2)
 
             Spacer()
 
@@ -162,6 +227,7 @@ struct ErrorStateView: View {
                         .frame(minHeight: 44)
                 }
             }
+            .flAppear(4)
         }
         .padding(.horizontal, FLSpacing.gutter)
         .padding(.vertical, FLSpacing.m)

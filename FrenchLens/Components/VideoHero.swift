@@ -10,12 +10,17 @@ struct VideoHero: View {
 
     var body: some View {
         ZStack(alignment: .bottomLeading) {
-            if let playback {
-                PlayerSurface(player: playback.player)
-                    .overlay(alignment: .center) { PlayToggle(playback: playback) }
-            } else {
-                PosterView(lesson: lesson)
+            Group {
+                if let playback {
+                    PlayerSurface(player: playback.player)
+                        .overlay(alignment: .center) { PlayToggle(playback: playback) }
+                        .transition(.opacity)
+                } else {
+                    PosterView(lesson: lesson)
+                }
             }
+            // Scroll-driven: stretches on overscroll, parallaxes when scrolled.
+            .flStretchyHeader(height: height)
 
             // Fade into the page so the hero and the lesson read as one surface.
             LinearGradient(
@@ -48,10 +53,11 @@ private struct PlayToggle: View {
                 .background(.ultraThinMaterial, in: Circle())
                 .contentTransition(.symbolEffect(.replace))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.flPressable)
         .opacity(playback.isPlaying ? 0.0001 : 1) // stays tappable while playing
+        .flAnimation(.swap, value: playback.isPlaying)
         .accessibilityLabel(playback.isPlaying ? "Pause video" : "Play video")
-        .sensoryFeedback(.impact(weight: .light), trigger: playback.isPlaying)
+        .flHaptic(.surface, trigger: playback.isPlaying)
     }
 }
 
@@ -63,16 +69,13 @@ private struct PosterView: View {
         ZStack(alignment: .bottomLeading) {
             FLColor.surface
             // A single soft light source — depth without a gradient "AI" look.
-            Circle()
-                .fill(FLColor.accent.opacity(0.10))
-                .frame(width: 420, height: 420)
-                .blur(radius: 120)
-                .offset(x: 160, y: -180)
+            DriftingLight()
 
             VStack(alignment: .leading, spacing: FLSpacing.m) {
                 Image(systemName: "quote.opening")
                     .font(.system(size: 28, weight: .bold))
                     .foregroundStyle(FLColor.textTertiary)
+                    .flAppear(0)
                 if let first = lesson.analysis.transcript.segments.first {
                     Text(AttributedString.french(first.text))
                         .font(.system(size: 30, weight: .semibold))
@@ -80,6 +83,7 @@ private struct PosterView: View {
                         .foregroundStyle(FLColor.textPrimary)
                         .lineLimit(4)
                         .minimumScaleFactor(0.7)
+                        .flAppear(1, distance: 24)
                 }
                 HStack(spacing: 6) {
                     Image(systemName: lesson.source.systemImage)
@@ -87,12 +91,31 @@ private struct PosterView: View {
                 }
                 .font(.footnote.weight(.medium))
                 .foregroundStyle(FLColor.textSecondary)
+                .flAppear(2)
             }
             .padding(.horizontal, FLSpacing.gutter)
             .padding(.bottom, 120)
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(lesson.source.label). No video attached.")
+    }
+}
+
+/// The ambient light behind the poster drifts very slowly — the only
+/// motion on the poster, and none under Reduce Motion.
+private struct DriftingLight: View {
+    @Environment(\.motion) private var motion
+    @State private var drifted = false
+
+    var body: some View {
+        Circle()
+            .fill(FLColor.accent.opacity(0.10))
+            .frame(width: 420, height: 420)
+            .blur(radius: 120)
+            .offset(x: drifted ? 120 : 170, y: drifted ? -150 : -190)
+            .onAppear {
+                motion.loop(duration: 9) { drifted = true }
+            }
     }
 }
 

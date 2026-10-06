@@ -40,7 +40,7 @@ struct LensGlyph: View {
 /// Pass `progress` for determinate mode, or `nil` for indeterminate.
 struct ProgressLine: View {
     var progress: Double?
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.motion) private var motion
     @State private var phase: CGFloat = -0.4
 
     var body: some View {
@@ -51,7 +51,7 @@ struct ProgressLine: View {
                     Capsule()
                         .fill(FLColor.accent)
                         .frame(width: proxy.size.width * CGFloat(min(max(progress, 0), 1)))
-                        .animation(FLMotion.gentle, value: progress)
+                        .flAnimation(.reveal, value: progress)
                 } else {
                     Capsule()
                         .fill(
@@ -62,18 +62,16 @@ struct ProgressLine: View {
                             )
                         )
                         .frame(width: proxy.size.width * 0.4)
-                        .offset(x: proxy.size.width * phase)
-                        .opacity(reduceMotion ? 0.6 : 1)
+                        // Under Reduce Motion the highlight rests in the middle.
+                        .offset(x: proxy.size.width * (motion.allowsMovement ? phase : 0.3))
                 }
             }
             .clipShape(Capsule())
         }
         .frame(height: 2)
         .onAppear {
-            guard progress == nil, !reduceMotion else { return }
-            withAnimation(.easeInOut(duration: 1.4).repeatForever(autoreverses: false)) {
-                phase = 1
-            }
+            guard progress == nil else { return }
+            motion.loop(duration: 1.4, autoreverses: false) { phase = 1 }
         }
         .accessibilityElement()
         .accessibilityLabel("Working")

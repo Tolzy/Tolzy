@@ -9,7 +9,7 @@ struct VerbCard: View {
     var onSpeak: ((String, String) -> Void)?
 
     @State private var showsConjugation = false
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.motion) private var motion
 
     var body: some View {
         VStack(alignment: .leading, spacing: FLSpacing.m) {
@@ -78,9 +78,7 @@ struct VerbCard: View {
     private var conjugationDisclosure: some View {
         VStack(alignment: .leading, spacing: FLSpacing.s) {
             Button {
-                withAnimation(FLMotion.resolve(FLMotion.spring, reduceMotion: reduceMotion)) {
-                    showsConjugation.toggle()
-                }
+                motion.perform(.reveal) { showsConjugation.toggle() }
             } label: {
                 HStack {
                     Text("Conjugation")
@@ -100,7 +98,7 @@ struct VerbCard: View {
 
             if showsConjugation {
                 ConjugationTable(rows: verb.conjugation, highlighted: verb.usedRow)
-                    .transition(AnyTransition.opacity.combined(with: .move(edge: .top)))
+                    .transition(.flReveal(distance: 8))
             }
         }
         .overlay(alignment: .top) { Hairline() }

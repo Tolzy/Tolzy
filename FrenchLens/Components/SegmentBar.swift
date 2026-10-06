@@ -7,7 +7,7 @@ struct SegmentBar<Item: Hashable & Identifiable>: View {
     let title: (Item) -> String
 
     @Namespace private var underline
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.motion) private var motion
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
@@ -15,21 +15,21 @@ struct SegmentBar<Item: Hashable & Identifiable>: View {
                 ForEach(items) { item in
                     let isSelected = item == selection
                     Button {
-                        withAnimation(FLMotion.resolve(FLMotion.spring, reduceMotion: reduceMotion)) {
-                            selection = item
-                        }
+                        motion.perform(.select) { selection = item }
                     } label: {
                         VStack(spacing: 8) {
                             Text(title(item))
                                 .font(.system(.subheadline, weight: .semibold))
                                 .foregroundStyle(isSelected ? FLColor.textPrimary : FLColor.textTertiary)
+                                .flAnimation(.select, value: isSelected)
                             ZStack {
                                 Capsule().fill(.clear).frame(height: 2)
                                 if isSelected {
                                     Capsule()
                                         .fill(FLColor.textPrimary)
                                         .frame(height: 2)
-                                        .matchedGeometryEffect(id: "underline", in: underline)
+                                        .flMatchedGeometry(id: "underline", in: underline)
+                                        .transition(.opacity)
                                 }
                             }
                         }
@@ -41,7 +41,7 @@ struct SegmentBar<Item: Hashable & Identifiable>: View {
                 }
             }
         }
-        .sensoryFeedback(.selection, trigger: selection)
+        .flHaptic(.selection, trigger: selection)
         .overlay(alignment: .bottom) { Hairline() }
     }
 }

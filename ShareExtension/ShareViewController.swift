@@ -20,6 +20,7 @@ final class ShareViewController: UIViewController {
             onDone: { [weak self] in self?.complete() },
             onCancel: { [weak self] in self?.cancel() }
         )
+        .motionEnvironment()
         let host = UIHostingController(rootView: root)
         host.view.backgroundColor = .clear
         addChild(host)

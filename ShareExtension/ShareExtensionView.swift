@@ -2,12 +2,17 @@ import SwiftUI
 
 /// Minimal by design: brand, one sentence, a hairline of progress, then a
 /// clear statement of what happens next.
+///
+/// Choreography: the lens pulses while the share is read; on success the
+/// lens gives way to a checkmark that draws itself and the copy rises in;
+/// on failure the message simply replaces the title. Reduce Motion turns all
+/// of it into cross-fades.
 struct ShareExtensionView: View {
     let model: ShareExtensionModel
     let onDone: () -> Void
     let onCancel: () -> Void
 
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.motion) private var motion
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -18,6 +23,7 @@ struct ShareExtensionView: View {
                     Button("Done", action: onDone)
                         .font(.body.weight(.semibold))
                         .foregroundStyle(FLColor.accent)
+                        .transition(.flSwap)
                 } else {
                     Button("Cancel", action: onCancel)
                         .font(.body)
@@ -27,28 +33,27 @@ struct ShareExtensionView: View {
 
             Spacer(minLength: FLSpacing.xxl)
 
-            Group {
+            ZStack(alignment: .topLeading) {
                 switch model.phase {
                 case .detecting:
-                    detecting
+                    detecting.transition(.flSwap)
                 case .ready(let summary, let resolved, let link):
-                    ready(summary: summary, resolved: resolved, link: link)
+                    ready(summary: summary, resolved: resolved, link: link).transition(.flReveal)
                 case .failed(let message):
-                    failed(message)
+                    failed(message).transition(.flReveal)
                 }
             }
-            .transition(.opacity)
 
             Spacer(minLength: FLSpacing.xxl)
         }
         .padding(FLSpacing.gutter)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(FLColor.background.ignoresSafeArea())
-        .animation(reduceMotion ? .easeInOut(duration: 0.2) : FLMotion.spring, value: model.phase)
-        .sensoryFeedback(trigger: model.phase) { _, phase -> SensoryFeedback? in
+        .flAnimation(.reveal, value: model.phase)
+        .flHaptic(trigger: model.phase) { _, phase -> FLHaptic? in
             switch phase {
-            case .ready: return .success
-            case .failed: return .error
+            case .ready: return FLHaptic.success
+            case .failed: return FLHaptic.failure
             case .detecting: return nil
             }
         }
@@ -57,25 +62,30 @@ struct ShareExtensionView: View {
 
     private var detecting: some View {
         VStack(alignment: .leading, spacing: FLSpacing.l) {
+            LensPulse(size: 48)
+                .flAppear(0)
             Text("Understanding\nyour French…")
                 .flTextStyle(.display)
                 .foregroundStyle(FLColor.textPrimary)
+                .flShimmer()
+                .flAppear(1)
             ProgressLine(progress: nil)
+                .flAppear(2)
         }
     }
 
     private func ready(summary: String, resolved: SharedCapability?, link: URL?) -> some View {
         VStack(alignment: .leading, spacing: FLSpacing.m) {
-            Image(systemName: "checkmark")
-                .font(.system(size: 22, weight: .semibold))
-                .foregroundStyle(FLColor.accent)
+            DrawnCheckmark(size: 48)
             Text("\(summary) received.")
                 .flTextStyle(.title)
                 .foregroundStyle(FLColor.textPrimary)
+                .flAppear(1)
             Text(nextStep(resolved: resolved, link: link))
                 .flTextStyle(.body)
                 .foregroundStyle(FLColor.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
+                .flAppear(2)
         }
         .accessibilityElement(children: .combine)
     }
@@ -85,9 +95,11 @@ struct ShareExtensionView: View {
             Image(systemName: "exclamationmark.circle")
                 .font(.system(size: 22, weight: .regular))
                 .foregroundStyle(FLColor.textTertiary)
+                .flAppear(0)
             Text("Nothing to learn from yet.")
                 .flTextStyle(.title)
                 .foregroundStyle(FLColor.textPrimary)
+                .flAppear(1)
             Text(message)
                 .flTextStyle(.body)
                 .foregroundStyle(FLColor.textSecondary)

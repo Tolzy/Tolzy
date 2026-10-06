@@ -20,6 +20,7 @@ struct FrenchLensApp: App {
                 .environment(\.tts, environment.tts)
                 .preferredColorScheme(environment.settings.appearance.colorScheme)
                 .tint(FLColor.accent)
+                .motionEnvironment()
                 .onOpenURL { environment.handle(url: $0) }
         }
     }

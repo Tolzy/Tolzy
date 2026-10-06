@@ -1,6 +1,8 @@
 import SwiftUI
 
 /// Full-screen state shown while a share becomes a lesson, or when it can't.
+/// Transitions between working, ready and failed are choreographed here so
+/// the cover never cuts: content swaps in place, then the lesson takes over.
 struct ProcessingView: View {
     @Environment(IngestCoordinator.self) private var ingest
     @Environment(AppEnvironment.self) private var environment
@@ -23,14 +25,32 @@ struct ProcessingView: View {
                     },
                     onClose: { ingest.dismiss() }
                 )
-                .transition(.opacity)
+                .id(error.id)
+                .transition(.flReveal)
             case .processing(let stage):
                 LoadingView(stage: stage, onCancel: { ingest.dismiss() })
-                    .transition(.opacity)
-            case .idle, .ready:
-                LoadingView(stage: .buildingLesson, onCancel: nil)
+                    .transition(.flReveal)
+            case .ready:
+                LoadingView(stage: .buildingLesson, isComplete: true)
+            case .idle:
+                LoadingView(stage: .buildingLesson, isComplete: true)
             }
         }
-        .animation(FLMotion.gentle, value: ingest.phase)
+        .flAnimation(.reveal, value: phaseKind)
+        .flHaptic(trigger: ingest.phase) { _, new in
+            if case .failed = new { return FLHaptic.failure }
+            return nil
+        }
+    }
+
+    /// Animate between kinds of state, not on every stage tick (LoadingView
+    /// animates its own stages).
+    private var phaseKind: Int {
+        switch ingest.phase {
+        case .idle: 0
+        case .processing: 1
+        case .ready: 2
+        case .failed: 3
+        }
     }
 }

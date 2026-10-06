@@ -28,6 +28,8 @@ enum AppTab: String, CaseIterable, Hashable, Identifiable {
 /// A lesson destination on a navigation stack.
 struct LessonRoute: Hashable {
     let id: UUID
+    /// Pushed from a visible thumbnail, so the lesson can zoom out of it.
+    var zoomsFromThumbnail = false
 }
 
 /// Navigation state for the whole app.

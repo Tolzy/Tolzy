@@ -53,12 +53,10 @@ final class IngestCoordinator {
         self.currentLevel = currentLevel
     }
 
-    /// Whether the processing / error screen should be on screen.
+    /// Whether the processing / error screen should be on screen. It stays up
+    /// through `.ready` so the completion moment can play before `finish()`.
     var isPresenting: Bool {
-        switch phase {
-        case .processing, .failed: true
-        case .idle, .ready: false
-        }
+        phase != .idle
     }
 
     // MARK: Entry points

@@ -64,9 +64,19 @@ struct FLButtonStyle: ButtonStyle {
     enum Kind { case primary, secondary, quiet }
 
     var kind: Kind
-    @Environment(\.isEnabled) private var isEnabled
 
     func makeBody(configuration: Configuration) -> some View {
+        FLButtonBody(configuration: configuration, kind: kind)
+    }
+}
+
+private struct FLButtonBody: View {
+    let configuration: ButtonStyleConfiguration
+    let kind: FLButtonStyle.Kind
+    @Environment(\.isEnabled) private var isEnabled
+    @Environment(\.motion) private var motion
+
+    var body: some View {
         configuration.label
             .foregroundStyle(foreground)
             .background(
@@ -77,9 +87,11 @@ struct FLButtonStyle: ButtonStyle {
                 RoundedRectangle(cornerRadius: FLRadius.medium, style: .continuous)
                     .strokeBorder(kind == .secondary ? FLColor.separator : .clear, lineWidth: 0.5)
             )
-            .scaleEffect(configuration.isPressed ? 0.98 : 1)
+            .scaleEffect(configuration.isPressed && motion.allowsMovement ? 0.97 : 1)
+            .brightness(configuration.isPressed && kind == .primary ? -0.06 : 0)
             .opacity(isEnabled ? 1 : 0.4)
-            .animation(FLMotion.snappy, value: configuration.isPressed)
+            .flAnimation(.tap, value: configuration.isPressed)
+            .flAnimation(.swap, value: isEnabled)
     }
 
     private var foreground: Color {
@@ -91,7 +103,7 @@ struct FLButtonStyle: ButtonStyle {
 
     private func background(pressed: Bool) -> Color {
         switch kind {
-        case .primary: pressed ? FLColor.accent.opacity(0.85) : FLColor.accent
+        case .primary: FLColor.accent
         case .secondary: pressed ? FLColor.surfacePressed : FLColor.surfaceElevated
         case .quiet: pressed ? FLColor.surfaceElevated : .clear
         }

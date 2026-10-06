@@ -4,7 +4,7 @@ import SwiftUI
 struct TranslationBlock: View {
     let translation: Translation
     @State private var showsLiteral = false
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.motion) private var motion
 
     var body: some View {
         VStack(alignment: .leading, spacing: FLSpacing.m) {
@@ -16,9 +16,7 @@ struct TranslationBlock: View {
 
             if let literal = translation.literal {
                 Button {
-                    withAnimation(FLMotion.resolve(FLMotion.spring, reduceMotion: reduceMotion)) {
-                        showsLiteral.toggle()
-                    }
+                    motion.perform(.reveal) { showsLiteral.toggle() }
                 } label: {
                     HStack(spacing: 6) {
                         Text(showsLiteral ? "Hide word for word" : "Word for word")
@@ -35,7 +33,7 @@ struct TranslationBlock: View {
                         .flTextStyle(.mono)
                         .foregroundStyle(FLColor.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
-                        .transition(AnyTransition.opacity.combined(with: .move(edge: .top)))
+                        .transition(.flReveal(distance: 8))
                 }
             }
         }

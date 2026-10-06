@@ -55,6 +55,8 @@ The core loop: **Find French video → Share → FrenchLens → Understand → L
 
 **Interactive, synchronised transcript.** Words are laid out by a custom `FlowLayout` so each glossed word is tappable (dotted underline). Tapping opens `WordPopover` in place (spring, drag-to-dismiss, haptic) — e.g. **PRÉPARER · to prepare · je prépare / tu prépares / il/elle prépare · A1 · verb**. While a sentence plays, it lights up and the others recede; with TTS, the current word is tinted using `AVSpeechSynthesizer`'s word ranges. With video, the active sentence follows the player clock.
 
+**Motion is a design-system layer.** Screens never pick curves: they state an intent (`tap`, `select`, `reveal`, `panel`, `swap`, `emphasis`, `ambient`) and use shared primitives — Reduce-Motion-aware transitions built on the iOS 17 `Transition` protocol, staggered entrances, `keyframeAnimator` pop/shake, a `PhaseAnimator` lens pulse, scroll-driven effects (stretchy/parallax hero, viewport focus, finger-locked collapsing titles), matched-geometry word highlights, iOS 18 zoom navigation, and semantic haptics. See [`docs/MOTION.md`](docs/MOTION.md) and **Settings → Motion** for a live lab.
+
 **Hand-off.** iOS does not let a Share Extension open its containing app, so FrenchLens uses only supported paths: the extension queues the payload in the App Group, optionally posts a local "Ready to learn" notification (tap → `frenchlens://ingest?id=…`), and the app drains the inbox every time it becomes active.
 
 ## 2. Files created
@@ -73,8 +75,13 @@ Shared/                          compiled into app AND extension
               URLExtractor, SupportedContent, ContentResolver, ShareInbox,
               ItemProviding, NSItemProvider+ItemProviding, ShareItemParser,
               DeepLink, ShareNotifications
-  DesignSystem/  ColorTokens, Typography, Layout (spacing/radius/motion/elevation),
+  DesignSystem/  ColorTokens, Typography, Layout (spacing/radius/elevation),
                  BrandPrimitives (BrandMark, LensGlyph, ProgressLine)
+    Motion/      MotionTokens (intents + Reduce Motion policy), MotionMath,
+                 Transitions, Choreography (stagger, pop, shake),
+                 ScrollEffects, Geometry (matched + zoom), Haptics,
+                 Pressable, MotionPrimitives (LensPulse, DrawnCheckmark,
+                 shimmer, toast)
 ShareExtension/
   ShareViewController            principal class; hosts SwiftUI
   ShareExtensionModel            parse → save to inbox → notify
@@ -98,7 +105,7 @@ FrenchLens/
     Lesson/      LessonView, LessonSection
     Library/     LibraryView
     Review/      ReviewView, ReviewSession, ReviewExercise (+ generator)
-    Settings/    SettingsView
+    Settings/    SettingsView, MotionLabView
     Ingest/      IngestCoordinator, IngestError, ProcessingView
     Onboarding/  HowItWorksView
   Components/    Buttons, FrenchText, TranslationBlock, AudioControls,
@@ -112,9 +119,11 @@ FrenchLens/
                               demo_futur_proche.json, demo_passe_compose.json
 FrenchLensTests/     URL extraction, supported content, Share Extension parsing,
                      resolver, lesson/vocabulary/verb decoding, store,
-                     ingestion state machine, review generator, deep links/inbox
+                     ingestion state machine, review generator, deep links/inbox,
+                     motion timing/scroll mapping
 FrenchLensUITests/   launch, demo lesson, tap word, verbs, save, library, review
 docs/BACKEND_API.md  the backend contract
+docs/MOTION.md       the motion system: intents, primitives, choreography
 ```
 
 ## 3. How to run
@@ -161,7 +170,7 @@ FrenchLens never scrapes Instagram, never calls private APIs, never bypasses aut
 
 ## 6. Known limitations
 
-- **Not compiled in this environment.** The project was authored on Linux without Xcode. The platform-independent core (Share parsing, resolver, models, demo JSON, services, ingestion state machine, review generator — ~30 files) was compiled with Swift 6.0.3 and all 53 unit tests pass against it; the SwiftUI/UIKit/AVFoundation layers and the UI tests have not yet been built or run. Expect possible small compile fixes on first open in Xcode.
+- **Not compiled in this environment.** The project was authored on Linux without Xcode. The platform-independent core (Share parsing, resolver, models, demo JSON, services, ingestion state machine, review generator, motion math — ~30 files) was compiled with Swift 6.0.3 and all 56 unit tests pass against it; the SwiftUI/UIKit/AVFoundation layers and the UI tests have not yet been built or run. Expect possible small compile fixes on first open in Xcode.
 - **Demo Mode returns samples.** With no backend, any video or text you add gets one of the three bundled analyses, clearly labelled with a banner. Synchronised highlighting against *your* video uses the sample's timings.
 - **No backend server is included** — only the client API layer and its contract (`docs/BACKEND_API.md`).
 - **Hand-off requires opening the app.** iOS doesn't let share extensions launch their app; FrenchLens queues the share and (if allowed) posts a notification.

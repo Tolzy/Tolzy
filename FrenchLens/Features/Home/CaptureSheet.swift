@@ -18,6 +18,7 @@ struct CaptureSheet: View {
                         .foregroundStyle(FLColor.textSecondary)
                 }
                 .padding(.top, FLSpacing.l)
+                .flAppear(0)
 
                 VStack(spacing: 0) {
                     AddVideoButton(
@@ -36,7 +37,8 @@ struct CaptureSheet: View {
                             subtitle: "From Photos. Works with any saved Reel or TikTok."
                         )
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.flPressable)
+                    .flAppear(1)
                     Hairline()
 
                     HStack {
@@ -57,6 +59,7 @@ struct CaptureSheet: View {
                         .buttonBorderShape(.capsule)
                         .tint(FLColor.surfaceElevated)
                     }
+                    .flAppear(2)
                     Hairline()
 
                     Button {
@@ -69,7 +72,8 @@ struct CaptureSheet: View {
                             subtitle: "How to send videos straight to FrenchLens."
                         )
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.flPressable)
+                    .flAppear(3)
                 }
 
                 if environment.aiFactory.isDemoMode {
@@ -89,7 +93,8 @@ struct CaptureSheet: View {
         VStack(alignment: .leading, spacing: FLSpacing.xs) {
             SectionHeader("Try a demo lesson")
                 .padding(.top, FLSpacing.m)
-            ForEach(environment.demoLibrary.lessons) { demo in
+                .flAppear(4)
+            ForEach(Array(environment.demoLibrary.lessons.enumerated()), id: \.element.id) { index, demo in
                 Button {
                     let environment = self.environment
                     router.dismissCaptureSheet { environment.openDemo(demo) }
@@ -112,8 +117,9 @@ struct CaptureSheet: View {
                     .padding(.vertical, FLSpacing.s)
                     .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.flPressable)
                 .accessibilityIdentifier("demoLesson.\(demo.id)")
+                .flAppear(5 + index)
             }
         }
     }

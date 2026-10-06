@@ -12,9 +12,13 @@ struct TokenSelection: Equatable, Identifiable {
 
 /// The interactive, synchronised transcript.
 ///
-/// - Every glossed word is tappable (dotted underline) and opens `WordPopover`.
-/// - The sentence being spoken (by TTS or the video) is lit; others recede.
-/// - During TTS the current word is tinted, using the synthesiser's ranges.
+/// Motion choreography:
+/// - Sentences assemble in reading order on first appearance (`flAppear`).
+/// - The blue word highlight *travels* between tapped words (matched geometry),
+///   so the eye follows the selection instead of losing it.
+/// - While a sentence is spoken, a thin accent rule glides under each word as
+///   the synthesiser reaches it; the other sentences recede.
+/// Under Reduce Motion all of this cross-fades in place.
 struct TranscriptView: View {
     let segments: [TranscriptSegment]
     let analysis: LessonAnalysis
@@ -27,14 +31,17 @@ struct TranscriptView: View {
     var playback: SpeechPlayback?
     var onPlay: (TranscriptSegment, SpeechRate) -> Void
 
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.motion) private var motion
+    @Namespace private var highlight
 
     var body: some View {
         VStack(alignment: .leading, spacing: FLSpacing.xl) {
-            ForEach(segments) { segment in
+            ForEach(Array(segments.enumerated()), id: \.element.id) { index, segment in
                 segmentView(segment)
+                    .flAppear(index + 1)
             }
         }
+        .flHaptic(.lookup, trigger: selection?.id)
     }
 
     private func segmentView(_ segment: TranscriptSegment) -> some View {
@@ -48,12 +55,14 @@ struct TranscriptView: View {
                         token: token,
                         isSelected: selection?.segmentID == segment.id && selection?.tokenIndex == index,
                         isSpoken: isActive && spokenTokenIndex == index,
+                        namespace: highlight,
                         onTap: { select(token, at: index, in: segment) }
                     )
                 }
             }
+            .flAnimation(.select, value: isActive ? spokenTokenIndex : nil)
             .opacity(isDimmed ? 0.38 : 1)
-            .animation(FLMotion.resolve(FLMotion.gentle, reduceMotion: reduceMotion), value: isDimmed)
+            .flAnimation(.swap, value: isDimmed)
             .accessibilityElement(children: .contain)
             .accessibilityLabel(Text(AttributedString.french(segment.text)))
 
@@ -77,7 +86,8 @@ struct TranscriptView: View {
     private func select(_ token: TranscriptToken, at index: Int, in segment: TranscriptSegment) {
         guard let key = token.lookup, let gloss = analysis.gloss(for: key) else { return }
         let next = TokenSelection(segmentID: segment.id, tokenIndex: index, token: token, gloss: gloss)
-        withAnimation(FLMotion.resolve(FLMotion.spring, reduceMotion: reduceMotion)) {
+        // Moving between words is a selection; opening/closing is a panel.
+        motion.perform(selection == nil || selection == next ? .panel : .select) {
             selection = selection == next ? nil : next
         }
     }
@@ -87,6 +97,7 @@ private struct TokenView: View {
     let token: TranscriptToken
     let isSelected: Bool
     let isSpoken: Bool
+    let namespace: Namespace.ID
     let onTap: () -> Void
 
     var body: some View {
@@ -99,18 +110,33 @@ private struct TokenView: View {
         if token.isTappable {
             text
                 .padding(.horizontal, 3)
-                .background(
-                    RoundedRectangle(cornerRadius: 6, style: .continuous)
-                        .fill(isSelected ? FLColor.accent : .clear)
-                )
+                .background {
+                    if isSelected {
+                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                            .fill(FLColor.accent)
+                            .flMatchedGeometry(id: "selected-word", in: namespace)
+                    }
+                }
+                .overlay(alignment: .bottom) { spokenRule }
                 .padding(.horizontal, -3)
                 .contentShape(Rectangle())
                 .onTapGesture(perform: onTap)
-                .accessibilityAddTraits(.isButton)
+                .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
                 .accessibilityHint("Shows the meaning")
                 .accessibilityIdentifier("token.\(token.text)")
         } else {
-            text
+            text.overlay(alignment: .bottom) { spokenRule }
+        }
+    }
+
+    @ViewBuilder
+    private var spokenRule: some View {
+        if isSpoken {
+            Capsule()
+                .fill(FLColor.accent)
+                .frame(height: 2)
+                .offset(y: 3)
+                .flMatchedGeometry(id: "spoken-word", in: namespace)
         }
     }
 

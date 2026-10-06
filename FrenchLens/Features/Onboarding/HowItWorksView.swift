@@ -17,6 +17,7 @@ struct HowItWorksView: View {
                         .flTextStyle(.display)
                         .foregroundStyle(FLColor.textPrimary)
                         .fixedSize(horizontal: false, vertical: true)
+                        .flAppear(0, distance: 24)
 
                     VStack(alignment: .leading, spacing: FLSpacing.l) {
                         ForEach(Array(steps.enumerated()), id: \.offset) { index, step in
@@ -36,6 +37,7 @@ struct HowItWorksView: View {
                                 }
                             }
                             .accessibilityElement(children: .combine)
+                            .flAppear(index + 1)
                         }
                     }
 
@@ -52,6 +54,7 @@ struct HowItWorksView: View {
                     }
                     .padding(FLSpacing.l)
                     .flSurface(FLColor.surface, radius: FLRadius.large)
+                    .flAppear(steps.count + 1)
                 }
                 .padding(FLSpacing.gutter)
             }

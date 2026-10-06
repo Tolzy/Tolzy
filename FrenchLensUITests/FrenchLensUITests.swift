@@ -109,4 +109,12 @@ final class FrenchLensUITests: XCTestCase {
         option.tap()
         XCTAssertTrue(element("review.continue").waitForExistence(timeout: 3))
     }
+
+    func testMotionLabOpensFromSettings() {
+        app.tabBars.buttons["Settings"].tap()
+        let link = element("motionLabLink")
+        XCTAssertTrue(link.waitForExistence(timeout: 3))
+        link.tap()
+        XCTAssertTrue(app.staticTexts["Intents"].waitForExistence(timeout: 3))
+    }
 }

@@ -68,6 +68,7 @@ final class AppEnvironment {
             defaults = UserDefaults(suiteName: "FrenchLens.UITests") ?? .standard
             defaults.removePersistentDomain(forName: "FrenchLens.UITests")
             UIView.setAnimationsEnabled(false)
+            MotionRuntime.isDisabled = true
         } else {
             supportDirectory = LessonStore.defaultDirectory
             defaults = .standard

@@ -4,6 +4,7 @@ struct RootView: View {
     @Environment(AppRouter.self) private var router
     @Environment(IngestCoordinator.self) private var ingest
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.motion) private var motion
 
     var body: some View {
         @Bindable var router = router
@@ -26,8 +27,13 @@ struct RootView: View {
             HowItWorksView()
         }
         .onChange(of: ingest.phase) { _, phase in
-            // Push the lesson underneath, then let the cover slide away.
-            if case .ready(let id) = phase {
+            guard case .ready(let id) = phase else { return }
+            // Hold the "ready" moment (checkmark draws), push the lesson
+            // underneath, then let the cover slide away to reveal it.
+            Task { @MainActor in
+                if motion.allowsMovement {
+                    try? await Task.sleep(for: Choreography.completionHold)
+                }
                 router.openLesson(id)
                 ingest.finish()
             }

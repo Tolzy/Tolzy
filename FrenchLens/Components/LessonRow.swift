@@ -4,11 +4,12 @@ import SwiftUI
 struct LessonRow: View {
     let lesson: Lesson
     var thumbnailURL: URL?
+    /// When set, the thumbnail is the source of the lesson's zoom transition.
+    var zoomNamespace: Namespace.ID?
 
     var body: some View {
         HStack(spacing: FLSpacing.m) {
-            LessonThumbnail(lesson: lesson, imageURL: thumbnailURL)
-                .frame(width: 56, height: 72)
+            thumbnail
 
             VStack(alignment: .leading, spacing: 5) {
                 Text(lesson.source.label)
@@ -31,11 +32,24 @@ struct LessonRow: View {
                     .font(.caption)
                     .foregroundStyle(FLColor.textTertiary)
                     .accessibilityLabel("Saved")
+                    .transition(.flSwap)
             }
         }
         .padding(.vertical, FLSpacing.s)
         .contentShape(Rectangle())
+        .flAnimation(.emphasis, value: lesson.isSaved)
         .accessibilityElement(children: .combine)
+    }
+
+    @ViewBuilder
+    private var thumbnail: some View {
+        let view = LessonThumbnail(lesson: lesson, imageURL: thumbnailURL)
+            .frame(width: 56, height: 72)
+        if let zoomNamespace {
+            view.flZoomSource(id: lesson.id, in: zoomNamespace)
+        } else {
+            view
+        }
     }
 }
 

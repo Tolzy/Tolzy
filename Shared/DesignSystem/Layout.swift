@@ -23,18 +23,7 @@ enum FLRadius {
     static let sheet: CGFloat = 32
 }
 
-/// Motion tokens. Everything springs; nothing bounces for show.
-enum FLMotion {
-    static let spring = Animation.spring(response: 0.42, dampingFraction: 0.86)
-    static let snappy = Animation.spring(response: 0.28, dampingFraction: 0.9)
-    static let gentle = Animation.easeInOut(duration: 0.35)
-    static let slow = Animation.easeInOut(duration: 1.2)
-
-    /// Swaps movement for a plain cross-fade when Reduce Motion is on.
-    static func resolve(_ animation: Animation, reduceMotion: Bool) -> Animation {
-        reduceMotion ? .easeInOut(duration: 0.2) : animation
-    }
-}
+// Motion lives in DesignSystem/Motion (MotionToken, transitions, choreography).
 
 /// Depth tokens.
 enum FLElevation {

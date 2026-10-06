@@ -120,9 +120,10 @@ final class IngestCoordinatorTests: XCTestCase {
     func testFinishAndDismissReturnToIdle() async {
         await coordinator.process(.text("Bonjour"))
         guard case .ready = coordinator.phase else { return XCTFail("Expected ready") }
-        XCTAssertFalse(coordinator.isPresenting)
+        XCTAssertTrue(coordinator.isPresenting, "The ready moment plays on the cover")
         coordinator.finish()
         XCTAssertEqual(coordinator.phase, .idle)
+        XCTAssertFalse(coordinator.isPresenting)
 
         await coordinator.process(.link("nothing"))
         XCTAssertTrue(coordinator.isPresenting)

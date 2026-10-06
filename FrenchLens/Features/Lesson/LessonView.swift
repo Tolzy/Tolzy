@@ -22,6 +22,14 @@ struct LessonView: View {
 }
 
 /// The cinematic lesson: hero → what they said → meaning → learning layers.
+///
+/// Motion choreography (all via the motion system, all Reduce-Motion aware):
+/// - Entrance: header, transcript sentences and sections assemble in order.
+/// - Scroll: the hero stretches/parallaxes; a compact title fades into the
+///   navigation bar in lockstep with the finger once the header scrolls away.
+/// - Sections slide in from the direction of travel.
+/// - Words open a floating panel; the highlight travels between words.
+/// - Saving pops the bookmark, plays a haptic and confirms with a toast.
 struct LessonDetailView: View {
     let lesson: Lesson
 
@@ -29,16 +37,25 @@ struct LessonDetailView: View {
     @Environment(LessonStore.self) private var store
     @Environment(AppSettings.self) private var settings
     @Environment(\.tts) private var tts
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.motion) private var motion
 
     @State private var selection: TokenSelection?
     @State private var section: LessonSection = .vocabulary
+    @State private var sectionDirection: Double = 1
     @State private var playback: PlaybackController?
-    @State private var saveCount = 0
+    @State private var scrollOffset: CGFloat = 0
+    @State private var toast: String?
+
+    private let heroHeight: CGFloat = 440
 
     private var analysis: LessonAnalysis { lesson.analysis }
     private var level: CEFRLevel { settings.level }
     private var sections: [LessonSection] { LessonSection.available(in: analysis) }
+
+    /// 0 → 1 as the header scrolls under the navigation bar.
+    private var titleProgress: Double {
+        ScrollProgress(start: heroHeight - 160, end: heroHeight - 60)(scrollOffset)
+    }
 
     /// Demo Mode answered the learner's own video or text with a sample.
     private var isSampleAnalysisOfLearnerContent: Bool {
@@ -48,18 +65,22 @@ struct LessonDetailView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                VideoHero(lesson: lesson, playback: playback)
+                VideoHero(lesson: lesson, playback: playback, height: heroHeight)
+                    .flOnScrollOffsetChange { scrollOffset = $0 }
 
                 VStack(alignment: .leading, spacing: FLSpacing.xxl) {
                     LessonHeader(lesson: lesson)
                         .padding(.top, -FLSpacing.xxl)
+                        .flAppear(0, distance: 24)
 
                     if isSampleAnalysisOfLearnerContent {
                         DemoBanner()
+                            .flAppear(1)
                     }
 
                     VStack(alignment: .leading, spacing: FLSpacing.l) {
                         SectionHeader("What they said")
+                            .flAppear(1)
                         TranscriptView(
                             segments: analysis.transcript.segments,
                             analysis: analysis,
@@ -75,15 +96,20 @@ struct LessonDetailView: View {
                         SectionHeader("Meaning")
                         TranslationBlock(translation: analysis.translation)
                     }
+                    .flAppear(analysis.transcript.segments.count + 1)
+                    .flScrollFocus(strength: 0.5)
 
                     if !sections.isEmpty {
                         VStack(alignment: .leading, spacing: FLSpacing.m) {
                             SectionHeader("What you can learn")
-                            SegmentBar(items: sections, selection: $section, title: \.title)
-                            sectionContent
-                                .id(section)
-                                .transition(.opacity)
+                            SegmentBar(items: sections, selection: sectionBinding, title: \.title)
+                            ZStack(alignment: .topLeading) {
+                                sectionContent
+                                    .id(section)
+                                    .transition(.flSlide(direction: sectionDirection))
+                            }
                         }
+                        .flAppear(analysis.transcript.segments.count + 2)
                     }
                 }
                 .padding(.horizontal, FLSpacing.gutter)
@@ -95,26 +121,50 @@ struct LessonDetailView: View {
         .ignoresSafeArea(edges: .top)
         .background(FLColor.background.ignoresSafeArea())
         .overlay(alignment: .bottom) { wordPanel }
+        .flToast($toast, systemImage: "bookmark.fill")
         .toolbar {
+            ToolbarItem(placement: .principal) {
+                Text(analysis.title)
+                    .font(.headline)
+                    .foregroundStyle(FLColor.textPrimary)
+                    .opacity(titleProgress)
+                    .offset(y: (1 - titleProgress) * 6)
+                    .accessibilityHidden(titleProgress < 0.5)
+            }
             ToolbarItem(placement: .topBarTrailing) { saveButton }
         }
-        .toolbarBackground(.hidden, for: .navigationBar)
+        .toolbarBackground(titleProgress >= 1 ? .visible : .hidden, for: .navigationBar)
+        .flAnimation(.swap, value: titleProgress >= 1)
         .toolbar(.hidden, for: .tabBar)
         .navigationBarTitleDisplayMode(.inline)
-        .sensoryFeedback(.selection, trigger: selection?.id)
-        .sensoryFeedback(.success, trigger: saveCount)
+        .flHaptic(trigger: lesson.isSaved) { _, isSaved in isSaved ? FLHaptic.saved : FLHaptic.unsaved }
+        .flHaptic(.surface, trigger: selection == nil)
         .onAppear {
             if !sections.contains(section), let first = sections.first { section = first }
         }
         .task(id: lesson.id) {
             if playback == nil, let url = environment.mediaURL(for: lesson), FileManager.default.fileExists(atPath: url.path) {
-                playback = PlaybackController(url: url)
+                motion.perform(.reveal) { playback = PlaybackController(url: url) }
             }
         }
         .onDisappear {
             tts.stop()
             playback?.pause()
         }
+    }
+
+    /// Records the direction of travel in the same transaction as the change,
+    /// so the incoming section slides in from the side the learner moved to.
+    private var sectionBinding: Binding<LessonSection> {
+        Binding(
+            get: { section },
+            set: { newValue in
+                let old = sections.firstIndex(of: section) ?? 0
+                let new = sections.firstIndex(of: newValue) ?? 0
+                sectionDirection = new >= old ? 1 : -1
+                section = newValue
+            }
+        )
     }
 
     // MARK: Pieces
@@ -130,23 +180,25 @@ struct LessonDetailView: View {
                 onClose: { closeWordPanel() }
             )
             .padding(.bottom, FLSpacing.xs)
-            .transition(reduceMotion ? AnyTransition.opacity : AnyTransition.move(edge: .bottom).combined(with: .opacity))
-            .id(selection.id)
+            .transition(.flPanel)
         }
     }
 
     private var saveButton: some View {
         Button {
-            store.toggleSaved(lessonID: lesson.id)
-            saveCount += 1
+            let willSave = !lesson.isSaved
+            motion.perform(.emphasis) { store.toggleSaved(lessonID: lesson.id) }
+            toast = willSave ? "Saved to Library" : nil
         } label: {
             Image(systemName: lesson.isSaved ? "bookmark.fill" : "bookmark")
                 .font(.system(size: 15, weight: .semibold))
                 .foregroundStyle(lesson.isSaved ? FLColor.accent : FLColor.textPrimary)
                 .contentTransition(.symbolEffect(.replace))
+                .flPop(trigger: lesson.isSaved, tilt: -8)
                 .frame(width: 36, height: 36)
                 .background(.ultraThinMaterial, in: Circle())
         }
+        .buttonStyle(FLPressableStyle(scale: 0.9, highlights: false))
         .accessibilityLabel(lesson.isSaved ? "Saved to Library" : "Save lesson")
         .accessibilityIdentifier("saveLessonButton")
     }
@@ -161,6 +213,7 @@ struct LessonDetailView: View {
                     VocabularyRow(item: item, isSpeaking: tts.isSpeaking(id)) {
                         speak(item.french, id: id, rate: .normal)
                     }
+                    .flScrollFocus()
                 }
             }
         case .verbs:
@@ -169,6 +222,7 @@ struct LessonDetailView: View {
                     VerbCard(verb: verb, level: level, speakingID: tts.current?.utteranceID) { text, id in
                         speak(text, id: id, rate: .normal)
                     }
+                    .flScrollFocus()
                 }
             }
             .padding(.top, FLSpacing.xs)
@@ -179,6 +233,7 @@ struct LessonDetailView: View {
                     ExpressionCard(expression: expression, level: level, isSpeaking: tts.isSpeaking(id)) {
                         speak(expression.phrase, id: id, rate: .normal)
                     }
+                    .flScrollFocus()
                 }
             }
         case .grammar:
@@ -187,6 +242,7 @@ struct LessonDetailView: View {
                     GrammarSection(point: point, level: level, speakingID: tts.current?.utteranceID) { text, id in
                         speak(text, id: id, rate: .normal)
                     }
+                    .flScrollFocus()
                 }
             }
         case .pronunciation:
@@ -195,6 +251,7 @@ struct LessonDetailView: View {
                     PronunciationRow(note: note, level: level, playback: tts.current) { rate in
                         speak(note.phrase, id: "pronunciation.\(note.id)", rate: rate)
                     }
+                    .flScrollFocus()
                 }
             }
         }
@@ -233,8 +290,6 @@ struct LessonDetailView: View {
     }
 
     private func closeWordPanel() {
-        withAnimation(FLMotion.resolve(FLMotion.spring, reduceMotion: reduceMotion)) {
-            selection = nil
-        }
+        motion.perform(.panel) { selection = nil }
     }
 }

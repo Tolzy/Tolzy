@@ -64,6 +64,13 @@ struct SettingsView: View {
                     }
                     .pickerStyle(.segmented)
                     .labelsHidden()
+
+                    NavigationLink {
+                        MotionLabView()
+                    } label: {
+                        Label("Motion", systemImage: "wand.and.rays")
+                    }
+                    .accessibilityIdentifier("motionLabLink")
                 }
 
                 Section {
