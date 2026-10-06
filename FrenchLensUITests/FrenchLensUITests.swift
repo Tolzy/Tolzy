@@ -26,7 +26,11 @@ final class FrenchLensUITests: XCTestCase {
         element("understandButton").tap()
         let demo = element("demoLesson.\(id)")
         XCTAssertTrue(demo.waitForExistence(timeout: 5))
-        if !demo.isHittable { app.swipeUp() }
+        // The demo list sits below the fold at the sheet's medium height, where
+        // XCUITest can report a row as hittable while the tap lands off-screen.
+        // Expand the sheet first, as a person would.
+        app.swipeUp()
+        XCTAssertTrue(demo.waitForExistence(timeout: 3))
         demo.tap()
         XCTAssertTrue(app.staticTexts["What they said"].waitForExistence(timeout: 5))
     }
