@@ -1,0 +1,117 @@
+name: iOS
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    name: Build, test & screenshots
+    runs-on: macos-15
+    timeout-minutes: 60
+    env:
+      PROJECT: FrenchLens.xcodeproj
+      SCHEME: FrenchLens
+      # Simulator builds don't need a signing identity or a team.
+      SIGNING: CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select latest stable Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Pick an iPhone simulator
+        id: sim
+        run: |
+          xcodebuild -version
+          UDID=$(xcrun simctl list devices available -j | python3 -c '
+          import json, sys
+          devices = json.load(sys.stdin)["devices"]
+          runtimes = sorted((r for r in devices if "iOS" in r), reverse=True)
+          for runtime in runtimes:
+              for d in devices[runtime]:
+                  if d["name"].startswith("iPhone") and "Pro" in d["name"] and "Max" not in d["name"]:
+                      print(d["udid"]); sys.exit()
+          for runtime in runtimes:
+              for d in devices[runtime]:
+                  if d["name"].startswith("iPhone"):
+                      print(d["udid"]); sys.exit()
+          ')
+          echo "Using simulator $UDID"
+          xcrun simctl list devices | grep "$UDID"
+          echo "udid=$UDID" >> "$GITHUB_OUTPUT"
+          xcrun simctl boot "$UDID" || true
+
+      - name: Build app, Share Extension and tests
+        run: |
+          set -o pipefail
+          xcodebuild build-for-testing \
+            -project "$PROJECT" -scheme "$SCHEME" \
+            -destination "id=${{ steps.sim.outputs.udid }}" \
+            -derivedDataPath DerivedData \
+            $SIGNING | tee build.log | grep -E "error:|warning: |BUILD (SUCCEEDED|FAILED)|\*\* " || true
+          grep -q "TEST BUILD SUCCEEDED" build.log
+
+      - name: Verify the Share Extension is embedded
+        run: |
+          APP=$(find DerivedData/Build/Products -maxdepth 2 -name "FrenchLens.app" | head -1)
+          ls "$APP/PlugIns"
+          test -d "$APP/PlugIns/FrenchLensShareExtension.appex"
+          plutil -p "$APP/PlugIns/FrenchLensShareExtension.appex/Info.plist" | grep -A3 NSExtensionPointIdentifier
+
+      - name: Unit tests
+        run: |
+          set -o pipefail
+          xcodebuild test-without-building \
+            -project "$PROJECT" -scheme "$SCHEME" \
+            -destination "id=${{ steps.sim.outputs.udid }}" \
+            -derivedDataPath DerivedData \
+            -only-testing:FrenchLensTests \
+            -resultBundlePath results/UnitTests.xcresult \
+            $SIGNING | grep -E "Test Case .* (passed|failed)|error:|Executed|\*\* TEST" 
+
+      - name: UI tests and screenshots
+        run: |
+          set -o pipefail
+          xcodebuild test-without-building \
+            -project "$PROJECT" -scheme "$SCHEME" \
+            -destination "id=${{ steps.sim.outputs.udid }}" \
+            -derivedDataPath DerivedData \
+            -only-testing:FrenchLensUITests \
+            -resultBundlePath results/UITests.xcresult \
+            $SIGNING | grep -E "Test Case .* (passed|failed)|error:|Executed|\*\* TEST"
+
+      - name: Export screenshots
+        if: always()
+        run: |
+          mkdir -p screenshots
+          if [ -d results/UITests.xcresult ]; then
+            xcrun xcresulttool export attachments --path results/UITests.xcresult --output-path screenshots || true
+          fi
+          ls -la screenshots || true
+
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshots
+          path: screenshots
+          if-no-files-found: ignore
+
+      - name: Upload test results and build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: |
+            results
+            build.log
+          if-no-files-found: ignore
