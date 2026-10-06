@@ -115,6 +115,6 @@ final class FrenchLensUITests: XCTestCase {
         let link = element("motionLabLink")
         XCTAssertTrue(link.waitForExistence(timeout: 3))
         link.tap()
-        XCTAssertTrue(app.staticTexts["Intents"].waitForExistence(timeout: 3))
+        XCTAssertTrue(element("motionLab").waitForExistence(timeout: 3))
     }
 }

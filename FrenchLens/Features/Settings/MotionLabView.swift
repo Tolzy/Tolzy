@@ -119,6 +119,7 @@ struct MotionLabView: View {
             .padding(FLSpacing.gutter)
             .padding(.bottom, 160)
         }
+        .accessibilityIdentifier("motionLab")
         .background(FLColor.background.ignoresSafeArea())
         .overlay(alignment: .bottom) {
             if showsPanel {
