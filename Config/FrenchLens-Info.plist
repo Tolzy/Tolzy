@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>frenchlens</string>
+			</array>
+		</dict>
+	</array>
+	<key>FLAppGroupIdentifier</key>
+	<string>$(FRENCHLENS_APP_GROUP)</string>
+	<key>FLBackendBaseURL</key>
+	<string>$(FRENCHLENS_API_BASE_URL)</string>
+</dict>
+</plist>

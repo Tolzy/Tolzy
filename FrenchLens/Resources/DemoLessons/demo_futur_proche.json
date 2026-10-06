@@ -1,0 +1,657 @@
+{
+  "id": "demo-futur-proche",
+  "keywords": [
+    "petit-déjeuner",
+    "vais",
+    "prépare",
+    "montrer",
+    "café"
+  ],
+  "source": {
+    "kind": "instagramReel",
+    "author": "@petitdej.paris",
+    "url": "https://www.instagram.com/reel/DEMO-petitdej/"
+  },
+  "analysis": {
+    "title": "Breakfast, step by step",
+    "cefrLevel": "A1",
+    "transcript": {
+      "segments": [
+        {
+          "id": "s1",
+          "start": 0.0,
+          "end": 4.2,
+          "tokens": [
+            {
+              "text": "Aujourd'hui,",
+              "lookup": "aujourdhui"
+            },
+            "je",
+            {
+              "text": "vais",
+              "lookup": "aller"
+            },
+            "vous",
+            {
+              "text": "montrer",
+              "lookup": "montrer"
+            },
+            {
+              "text": "comment",
+              "lookup": "comment"
+            },
+            "je",
+            {
+              "text": "prépare",
+              "lookup": "preparer"
+            },
+            "mon",
+            {
+              "text": "petit-déjeuner.",
+              "lookup": "petit_dejeuner"
+            }
+          ],
+          "translation": "Today, I'm going to show you how I make my breakfast."
+        },
+        {
+          "id": "s2",
+          "start": 4.2,
+          "end": 6.6,
+          "tokens": [
+            {
+              "text": "D'abord,",
+              "lookup": "dabord"
+            },
+            "je",
+            {
+              "text": "vais",
+              "lookup": "aller"
+            },
+            {
+              "text": "faire",
+              "lookup": "faire"
+            },
+            "du",
+            {
+              "text": "café.",
+              "lookup": "cafe"
+            }
+          ],
+          "translation": "First, I'm going to make some coffee."
+        },
+        {
+          "id": "s3",
+          "start": 6.6,
+          "end": 9.0,
+          "tokens": [
+            {
+              "text": "Ensuite,",
+              "lookup": "ensuite"
+            },
+            "on",
+            {
+              "text": "va",
+              "lookup": "aller"
+            },
+            {
+              "text": "couper",
+              "lookup": "couper"
+            },
+            "des",
+            {
+              "text": "fruits.",
+              "lookup": "fruit"
+            }
+          ],
+          "translation": "Then we're going to cut up some fruit."
+        },
+        {
+          "id": "s4",
+          "start": 9.0,
+          "end": 10.2,
+          "tokens": [
+            {
+              "text": "C'est",
+              "lookup": "cest_parti"
+            },
+            {
+              "text": "parti",
+              "lookup": "cest_parti"
+            },
+            "!"
+          ],
+          "translation": "Here we go!"
+        }
+      ]
+    },
+    "translation": {
+      "natural": "Today I'm going to show you how I make my breakfast. First, I'm going to make some coffee. Then we're going to cut up some fruit. Here we go!",
+      "literal": "Today, I go you to-show how I prepare my small-lunch. First, I go to-make some coffee. Next, one goes to-cut some fruits. It's left!"
+    },
+    "vocabulary": [
+      {
+        "french": "aujourd'hui",
+        "english": "today",
+        "cefr": "A1",
+        "partOfSpeech": "adverb"
+      },
+      {
+        "french": "le petit-déjeuner",
+        "english": "breakfast",
+        "cefr": "A1",
+        "partOfSpeech": "noun",
+        "example": "Je prends mon petit-déjeuner à 8 h.",
+        "exampleTranslation": "I have breakfast at 8."
+      },
+      {
+        "french": "d'abord",
+        "english": "first, first of all",
+        "cefr": "A1",
+        "partOfSpeech": "adverb"
+      },
+      {
+        "french": "ensuite",
+        "english": "then, next",
+        "cefr": "A1",
+        "partOfSpeech": "adverb",
+        "example": "D'abord le café, ensuite les fruits.",
+        "exampleTranslation": "Coffee first, then the fruit."
+      },
+      {
+        "french": "couper",
+        "english": "to cut",
+        "cefr": "A1",
+        "partOfSpeech": "verb"
+      },
+      {
+        "french": "comment",
+        "english": "how",
+        "cefr": "A1",
+        "partOfSpeech": "adverb"
+      }
+    ],
+    "verbs": [
+      {
+        "infinitive": "aller",
+        "english": "to go",
+        "formUsed": "vais",
+        "tense": "présent (futur proche)",
+        "person": "je · 1st person singular",
+        "conjugation": [
+          {
+            "pronoun": "je",
+            "form": "vais"
+          },
+          {
+            "pronoun": "tu",
+            "form": "vas"
+          },
+          {
+            "pronoun": "il/elle",
+            "form": "va"
+          },
+          {
+            "pronoun": "nous",
+            "form": "allons"
+          },
+          {
+            "pronoun": "vous",
+            "form": "allez"
+          },
+          {
+            "pronoun": "ils/elles",
+            "form": "vont"
+          }
+        ],
+        "example": "Je vais vous montrer.",
+        "exampleTranslation": "I'm going to show you.",
+        "cefr": "A1",
+        "note": {
+          "a1": "Here aller doesn't mean moving. Je vais + verb = I'm going to…",
+          "a2": "Je vais montrer, on va couper: aller + infinitive talks about the near future.",
+          "b1": "Aller is the helper verb of the futur proche, just like 'going to' in English.",
+          "b2": "Ici, « aller » est un semi-auxiliaire : il sert à former le futur proche."
+        }
+      },
+      {
+        "infinitive": "préparer",
+        "english": "to prepare, to make",
+        "formUsed": "prépare",
+        "tense": "présent",
+        "person": "je · 1st person singular",
+        "conjugation": [
+          {
+            "pronoun": "je",
+            "form": "prépare"
+          },
+          {
+            "pronoun": "tu",
+            "form": "prépares"
+          },
+          {
+            "pronoun": "il/elle",
+            "form": "prépare"
+          },
+          {
+            "pronoun": "nous",
+            "form": "préparons"
+          },
+          {
+            "pronoun": "vous",
+            "form": "préparez"
+          },
+          {
+            "pronoun": "ils/elles",
+            "form": "préparent"
+          }
+        ],
+        "example": "Je prépare le dîner.",
+        "exampleTranslation": "I'm making dinner.",
+        "cefr": "A1",
+        "note": {
+          "a1": "A regular -er verb: drop -er, add -e for je."
+        }
+      },
+      {
+        "infinitive": "montrer",
+        "english": "to show",
+        "formUsed": "montrer",
+        "tense": "infinitif",
+        "person": "after « vais »",
+        "conjugation": [
+          {
+            "pronoun": "je",
+            "form": "montre"
+          },
+          {
+            "pronoun": "tu",
+            "form": "montres"
+          },
+          {
+            "pronoun": "il/elle",
+            "form": "montre"
+          },
+          {
+            "pronoun": "nous",
+            "form": "montrons"
+          },
+          {
+            "pronoun": "vous",
+            "form": "montrez"
+          },
+          {
+            "pronoun": "ils/elles",
+            "form": "montrent"
+          }
+        ],
+        "example": "Je vais vous montrer ma cuisine.",
+        "exampleTranslation": "I'm going to show you my kitchen.",
+        "cefr": "A1"
+      },
+      {
+        "infinitive": "faire",
+        "english": "to do, to make",
+        "formUsed": "faire",
+        "tense": "infinitif",
+        "person": "after « vais »",
+        "conjugation": [
+          {
+            "pronoun": "je",
+            "form": "fais"
+          },
+          {
+            "pronoun": "tu",
+            "form": "fais"
+          },
+          {
+            "pronoun": "il/elle",
+            "form": "fait"
+          },
+          {
+            "pronoun": "nous",
+            "form": "faisons"
+          },
+          {
+            "pronoun": "vous",
+            "form": "faites"
+          },
+          {
+            "pronoun": "ils/elles",
+            "form": "font"
+          }
+        ],
+        "example": "Je fais du café.",
+        "exampleTranslation": "I'm making coffee.",
+        "cefr": "A1",
+        "note": {
+          "a1": "Faire means both to do and to make.",
+          "b1": "Faire is irregular: nous faisons, vous faites, ils font.",
+          "b2": "Verbe irrégulier très fréquent : « vous faites », « ils font »."
+        }
+      }
+    ],
+    "expressions": [
+      {
+        "phrase": "C'est parti !",
+        "literal": "It has left!",
+        "natural": "Here we go! / Let's go!",
+        "register": "informal",
+        "cefr": "A1",
+        "example": "Tout le monde est prêt ? C'est parti !",
+        "note": {
+          "a1": "Say it when you start something.",
+          "b1": "Common in videos, sport and games to kick things off.",
+          "b2": "S'emploie pour lancer une activité, souvent avec enthousiasme."
+        }
+      },
+      {
+        "phrase": "faire du café",
+        "literal": "to do some coffee",
+        "natural": "to make coffee",
+        "register": "neutral",
+        "cefr": "A1",
+        "note": {
+          "a1": "French uses faire (do/make) for cooking: faire un gâteau, faire du café."
+        }
+      }
+    ],
+    "grammar": [
+      {
+        "id": "aller-infinitive",
+        "title": "Aller + infinitive",
+        "pattern": "aller (présent) + infinitive",
+        "excerpt": "Je vais vous montrer…",
+        "cefr": "A1",
+        "explanation": {
+          "a1": "Used for the near future. Je vais montrer = I'm going to show. It works just like 'going to' in English.",
+          "a2": "Used for the near future: conjugate aller, then add a verb in its basic form. Je vais faire, on va couper.",
+          "b1": "The futur proche is the everyday way to talk about plans. The futur simple (je montrerai) sounds more formal or distant.",
+          "b2": "Le futur proche (aller + infinitif) exprime une action imminente ou prévue. Plus courant à l'oral que le futur simple."
+        },
+        "examples": [
+          "Je vais manger.",
+          "On va partir.",
+          "Tu vas aimer ça."
+        ]
+      },
+      {
+        "id": "pronoun-before-infinitive",
+        "title": "Pronoun before the infinitive",
+        "pattern": "aller + pronoun + infinitive",
+        "excerpt": "je vais vous montrer",
+        "cefr": "A2",
+        "explanation": {
+          "a1": "Vous (you) goes before montrer: je vais vous montrer = I'm going to show you.",
+          "a2": "The small word vous comes before the verb it belongs to (montrer), not after it like in English.",
+          "b1": "Object pronouns attach to the infinitive they complement: je vais le faire, on va leur dire.",
+          "b2": "Le pronom complément se place devant l'infinitif dont il dépend : « je vais vous montrer »."
+        },
+        "examples": [
+          "Je vais te montrer.",
+          "On va le faire."
+        ]
+      },
+      {
+        "id": "partitive",
+        "title": "Du / des: some",
+        "pattern": "du / de la / des + noun",
+        "excerpt": "du café… des fruits",
+        "cefr": "A1",
+        "explanation": {
+          "a1": "Du café = some coffee. Des fruits = some fruit. French needs this little word; English often doesn't.",
+          "a2": "Use du (masculine), de la (feminine) or des (plural) for an unspecified amount.",
+          "b1": "After a negative, du/de la/des become de: je ne bois pas de café.",
+          "b2": "L'article partitif exprime une quantité indéterminée ; il devient « de » après une négation."
+        },
+        "examples": [
+          "Je bois du thé.",
+          "Elle mange des fruits."
+        ]
+      }
+    ],
+    "pronunciation": [
+      {
+        "phrase": "petit-déjeuner",
+        "ipa": "/pə.ti de.ʒœ.ne/",
+        "tip": {
+          "a1": "The e in petit is very light. Many people say \"ptee day-zhuh-nay\".",
+          "b1": "The schwa in petit often drops in casual speech: /pti/.",
+          "b2": "Le « e » de « petit » tombe souvent à l'oral : /pti/."
+        }
+      },
+      {
+        "phrase": "Aujourd'hui",
+        "ipa": "/o.ʒuʁ.dɥi/",
+        "tip": {
+          "a1": "Three beats: \"oh-zhoor-dwee\"."
+        }
+      }
+    ],
+    "glossary": [
+      {
+        "key": "aujourdhui",
+        "lemma": "aujourd'hui",
+        "english": "today",
+        "partOfSpeech": "adverb",
+        "cefr": "A1"
+      },
+      {
+        "key": "aller",
+        "lemma": "aller",
+        "english": "to go",
+        "partOfSpeech": "verb",
+        "cefr": "A1",
+        "forms": [
+          {
+            "pronoun": "je",
+            "form": "vais"
+          },
+          {
+            "pronoun": "tu",
+            "form": "vas"
+          },
+          {
+            "pronoun": "il/elle",
+            "form": "va"
+          },
+          {
+            "pronoun": "nous",
+            "form": "allons"
+          },
+          {
+            "pronoun": "vous",
+            "form": "allez"
+          },
+          {
+            "pronoun": "ils/elles",
+            "form": "vont"
+          }
+        ],
+        "note": {
+          "a1": "Here: aller + verb = going to (near future)."
+        }
+      },
+      {
+        "key": "montrer",
+        "lemma": "montrer",
+        "english": "to show",
+        "partOfSpeech": "verb",
+        "cefr": "A1",
+        "forms": [
+          {
+            "pronoun": "je",
+            "form": "montre"
+          },
+          {
+            "pronoun": "tu",
+            "form": "montres"
+          },
+          {
+            "pronoun": "il/elle",
+            "form": "montre"
+          },
+          {
+            "pronoun": "nous",
+            "form": "montrons"
+          },
+          {
+            "pronoun": "vous",
+            "form": "montrez"
+          },
+          {
+            "pronoun": "ils/elles",
+            "form": "montrent"
+          }
+        ]
+      },
+      {
+        "key": "comment",
+        "lemma": "comment",
+        "english": "how",
+        "partOfSpeech": "adverb",
+        "cefr": "A1"
+      },
+      {
+        "key": "preparer",
+        "lemma": "préparer",
+        "english": "to prepare",
+        "partOfSpeech": "verb",
+        "cefr": "A1",
+        "forms": [
+          {
+            "pronoun": "je",
+            "form": "prépare"
+          },
+          {
+            "pronoun": "tu",
+            "form": "prépares"
+          },
+          {
+            "pronoun": "il/elle",
+            "form": "prépare"
+          },
+          {
+            "pronoun": "nous",
+            "form": "préparons"
+          },
+          {
+            "pronoun": "vous",
+            "form": "préparez"
+          },
+          {
+            "pronoun": "ils/elles",
+            "form": "préparent"
+          }
+        ]
+      },
+      {
+        "key": "petit_dejeuner",
+        "lemma": "le petit-déjeuner",
+        "english": "breakfast",
+        "partOfSpeech": "noun · masculine",
+        "cefr": "A1"
+      },
+      {
+        "key": "dabord",
+        "lemma": "d'abord",
+        "english": "first",
+        "partOfSpeech": "adverb",
+        "cefr": "A1"
+      },
+      {
+        "key": "faire",
+        "lemma": "faire",
+        "english": "to do, to make",
+        "partOfSpeech": "verb",
+        "cefr": "A1",
+        "forms": [
+          {
+            "pronoun": "je",
+            "form": "fais"
+          },
+          {
+            "pronoun": "tu",
+            "form": "fais"
+          },
+          {
+            "pronoun": "il/elle",
+            "form": "fait"
+          },
+          {
+            "pronoun": "nous",
+            "form": "faisons"
+          },
+          {
+            "pronoun": "vous",
+            "form": "faites"
+          },
+          {
+            "pronoun": "ils/elles",
+            "form": "font"
+          }
+        ]
+      },
+      {
+        "key": "cafe",
+        "lemma": "le café",
+        "english": "coffee",
+        "partOfSpeech": "noun · masculine",
+        "cefr": "A1"
+      },
+      {
+        "key": "ensuite",
+        "lemma": "ensuite",
+        "english": "then, next",
+        "partOfSpeech": "adverb",
+        "cefr": "A1"
+      },
+      {
+        "key": "couper",
+        "lemma": "couper",
+        "english": "to cut",
+        "partOfSpeech": "verb",
+        "cefr": "A1",
+        "forms": [
+          {
+            "pronoun": "je",
+            "form": "coupe"
+          },
+          {
+            "pronoun": "tu",
+            "form": "coupes"
+          },
+          {
+            "pronoun": "il/elle",
+            "form": "coupe"
+          },
+          {
+            "pronoun": "nous",
+            "form": "coupons"
+          },
+          {
+            "pronoun": "vous",
+            "form": "coupez"
+          },
+          {
+            "pronoun": "ils/elles",
+            "form": "coupent"
+          }
+        ]
+      },
+      {
+        "key": "fruit",
+        "lemma": "un fruit",
+        "english": "fruit",
+        "partOfSpeech": "noun · masculine",
+        "cefr": "A1"
+      },
+      {
+        "key": "cest_parti",
+        "lemma": "c'est parti",
+        "english": "here we go",
+        "partOfSpeech": "expression",
+        "cefr": "A1"
+      }
+    ]
+  }
+}
