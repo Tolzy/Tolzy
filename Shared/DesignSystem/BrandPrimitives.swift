@@ -78,3 +78,13 @@ struct ProgressLine: View {
         .accessibilityValue(progress.map { "\(Int($0 * 100)) percent" } ?? "In progress")
     }
 }
+
+/// A hairline rule.
+struct Hairline: View {
+    var body: some View {
+        Rectangle()
+            .fill(FLColor.separator)
+            .frame(height: 0.5)
+            .accessibilityHidden(true)
+    }
+}

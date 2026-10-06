@@ -69,13 +69,3 @@ struct CEFRTag: View {
             .accessibilityLabel("Level \(level.rawValue)")
     }
 }
-
-/// A hairline rule.
-struct Hairline: View {
-    var body: some View {
-        Rectangle()
-            .fill(FLColor.separator)
-            .frame(height: 0.5)
-            .accessibilityHidden(true)
-    }
-}
