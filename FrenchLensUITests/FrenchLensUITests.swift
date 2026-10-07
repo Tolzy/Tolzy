@@ -155,9 +155,17 @@ final class FrenchLensUITests: XCTestCase {
         XCTAssertTrue(status.waitForExistence(timeout: 3))
 
         element("voice.close").tap()
-        // Camille's opening is in the chat underneath.
-        XCTAssertTrue(element("chat.tutor").waitForExistence(timeout: 5))
+        // A free conversation waits for the learner to say hello first.
+        XCTAssertTrue(element("conversation.yourTurn").waitForExistence(timeout: 5))
         XCTAssertTrue(element("voice.open").exists)
+
+        let input = element("conversation.input")
+        input.tap()
+        input.typeText("Bonjour, je m'appelle Tosin, comment ça va ?")
+        element("conversation.send").tap()
+        let reply = element("chat.tutor")
+        XCTAssertTrue(reply.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts.containing(NSPredicate(format: "label CONTAINS 'Tosin'")).firstMatch.waitForExistence(timeout: 5))
     }
 
     func testPractiseSpeakingFromLesson() {

@@ -138,6 +138,15 @@ private struct ConversationContent: View {
             }
             .font(.footnote.weight(.medium))
 
+            if controller.scenario.learnerOpens, controller.messages.isEmpty {
+                Text("Camille is ready. Say hello and introduce yourself — she'll take it from there.")
+                    .font(.subheadline)
+                    .foregroundStyle(FLColor.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.top, FLSpacing.xs)
+                    .accessibilityIdentifier("conversation.yourTurn")
+            }
+
             if !controller.isLive {
                 Label("Sample replies. Turn on Apple Intelligence for a real conversation.", systemImage: "sparkles")
                     .font(.footnote)
@@ -401,7 +410,7 @@ private struct Composer: View {
                 .font(.footnote)
                 .foregroundStyle(FLColor.textSecondary)
                 .transition(.flReveal(distance: 6))
-            } else if !controller.hasLearnerMessages, !input.isRecording, !controller.scenario.vocabulary.isEmpty {
+            } else if !controller.hasLearnerMessages, !input.isRecording, !suggestionWords.isEmpty {
                 suggestions
                     .transition(.flReveal(distance: 6))
             }
@@ -431,11 +440,15 @@ private struct Composer: View {
         }
     }
 
+    private var suggestionWords: [String] {
+        controller.scenario.starters.isEmpty ? controller.scenario.vocabulary : controller.scenario.starters
+    }
+
     /// Words from the scenario, to get a beginner started.
     private var suggestions: some View {
         ScrollView(.horizontal) {
             HStack(spacing: FLSpacing.xs) {
-                ForEach(controller.scenario.vocabulary, id: \.self) { word in
+                ForEach(suggestionWords, id: \.self) { word in
                     Button {
                         draft = draft.isEmpty ? String(word.prefix(1)).uppercased() + String(word.dropFirst()) : draft + " " + word
                     } label: {

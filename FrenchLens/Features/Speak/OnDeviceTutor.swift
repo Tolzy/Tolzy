@@ -12,6 +12,8 @@ final class OnDeviceTutor: TutorEngine {
     private let scenario: PracticeScenario
     private var session: LanguageModelSession
     private var history: [(learner: String, tutor: String)] = []
+    /// Remembered across context resets.
+    private var learnerName: String?
 
     var isLive: Bool { true }
 
@@ -29,20 +31,43 @@ final class OnDeviceTutor: TutorEngine {
         if case .unavailable(let reason) = SystemLanguageModel.default.availability {
             throw AIServiceError.modelUnavailable(OnDeviceCapability.message(for: OnDeviceCapability.status(for: reason)))
         }
-        let prompt = learnerText.map(TutorPrompt.turn) ?? TutorPrompt.opening(for: scenario)
+        if let learnerText, let name = ConversationFlow.name(in: learnerText) { learnerName = name }
+        // Camille greets once: when she opens, or when the learner opens.
+        let greets = history.isEmpty
+        let prompt: String
+        if let learnerText {
+            prompt = TutorPrompt.turn(learnerText, name: learnerName, lastReply: history.last?.tutor, isFirstExchange: history.isEmpty)
+        } else {
+            prompt = TutorPrompt.opening(for: scenario)
+        }
 
-        let reply: TutorReply
+        var reply = try await generate(prompt, greets: greets, onPartial: onPartial)
+        // Small models sometimes loop; ask once for something new.
+        if ConversationFlow.isRepeat(reply.french, of: history.map(\.tutor)) {
+            reply = try await generate(TutorPrompt.avoidRepeat(prompt), greets: greets, onPartial: onPartial)
+        }
+
+        history.append((learner: learnerText ?? "", tutor: reply.french))
+        return reply
+    }
+
+    private func generate(
+        _ prompt: String,
+        greets: Bool,
+        onPartial: @escaping @MainActor @Sendable (TutorReply) -> Void
+    ) async throws -> TutorReply {
         do {
-            reply = try await stream(prompt, onPartial: onPartial)
+            return try await stream(prompt, greets: greets, onPartial: onPartial)
         } catch let error as LanguageModelSession.GenerationError {
             switch error {
             case .exceededContextWindowSize:
                 // Start over with the gist of the conversation, then retry once.
                 session = LanguageModelSession(
-                    instructions: TutorPrompt.instructions(level: level, scenario: scenario) + TutorPrompt.recap(history)
+                    instructions: TutorPrompt.instructions(level: level, scenario: scenario)
+                        + TutorPrompt.recap(history, name: learnerName)
                 )
                 do {
-                    reply = try await stream(prompt, onPartial: onPartial)
+                    return try await stream(prompt, greets: greets, onPartial: onPartial)
                 } catch is LanguageModelSession.GenerationError {
                     throw AIServiceError.invalidResponse
                 }
@@ -52,17 +77,19 @@ final class OnDeviceTutor: TutorEngine {
                 throw AIServiceError.invalidResponse
             }
         }
-
-        history.append((learner: learnerText ?? "", tutor: reply.french))
-        return reply
     }
 
     private func stream(
         _ prompt: String,
+        greets: Bool,
         onPartial: @escaping @MainActor @Sendable (TutorReply) -> Void
     ) async throws -> TutorReply {
         var latest = TutorReply.empty
-        let stream = session.streamResponse(to: prompt, generating: GeneratedTutorTurn.self)
+        let stream = session.streamResponse(
+            to: prompt,
+            generating: GeneratedTutorTurn.self,
+            options: GenerationOptions(temperature: 0.8)
+        )
         for try await snapshot in stream {
             let partial = snapshot.content
             latest = TutorReply(
@@ -71,9 +98,21 @@ final class OnDeviceTutor: TutorEngine {
                 correction: partial.correction ?? "",
                 tip: partial.tip ?? ""
             )
-            await onPartial(latest)
+            var shown = latest
+            if !greets {
+                shown.french = ConversationFlow.removingGreeting(shown.french, isComplete: false)
+                shown.english = ""
+            }
+            await onPartial(shown)
         }
         latest = Self.cleaned(latest)
+        if !greets {
+            let french = ConversationFlow.removingGreeting(latest.french)
+            if french != latest.french {
+                latest.french = french
+                latest.english = ConversationFlow.removingGreeting(latest.english, english: true)
+            }
+        }
         guard !latest.french.isEmpty else { throw AIServiceError.invalidResponse }
         return latest
     }
@@ -82,6 +121,13 @@ final class OnDeviceTutor: TutorEngine {
     static func cleaned(_ reply: TutorReply) -> TutorReply {
         var reply = reply
         reply.french = reply.french.trimmingCharacters(in: .whitespacesAndNewlines)
+        // "Camille : Ça va ?" → "Ça va ?"
+        if reply.french.lowercased().hasPrefix("camille"),
+           let colon = reply.french.firstIndex(of: ":"),
+           reply.french.distance(from: reply.french.startIndex, to: colon) <= 9 {
+            let rest = reply.french[reply.french.index(after: colon)...].trimmingCharacters(in: .whitespacesAndNewlines)
+            if !rest.isEmpty { reply.french = rest }
+        }
         reply.english = reply.english.trimmingCharacters(in: .whitespacesAndNewlines)
         reply.correction = reply.correction.trimmingCharacters(in: .whitespacesAndNewlines)
         reply.tip = reply.tip.trimmingCharacters(in: .whitespacesAndNewlines)

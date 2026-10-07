@@ -156,7 +156,10 @@ struct VoiceModeView: View {
 
     private var placeholder: String {
         switch session.phase {
-        case .listening: "Parlez… (speak in French)"
+        case .listening:
+            session.controller.messages.isEmpty
+                ? "Say bonjour to Camille…"
+                : "Parlez… (speak in French)"
         case .muted: "Tap the microphone to talk again"
         default: ""
         }

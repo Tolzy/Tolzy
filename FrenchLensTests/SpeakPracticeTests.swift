@@ -28,7 +28,8 @@ final class TutorPromptTests: XCTestCase {
         XCTAssertTrue(text.contains("A1"))
         XCTAssertTrue(text.contains("waiter"))
         XCTAssertTrue(text.contains("l'addition"))
-        XCTAssertFalse(TutorPrompt.instructions(level: .b2, scenario: .freeChat).contains("Try to use"))
+        XCTAssertFalse(TutorPrompt.instructions(level: .b2, scenario: .freeChat).contains("If it fits naturally"))
+        XCTAssertTrue(text.contains("Greet only once"))
     }
 
     func testRecapKeepsOnlyTheLatestExchanges() {
@@ -49,7 +50,77 @@ final class TutorPromptTests: XCTestCase {
     }
 }
 
+final class ConversationFlowTests: XCTestCase {
+    func testRemembersTheLearnersName() {
+        XCTAssertEqual(ConversationFlow.name(in: "Bonjour, eh, je m'appelle Tosin, eh, comment ça va ?"), "Tosin")
+        XCTAssertEqual(ConversationFlow.name(in: "moi c'est léa"), "Léa")
+        XCTAssertEqual(ConversationFlow.name(in: "Mon prénom est Ada"), "Ada")
+        XCTAssertEqual(ConversationFlow.name(in: "je m’appelle Tosin"), "Tosin")
+        XCTAssertNil(ConversationFlow.name(in: "Comment ça va ?"))
+        XCTAssertNil(ConversationFlow.name(in: "je m'appelle euh"))
+    }
+
+    func testGreetingIsDroppedAfterTheFirstExchange() {
+        XCTAssertEqual(ConversationFlow.removingGreeting("Bonjour Tosin ! Ça va très bien, et toi ?"), "Ça va très bien, et toi ?")
+        XCTAssertEqual(ConversationFlow.removingGreeting("Salut, tu fais quoi ce soir ?"), "Tu fais quoi ce soir ?")
+        XCTAssertEqual(ConversationFlow.removingGreeting("Hello again! What are you doing tonight?", english: true), "What are you doing tonight?")
+        // Not a greeting, or nothing after it: left alone.
+        XCTAssertEqual(ConversationFlow.removingGreeting("Salutations à ta famille !"), "Salutations à ta famille !")
+        XCTAssertEqual(ConversationFlow.removingGreeting("Bonjour !"), "Bonjour !")
+        XCTAssertEqual(ConversationFlow.removingGreeting("Bonjour à toi aussi et à toute ta famille qui habite loin, ça va ?"),
+                       "Bonjour à toi aussi et à toute ta famille qui habite loin, ça va ?")
+        // While streaming, a lone greeting never flashes up.
+        XCTAssertEqual(ConversationFlow.removingGreeting("Bonjour", isComplete: false), "")
+        XCTAssertEqual(ConversationFlow.removingGreeting("Bonjour !", isComplete: false), "")
+        XCTAssertEqual(ConversationFlow.removingGreeting("Bonjour ! Ça", isComplete: false), "Ça")
+    }
+
+    func testRepeatsAreDetected() {
+        let earlier = ["Qu'est-ce que tu as fait aujourd'hui ?", "Tu aimes le cinéma ?"]
+        XCTAssertTrue(ConversationFlow.isRepeat("Qu’est-ce que tu as fait aujourd’hui ?", of: earlier))
+        XCTAssertFalse(ConversationFlow.isRepeat("Et tu travailles où ?", of: earlier))
+        XCTAssertFalse(ConversationFlow.isRepeat("Oui", of: ["Oui"]), "Very short replies aren't loops")
+    }
+
+    func testHesitationGivesMoreTimeToFinish() {
+        let base = 1.4
+        XCTAssertEqual(ConversationFlow.silenceNeeded(after: "Je m'appelle Tosin et je suis étudiant.", base: base), base)
+        XCTAssertGreaterThan(ConversationFlow.silenceNeeded(after: "Je m'appelle Tosin et euh", base: base), base + 1)
+        XCTAssertGreaterThan(ConversationFlow.silenceNeeded(after: "Je travaille dans", base: base), base + 1)
+        XCTAssertGreaterThan(ConversationFlow.silenceNeeded(after: "Bonjour,", base: base), base + 1)
+        XCTAssertGreaterThan(ConversationFlow.silenceNeeded(after: "Bonjour", base: base), base)
+
+        let now = Date()
+        XCTAssertFalse(VoiceSession.shouldEndTurn(transcript: "Je suis allé au", lastChange: now.addingTimeInterval(-1.6), now: now))
+        XCTAssertTrue(VoiceSession.shouldEndTurn(transcript: "Je suis allé au parc.", lastChange: now.addingTimeInterval(-1.6), now: now))
+    }
+
+    func testTurnPromptsKeepTheConversationFlowing() {
+        let first = TutorPrompt.turn("Bonjour, je m'appelle Tosin", name: "Tosin", isFirstExchange: true)
+        XCTAssertTrue(first.contains("Greet them back"))
+        XCTAssertTrue(first.contains("Tosin"))
+
+        let later = TutorPrompt.turn("J'aime le cinéma", name: "Tosin", lastReply: "Tu aimes quoi ?")
+        XCTAssertTrue(later.contains("Do not greet them again"))
+        XCTAssertTrue(later.contains("Tu aimes quoi ?"))
+        XCTAssertTrue(TutorPrompt.recap([("a", "b")], name: "Tosin").contains("do not greet again"))
+    }
+}
+
 final class ScriptedTutorTests: XCTestCase {
+    func testRepliesToWhatTheLearnerSaidAndGreetsOnce() async throws {
+        let tutor = ScriptedTutor(scenario: .freeChat, delay: .zero)
+        let first = try await tutor.respond(to: "Bonjour, eh, je m'appelle Tosin, eh, comment ça va ?") { _ in }
+        XCTAssertTrue(first.french.hasPrefix("Salut ! Enchantée, Tosin ! Ça va très bien, merci !"), first.french)
+        XCTAssertFalse(TutorReply.spokenForm(first.french).contains("comment ca va"), "Doesn't ask back what was just asked")
+
+        for line in ["Je suis étudiant", "J'aime le cinéma", "Oui, beaucoup"] {
+            let reply = try await tutor.respond(to: line) { _ in }
+            let lower = reply.french.lowercased()
+            XCTAssertFalse(lower.hasPrefix("salut") || lower.hasPrefix("bonjour"), reply.french)
+        }
+    }
+
     func testOpensThenAdvancesThroughTheScript() async throws {
         let tutor = ScriptedTutor(scenario: .cafe, delay: .zero)
         let script = ScriptedTutor.script(for: .cafe)
@@ -81,7 +152,7 @@ final class ConversationControllerTests: XCTestCase {
     func testTutorOpensAndCorrectionAttachesToLearnerMessage() async throws {
         let tts = RecordingTTS()
         let controller = ConversationController(
-            scenario: .freeChat, engine: ScriptedTutor(scenario: .freeChat, delay: .zero), tts: tts
+            scenario: .cafe, engine: ScriptedTutor(scenario: .cafe, delay: .zero), tts: tts
         )
         controller.start()
         try await waitUntil { !controller.isResponding }
@@ -117,6 +188,15 @@ final class ConversationControllerTests: XCTestCase {
         )
         controller.send("   ")
         XCTAssertTrue(controller.messages.isEmpty)
+    }
+
+    func testFreeConversationWaitsForTheLearner() async throws {
+        let controller = ConversationController(
+            scenario: .freeChat, engine: ScriptedTutor(scenario: .freeChat, delay: .zero), tts: RecordingTTS()
+        )
+        controller.start()
+        XCTAssertTrue(controller.messages.isEmpty)
+        XCTAssertFalse(controller.isResponding)
     }
 
     private func waitUntil(_ condition: @MainActor () -> Bool) async throws {
@@ -167,7 +247,8 @@ final class VoiceSessionTests: XCTestCase {
     }
 
     func testHandsFreeTurnTaking() async throws {
-        let listener = FakeListener(turns: ["je suis faim"])
+        // Free conversation: the learner speaks first.
+        let listener = FakeListener(turns: ["je suis faim", "j'aime le cinéma"])
         let controller = ConversationController(
             scenario: .freeChat, engine: ScriptedTutor(scenario: .freeChat, delay: .zero), tts: RecordingTTS()
         )
@@ -175,10 +256,10 @@ final class VoiceSessionTests: XCTestCase {
         session.pollInterval = .milliseconds(5)
         session.start()
 
-        try await waitUntil { controller.messages.count == 3 && !controller.isResponding }
-        XCTAssertEqual(controller.messages.map(\.role), [.tutor, .learner, .tutor])
-        XCTAssertEqual(controller.messages[1].text, "je suis faim")
-        XCTAssertEqual(controller.messages[1].correction, "J'ai faim")
+        try await waitUntil { controller.messages.count == 4 && !controller.isResponding }
+        XCTAssertEqual(controller.messages.map(\.role), [.learner, .tutor, .learner, .tutor])
+        XCTAssertEqual(controller.messages[0].text, "je suis faim")
+        XCTAssertEqual(controller.messages[0].correction, "J'ai faim")
         try await waitUntil { session.phase == .listening }
         session.end()
         XCTAssertTrue(controller.autoSpeak)

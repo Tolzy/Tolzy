@@ -5,6 +5,7 @@ import Foundation
 final class ScriptedTutor: TutorEngine {
     private let lines: [TutorReply]
     private var index = 0
+    private var hasReplied = false
     var delay: Duration
 
     var isLive: Bool { false }
@@ -18,8 +19,24 @@ final class ScriptedTutor: TutorEngine {
         to learnerText: String?,
         onPartial: @escaping @MainActor @Sendable (TutorReply) -> Void
     ) async throws -> TutorReply {
+        let isFirst = !hasReplied
+        hasReplied = true
+        let reaction = learnerText.flatMap(Self.reaction(to:))
+        // Don't ask "how are you?" right after being asked it.
+        if reaction?.answeredHowAreYou == true, index < lines.count - 1,
+           TutorReply.spokenForm(lines[index].french).contains("comment ca va") {
+            index += 1
+        }
         var reply = lines[min(index, lines.count - 1)]
         index = learnerText == nil ? 1 : min(index + 1, lines.count - 1)
+        if !isFirst || reaction != nil {
+            reply.french = ConversationFlow.removingGreeting(reply.french)
+            reply.english = ConversationFlow.removingGreeting(reply.english, english: true)
+        }
+        if let reaction {
+            reply.french = (isFirst ? "Salut ! " : "") + reaction.french + " " + reply.french
+            reply.english = (isFirst ? "Hi! " : "") + reaction.english + " " + reply.english
+        }
         if let learnerText, let fix = Self.correction(for: learnerText) {
             reply.correction = fix.corrected
             reply.tip = fix.tip
@@ -35,6 +52,25 @@ final class ScriptedTutor: TutorEngine {
         }
         await onPartial(reply)
         return reply
+    }
+
+    /// A natural first beat: welcome their name, answer "how are you?".
+    static func reaction(to text: String) -> (french: String, english: String, answeredHowAreYou: Bool)? {
+        var french: [String] = []
+        var english: [String] = []
+        if let name = ConversationFlow.name(in: text) {
+            french.append("Enchantée, \(name) !")
+            english.append("Nice to meet you, \(name)!")
+        }
+        let spoken = TutorReply.spokenForm(text)
+        let asked = ["comment ca va", "comment vas tu", "comment allez vous", "ca va et toi", "et toi ca va", "ca va toi"]
+            .contains { spoken.contains($0) }
+        if asked {
+            french.append("Ça va très bien, merci !")
+            english.append("I'm very well, thanks!")
+        }
+        guard !french.isEmpty else { return nil }
+        return (french.joined(separator: " "), english.joined(separator: " "), asked)
     }
 
     /// A few classic beginner slips, so corrections can be seen in samples.

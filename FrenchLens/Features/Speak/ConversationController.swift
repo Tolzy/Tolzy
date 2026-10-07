@@ -30,9 +30,9 @@ final class ConversationController {
         self.tts = tts
     }
 
-    /// The tutor opens the conversation.
+    /// The tutor opens the conversation, unless it's the learner's to start.
     func start() {
-        guard messages.isEmpty, !isResponding else { return }
+        guard messages.isEmpty, !isResponding, !scenario.learnerOpens else { return }
         respond(to: nil)
     }
 

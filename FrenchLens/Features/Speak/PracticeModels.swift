@@ -12,6 +12,11 @@ struct PracticeScenario: Identifiable, Hashable, Codable {
     var vocabulary: [String] = []
     /// Open straight into hands-free voice mode.
     var startsInVoice = false
+    /// The learner says the first words (a chat); otherwise Camille opens
+    /// (a role play, where she sets the scene).
+    var learnerOpens = false
+    /// Ways to start, offered as chips before the learner has said anything.
+    var starters: [String] = []
 
     func inVoice() -> PracticeScenario {
         var copy = self
@@ -22,7 +27,9 @@ struct PracticeScenario: Identifiable, Hashable, Codable {
     static let freeChat = PracticeScenario(
         id: "free", title: "Free conversation", subtitle: "Talk about anything",
         systemImage: "bubble.left.and.bubble.right",
-        goal: "A relaxed everyday conversation. Ask the learner about themselves, their day and their interests."
+        goal: "A relaxed everyday conversation between two people getting to know each other: their day, their life, their interests.",
+        learnerOpens: true,
+        starters: ["Bonjour !", "Comment ça va ?", "Je m'appelle"]
     )
     static let cafe = PracticeScenario(
         id: "cafe", title: "At the café", subtitle: "Order a drink and a croissant",

@@ -15,34 +15,60 @@ enum TutorPrompt {
         case .b2:
             pace = "The learner is upper-intermediate (B2). Speak naturally, as with a French friend, including informal expressions."
         }
-        let words = scenario.vocabulary.isEmpty ? "" : " Try to use, and get the learner to use: \(scenario.vocabulary.joined(separator: ", "))."
+        let words = scenario.vocabulary.isEmpty ? "" : " If it fits naturally, use (and get the learner to use): \(scenario.vocabulary.joined(separator: ", "))."
         return """
-            You are Camille, a warm, encouraging French conversation partner helping an English \
-            speaker practise speaking French. Situation: \(scenario.goal)\(words) \(pace) \
-            Always reply in French with one to three short sentences, and end with a question \
-            that keeps the conversation going. Stay in the situation. Never switch to English \
-            in the French reply. If the learner writes in English, gently answer in French and \
-            show how to say it in French. When the learner's French has a mistake or sounds \
-            unnatural, give a corrected, natural version of their whole message and one very \
-            short tip in English; if it is fine, leave the correction and tip empty. Do not \
-            correct missing accents or capitals, since they are speaking aloud.
+            You are Camille, a friendly 28-year-old from Lyon who works as a graphic designer, \
+            loves cooking, cinema and walking by the river. You are chatting with an English \
+            speaker who is practising spoken French. Be a real conversation partner, not a \
+            teacher or a quiz. Situation: \(scenario.goal) If the situation gives you a role, play it.\(words) \(pace)
+            This is one continuous conversation, spoken aloud. Greet only once, at the very \
+            beginning; after that never say bonjour, salut or hello again and never restart. \
+            Each reply: react to exactly what the learner just said (use their name now and \
+            then if you know it), answer any question they asked you (for example, if they ask \
+            how you are, say how you are and share a small detail of your day), then ask one \
+            new, related question. Share small details about your own life so it feels like a \
+            real exchange. Vary your words; never repeat a sentence or a question you already \
+            asked. Keep it short: one or two sentences, like real speech. Reply only in French. \
+            If the learner speaks English, answer in French and show simply how to say it.
+            When the learner's French has a real mistake or sounds unnatural, give a natural \
+            corrected version of their whole message and one very short tip in English; \
+            otherwise leave the correction and tip empty. Ignore missing accents, capitals and \
+            punctuation, and small slips of speech recognition.
             """
     }
 
+    /// The tutor speaks first (role plays such as the café).
     static func opening(for scenario: PracticeScenario) -> String {
-        "Start the conversation in French to fit the situation. Greet the learner and ask your first question. There is nothing to correct yet."
+        "Start the conversation in French to fit the situation: greet the learner and ask your first question. There is nothing to correct yet."
     }
 
-    static func turn(_ learnerText: String) -> String {
-        "The learner said: \"\(learnerText)\"\nReply as Camille."
+    /// One turn, with what Camille needs to keep the conversation flowing.
+    static func turn(_ learnerText: String, name: String? = nil, lastReply: String? = nil, isFirstExchange: Bool = false) -> String {
+        var lines = ["The learner just said: \"\(learnerText)\""]
+        if let name { lines.append("Their name is \(name).") }
+        if isFirstExchange {
+            lines.append("They are starting the conversation. Greet them back warmly and naturally, answer anything they asked, and ask them a question.")
+        } else {
+            if let lastReply, !lastReply.isEmpty {
+                lines.append("Your previous message was: \"\(lastReply)\" Say something new.")
+            }
+            lines.append("Continue the conversation naturally from what they just said. Do not greet them again.")
+        }
+        return lines.joined(separator: "\n")
+    }
+
+    /// When Camille repeats herself, ask once more for something new.
+    static func avoidRepeat(_ prompt: String) -> String {
+        prompt + "\nYou just repeated something you already said. Reply with something different that moves the conversation forward."
     }
 
     /// When a long conversation fills the model's memory, a new session
     /// continues from the most recent exchanges.
-    static func recap(_ history: [(learner: String, tutor: String)], keeping count: Int = 3) -> String {
+    static func recap(_ history: [(learner: String, tutor: String)], name: String? = nil, keeping count: Int = 4) -> String {
         let recent = history.suffix(count)
         guard !recent.isEmpty else { return "" }
         let lines = recent.map { "Learner: \($0.learner)\nCamille: \($0.tutor)" }.joined(separator: "\n")
-        return "\n\nThe conversation so far (most recent part):\n\(lines)"
+        let known = name.map { "\nThe learner's name is \($0)." } ?? ""
+        return "\n\nYou are in the middle of the conversation; do not greet again.\(known)\nThe conversation so far (most recent part):\n\(lines)"
     }
 }

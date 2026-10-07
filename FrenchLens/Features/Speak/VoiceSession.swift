@@ -58,7 +58,10 @@ final class VoiceSession {
     var caption: String {
         switch phase {
         case .listening: listener.transcript
-        case .speaking, .thinking: controller.messages.last(where: { $0.role == .tutor })?.text ?? ""
+        case .speaking: controller.messages.last(where: { $0.role == .tutor })?.text ?? ""
+        case .thinking:
+            // Camille's reply as it's written, or what the learner just said.
+            controller.messages.last.map { $0.text.isEmpty ? (controller.messages.last(where: { $0.role == .learner })?.text ?? "") : $0.text } ?? ""
         default: ""
         }
     }
@@ -115,8 +118,10 @@ final class VoiceSession {
     }
 
     /// Ends the learner's turn after a pause in what's being heard.
-    nonisolated static func shouldEndTurn(transcript: String, lastChange: Date, now: Date, silence: TimeInterval = endOfTurnSilence) -> Bool {
-        !transcript.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && now.timeIntervalSince(lastChange) >= silence
+    nonisolated static func shouldEndTurn(transcript: String, lastChange: Date, now: Date, silence: TimeInterval? = nil) -> Bool {
+        guard !transcript.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return false }
+        let needed = silence ?? ConversationFlow.silenceNeeded(after: transcript, base: endOfTurnSilence)
+        return now.timeIntervalSince(lastChange) >= needed
     }
 
     // MARK: The loop
