@@ -9,13 +9,23 @@ struct ReviewView: View {
     @Environment(AppRouter.self) private var router
     @Environment(MilestoneStore.self) private var milestones
     @Environment(\.motion) private var motion
+    @Environment(AppSettings.self) private var settings
     @State private var session = ReviewSession()
+    @State private var deck: FlashcardSession?
 
     var body: some View {
         NavigationStack {
             ZStack {
                 FLColor.background.ignoresSafeArea()
                 ZStack {
+                    if let deck {
+                        FlashcardDeckView(session: deck) { known, total in
+                            milestones.record(.reviewFinished(correct: known, total: total))
+                        } onClose: {
+                            motion.perform(.reveal) { self.deck = nil }
+                        }
+                        .transition(.flReveal)
+                    } else {
                     switch session.phase {
                     case .intro:
                         intro.transition(.flReveal)
@@ -24,11 +34,13 @@ struct ReviewView: View {
                     case .finished:
                         finished.transition(.flReveal)
                     }
+                    }
                 }
                 .padding(.horizontal, FLSpacing.gutter)
             }
             .flTopBlur()
             .toolbar(.hidden, for: .navigationBar)
+            .toolbar(deck == nil ? Visibility.automatic : Visibility.hidden, for: .tabBar)
         }
         .onChange(of: session.phase) { _, phase in
             if phase == .finished {
@@ -64,27 +76,36 @@ struct ReviewView: View {
                     )
                     .accessibilityIdentifier("review.emptyState")
                 } else {
-                    let count = ReviewExerciseGenerator().exercises(from: store.saved).count
+                    let count = FlashcardBuilder.cards(from: store.saved, level: settings.level).count
                     Text("\(count) cards from \(store.saved.count) saved \(store.saved.count == 1 ? "lesson" : "lessons"). About two minutes.")
                         .flTextStyle(.body)
                         .foregroundStyle(FLColor.textSecondary)
                         .flAppear(1)
 
                     VStack(alignment: .leading, spacing: FLSpacing.s) {
-                        ReviewKindLine(symbol: "text.bubble", text: "What words and expressions mean")
+                        ReviewKindLine(symbol: "hand.draw", text: "Swipe right if you know it, left to keep learning")
                             .flAppear(2)
-                        ReviewKindLine(symbol: "arrow.uturn.backward", text: "Which infinitive a form comes from")
+                        ReviewKindLine(symbol: "hand.tap", text: "Tap a card for its meaning, examples and conjugation")
                             .flAppear(3)
-                        ReviewKindLine(symbol: "square.and.pencil", text: "The missing verb in a sentence")
+                        ReviewKindLine(symbol: "speaker.wave.2", text: "Hear every word, slowly")
                             .flAppear(4)
                     }
                     .padding(.vertical, FLSpacing.s)
 
-                    PrimaryButton("Start review", systemImage: "play.fill") {
-                        motion.perform(.reveal) { session.start(from: store.saved) }
+                    PrimaryButton("Start review", systemImage: "rectangle.stack.fill") {
+                        let cards = FlashcardBuilder.cards(from: store.saved, level: settings.level, seed: UInt64(Date().timeIntervalSince1970))
+                        let newDeck = FlashcardSession()
+                        newDeck.start(with: cards)
+                        motion.perform(.reveal) { deck = newDeck }
                     }
                     .accessibilityIdentifier("review.start")
                     .flAppear(5)
+
+                    SecondaryButton("Quick quiz instead", systemImage: "checklist") {
+                        motion.perform(.reveal) { session.start(from: store.saved) }
+                    }
+                    .accessibilityIdentifier("review.quiz")
+                    .flAppear(6)
                 }
             }
         }
