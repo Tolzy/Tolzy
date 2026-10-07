@@ -92,9 +92,9 @@ struct MomentsGalleryView: View {
         if let unlocked {
             Button { replaying = unlocked } label: {
                 VStack(alignment: .leading, spacing: FLSpacing.xs) {
-                    Image(systemName: milestone.systemImage)
-                        .font(.system(size: 20, weight: .semibold))
-                        .foregroundStyle(.white)
+                    MomentMedal(milestone: milestone, diameter: 56, showsGlow: false)
+                        .frame(width: 56, height: 56)
+                        .accessibilityHidden(true)
                     Spacer(minLength: FLSpacing.s)
                     Text(milestone.title)
                         .font(.subheadline.weight(.semibold))
