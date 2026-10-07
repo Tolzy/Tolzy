@@ -124,16 +124,22 @@ final class FrenchLensUITests: XCTestCase {
         let card = element("deck.card")
         XCTAssertTrue(card.waitForExistence(timeout: 3))
 
-        // Tap to flip and learn about it.
-        element("deck.front").tap()
-        XCTAssertTrue(element("deck.meaning").waitForExistence(timeout: 3))
+        // Swipe to browse the carousel.
+        card.swipeLeft()
+        XCTAssertTrue(element("deck.card").waitForExistence(timeout: 3))
 
-        // Swipe it away, then use the buttons for the rest.
-        card.swipeRight()
-        XCTAssertTrue(element("deck.undo").waitForExistence(timeout: 3))
+        // Tap a card: it opens to everything about it.
+        element("deck.card").tap()
+        XCTAssertTrue(element("deck.meaning").waitForExistence(timeout: 3))
+        element("deck.practise").tap()
+
+        // Learn them all.
         for _ in 0..<40 where !element("deck.summary").exists {
+            let top = element("deck.card")
+            guard top.waitForExistence(timeout: 3) else { break }
+            top.tap()
             let known = element("deck.known")
-            guard known.waitForExistence(timeout: 2) else { break }
+            guard known.waitForExistence(timeout: 3) else { break }
             known.tap()
         }
         XCTAssertTrue(element("deck.summary").waitForExistence(timeout: 5))

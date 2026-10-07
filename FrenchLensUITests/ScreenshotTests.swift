@@ -73,9 +73,11 @@ final class ScreenshotTests: XCTestCase {
             start.tap()
             if element("deck.card").waitForExistence(timeout: 3) {
                 snapshot("10-review-deck")
-                element("deck.front").tap()
+                element("deck.card").tap()
                 _ = element("deck.meaning").waitForExistence(timeout: 3)
-                snapshot("11-review-card-back")
+                snapshot("11-review-card-open")
+                element("deck.practise").tap()
+                _ = element("deck.close").waitForExistence(timeout: 3)
                 element("deck.close").tap()
             }
         }

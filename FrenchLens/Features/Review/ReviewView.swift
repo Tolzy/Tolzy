@@ -12,18 +12,25 @@ struct ReviewView: View {
     @Environment(AppSettings.self) private var settings
     @State private var session = ReviewSession()
     @State private var deck: FlashcardSession?
+    /// The open card, pushed so it zooms out of the deck.
+    @State private var openCards: [String] = []
+    @Namespace private var cardZoom
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $openCards) {
             ZStack {
                 FLColor.background.ignoresSafeArea()
                 ZStack {
                     if let deck {
-                        FlashcardDeckView(session: deck) { known, total in
-                            milestones.record(.reviewFinished(correct: known, total: total))
-                        } onClose: {
-                            motion.perform(.reveal) { self.deck = nil }
-                        }
+                        FlashcardDeckView(
+                            session: deck,
+                            zoom: cardZoom,
+                            onOpen: { card in openCards.append(card.id) },
+                            onFinish: { firstTime, total in
+                                milestones.record(.reviewFinished(correct: firstTime, total: total))
+                            },
+                            onClose: { motion.perform(.reveal) { self.deck = nil } }
+                        )
                         .transition(.flReveal)
                     } else {
                     switch session.phase {
@@ -41,6 +48,16 @@ struct ReviewView: View {
             .flTopBlur()
             .toolbar(.hidden, for: .navigationBar)
             .toolbar(deck == nil ? Visibility.automatic : Visibility.hidden, for: .tabBar)
+            .navigationDestination(for: String.self) { id in
+                if let deck, let card = deck.card(id: id) {
+                    FlashcardDetailView(
+                        card: card,
+                        onKnown: { close(card) { deck.markKnown(card.id) } },
+                        onPractise: { close(card) { deck.keepPractising(card.id) } }
+                    )
+                    .flZoomDestination(id: id, in: cardZoom)
+                }
+            }
         }
         .onChange(of: session.phase) { _, phase in
             if phase == .finished {
@@ -50,6 +67,15 @@ struct ReviewView: View {
         .flHaptic(trigger: session.phase) { _, new in
             guard case .answered(let correct) = new else { return nil }
             return correct ? FLHaptic.success : FLHaptic.failure
+        }
+    }
+
+    /// Zoom the card back into the deck, then update the deck.
+    private func close(_ card: Flashcard, then update: @escaping () -> Void) {
+        openCards.removeAll()
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(motion.allowsMovement ? 420 : 50))
+            motion.perform(.reveal) { update() }
         }
     }
 
