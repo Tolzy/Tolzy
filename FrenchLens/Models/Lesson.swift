@@ -4,6 +4,8 @@ import Foundation
 struct LessonSource: Codable, Hashable {
     enum Kind: String, Codable {
         case instagramReel, tiktok, youtubeShort, webVideo, upload, text, demo
+        /// Captured with "Listen while you watch" (audio only).
+        case listened
     }
 
     var kind: Kind
@@ -16,6 +18,13 @@ struct LessonSource: Codable, Hashable {
     /// e.g. "@marie.cuisine". Purely descriptive.
     var author: String?
 
+    /// Whether the stored media has pictures (vs. listened audio).
+    var hasVideo: Bool {
+        guard let mediaFileName else { return false }
+        let audioExtensions: Set<String> = ["m4a", "mp3", "aac", "wav", "caf", "aiff"]
+        return !audioExtensions.contains((mediaFileName as NSString).pathExtension.lowercased())
+    }
+
     var label: String {
         switch kind {
         case .instagramReel: "French Reel"
@@ -25,6 +34,7 @@ struct LessonSource: Codable, Hashable {
         case .upload: "Your video"
         case .text: "French text"
         case .demo: "Demo"
+        case .listened: "Listened"
         }
     }
 
@@ -35,6 +45,7 @@ struct LessonSource: Codable, Hashable {
         case .upload: "film"
         case .text: "text.quote"
         case .demo: "sparkle"
+        case .listened: "waveform"
         }
     }
 

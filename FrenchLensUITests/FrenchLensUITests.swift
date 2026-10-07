@@ -121,4 +121,12 @@ final class FrenchLensUITests: XCTestCase {
         link.tap()
         XCTAssertTrue(element("motionLab").waitForExistence(timeout: 3))
     }
+
+    func testListenWhileYouWatchOpensFromHome() {
+        let entry = element("homeListen")
+        XCTAssertTrue(entry.waitForExistence(timeout: 5))
+        entry.tap()
+        XCTAssertTrue(element("startListening").waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["Listen while\nyou watch"].exists || app.staticTexts.containing(NSPredicate(format: "label CONTAINS 'Listen while'")).firstMatch.exists)
+    }
 }

@@ -59,13 +59,13 @@ struct LessonDetailView: View {
 
     /// Demo Mode answered the learner's own video or text with a sample.
     private var isSampleAnalysisOfLearnerContent: Bool {
-        lesson.origin == .demo && (lesson.source.mediaFileName != nil || lesson.source.kind == .text)
+        lesson.origin == .demo && (lesson.source.mediaFileName != nil || lesson.source.kind == .text || lesson.source.kind == .listened)
     }
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                VideoHero(lesson: lesson, playback: playback, height: heroHeight)
+                VideoHero(lesson: lesson, playback: playback, height: heroHeight, posterImageURL: environment.thumbnailURL(for: lesson))
                     .flOnScrollOffsetChange { scrollOffset = $0 }
 
                 VStack(alignment: .leading, spacing: FLSpacing.xxl) {

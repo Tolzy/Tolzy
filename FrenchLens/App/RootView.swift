@@ -3,6 +3,7 @@ import SwiftUI
 struct RootView: View {
     @Environment(AppRouter.self) private var router
     @Environment(IngestCoordinator.self) private var ingest
+    @Environment(ListenSession.self) private var listen
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.motion) private var motion
 
@@ -26,6 +27,9 @@ struct RootView: View {
         .sheet(isPresented: $router.isShowingHowItWorks) {
             HowItWorksView()
         }
+        .sheet(isPresented: $router.isShowingListen) {
+            ListenView()
+        }
         .onChange(of: ingest.phase) { _, phase in
             guard case .ready(let id) = phase else { return }
             // Hold the "ready" moment (checkmark draws), push the lesson
@@ -39,7 +43,11 @@ struct RootView: View {
             }
         }
         .onChange(of: scenePhase) { _, phase in
-            if phase == .active { ingest.processPendingShares() }
+            if phase == .active {
+                listen.refresh()
+                // While a capture is running, its audio isn't ready yet.
+                if !listen.isActive { ingest.processPendingShares() }
+            }
         }
         .task { ingest.processPendingShares() }
     }

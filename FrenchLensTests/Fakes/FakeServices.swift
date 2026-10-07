@@ -18,6 +18,8 @@ final class FakeMedia: MediaProcessing {
     func makeThumbnail(forMediaNamed name: String) async -> String? { nil }
 
     func extractAudio(from url: URL) async throws -> URL { url }
+
+    func storeImage(at url: URL) -> String? { "poster-\(url.lastPathComponent)" }
 }
 
 final class FakeAIService: AIService {

@@ -60,12 +60,15 @@ jobs:
             $SIGNING | tee build.log | grep -E "error:|warning: |BUILD (SUCCEEDED|FAILED)|\*\* " || true
           grep -q "TEST BUILD SUCCEEDED" build.log
 
-      - name: Verify the Share Extension is embedded
+      - name: Verify the extensions are embedded
         run: |
           APP=$(find DerivedData/Build/Products -maxdepth 2 -name "FrenchLens.app" | head -1)
           ls "$APP/PlugIns"
           test -d "$APP/PlugIns/FrenchLensShareExtension.appex"
+          test -d "$APP/PlugIns/FrenchLensBroadcast.appex"
           plutil -p "$APP/PlugIns/FrenchLensShareExtension.appex/Info.plist" | grep -A3 NSExtensionPointIdentifier
+          plutil -p "$APP/PlugIns/FrenchLensBroadcast.appex/Info.plist" | grep -A3 NSExtensionPointIdentifier
+          plutil -p "$APP/PlugIns/FrenchLensBroadcast.appex/Info.plist" | grep "com.apple.broadcast-services-upload"
 
       - name: Unit tests
         run: |

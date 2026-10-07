@@ -17,6 +17,7 @@ final class AppEnvironment {
     let aiFactory: AIServiceFactory
     let inbox: ShareInbox?
     let ingest: IngestCoordinator
+    let listen: ListenSession
     let isUITesting: Bool
 
     init(
@@ -54,6 +55,19 @@ final class AppEnvironment {
             makeAIService: { factory.make() },
             currentLevel: { settings.level }
         )
+        self.listen = ListenSession(inbox: inbox)
+
+        // When the broadcast extension has saved what it heard, close the
+        // listen sheet and build the lesson.
+        let router = self.router
+        let ingest = self.ingest
+        listen.onSaved = {
+            router.isShowingListen = false
+            Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(450))
+                ingest.processPendingShares()
+            }
+        }
     }
 
     /// Production wiring, or an isolated sandbox when launched by UI tests.

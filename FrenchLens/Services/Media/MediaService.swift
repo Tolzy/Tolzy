@@ -48,6 +48,11 @@ final class MediaService: MediaProcessing {
         }
     }
 
+    func storeImage(at url: URL) -> String? {
+        let name = "\(UUID().uuidString)-poster.\(url.pathExtension.isEmpty ? "jpg" : url.pathExtension)"
+        return (try? fileManager.copyItem(at: url, to: mediaURL(named: name))) == nil ? nil : name
+    }
+
     func extractAudio(from url: URL) async throws -> URL {
         let asset = AVURLAsset(url: url)
         guard await hasAudioTrack(at: url) else { throw MediaError.noAudioTrack }

@@ -7,16 +7,22 @@ struct VideoHero: View {
     let lesson: Lesson
     var playback: PlaybackController?
     var height: CGFloat = 440
+    /// A still frame (e.g. captured while listening) shown behind the poster.
+    var posterImageURL: URL?
 
     var body: some View {
         ZStack(alignment: .bottomLeading) {
             Group {
-                if let playback {
+                if let playback, lesson.source.hasVideo {
                     PlayerSurface(player: playback.player)
                         .overlay(alignment: .center) { PlayToggle(playback: playback) }
                         .transition(.opacity)
                 } else {
-                    PosterView(lesson: lesson)
+                    PosterView(lesson: lesson, imageURL: posterImageURL)
+                        .overlay(alignment: .center) {
+                            // Listened lessons: play the captured audio.
+                            if let playback { PlayToggle(playback: playback).offset(y: -40) }
+                        }
                 }
             }
             // Scroll-driven: stretches on overscroll, parallaxes when scrolled.
@@ -64,10 +70,20 @@ private struct PlayToggle: View {
 /// Typography as image: the first sentence, large, on near-black.
 private struct PosterView: View {
     let lesson: Lesson
+    var imageURL: URL?
 
     var body: some View {
         ZStack(alignment: .bottomLeading) {
             FLColor.surface
+            if let image = imageURL.flatMap({ UIImage(contentsOfFile: $0.path) }) {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .clipped()
+                    .overlay(FLColor.scrim)
+                    .accessibilityHidden(true)
+            }
             // A single soft light source — depth without a gradient "AI" look.
             DriftingLight()
 

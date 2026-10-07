@@ -21,6 +21,21 @@ struct CaptureSheet: View {
                 .flAppear(0)
 
                 VStack(spacing: 0) {
+                    Button {
+                        let router = self.router
+                        router.dismissCaptureSheet { router.isShowingListen = true }
+                    } label: {
+                        CaptureOption(
+                            symbol: "waveform",
+                            title: "Listen while you watch",
+                            subtitle: "Play a Reel in Instagram. FrenchLens hears it. Best for Reels."
+                        )
+                    }
+                    .buttonStyle(.flPressable)
+                    .accessibilityIdentifier("listenOption")
+                    .flAppear(1)
+                    Hairline()
+
                     AddVideoButton(
                         onPicked: { url in
                             let ingest = self.ingest

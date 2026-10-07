@@ -171,6 +171,7 @@ struct ErrorStateView: View {
     let onUseCaption: (String) -> Void
     let onRetry: () -> Void
     let onTryDemo: () -> Void
+    var onListen: (() -> Void)?
     let onClose: () -> Void
 
     var body: some View {
@@ -198,7 +199,7 @@ struct ErrorStateView: View {
                 .accessibilityIdentifier("error.title")
                 .flAppear(1)
 
-            Text(error.message)
+            Text(error.isLinkOnly ? "Play it in Instagram while FrenchLens listens, or add the video from Photos." : error.message)
                 .flTextStyle(.body)
                 .foregroundStyle(FLColor.textSecondary)
                 .padding(.top, FLSpacing.s)
@@ -208,7 +209,14 @@ struct ErrorStateView: View {
             Spacer()
 
             VStack(spacing: FLSpacing.s) {
-                if error.offersVideoUpload {
+                if case .linkOnly = error, let onListen {
+                    PrimaryButton("Listen while you watch", systemImage: "waveform", action: onListen)
+                        .accessibilityIdentifier("listenInstead")
+                    AddVideoButton(onPicked: onVideoPicked, onFailure: onPickerFailed) {
+                        ButtonLabel(title: "Add video", systemImage: "film")
+                    }
+                    .buttonStyle(FLButtonStyle(kind: .secondary))
+                } else if error.offersVideoUpload {
                     AddVideoButton(onPicked: onVideoPicked, onFailure: onPickerFailed) {
                         ButtonLabel(title: "Add video", systemImage: "film")
                     }

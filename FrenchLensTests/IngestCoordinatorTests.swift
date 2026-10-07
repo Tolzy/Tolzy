@@ -155,6 +155,25 @@ final class IngestCoordinatorTests: XCTestCase {
         XCTAssertEqual(lesson.analysis.title, "A Saturday at the market", "Demo matches text to the closest sample")
     }
 
+    func testListenedAudioBecomesListenedLessonWithPoster() async throws {
+        let payload = try enqueue(
+            SharedPayload(
+                audio: [SharedAudio(fileName: "listened.m4a", typeIdentifier: "public.mpeg-4-audio")],
+                images: [SharedImage(fileName: "poster.jpg", typeIdentifier: "public.jpeg")],
+                registeredTypeIdentifiers: [IngestCoordinator.listenMarker]
+            ),
+            files: ["listened.m4a", "poster.jpg"]
+        )
+
+        await coordinator.process(.payload(payload))
+
+        guard case .ready(let id) = coordinator.phase else { return XCTFail("Expected ready, got \(coordinator.phase)") }
+        let lesson = try XCTUnwrap(store.lesson(id: id))
+        XCTAssertEqual(lesson.source.kind, .listened)
+        XCTAssertEqual(lesson.source.thumbnailFileName, "poster-poster.jpg", "The captured frame becomes the poster")
+        XCTAssertFalse(lesson.source.hasVideo, "Listened lessons are audio only")
+    }
+
     private func waitUntil(timeout: TimeInterval = 2, _ condition: @escaping () -> Bool) async {
         let deadline = Date().addingTimeInterval(timeout)
         while !condition() && Date() < deadline {

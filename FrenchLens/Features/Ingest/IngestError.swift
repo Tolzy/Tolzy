@@ -114,6 +114,11 @@ enum IngestError: Error, Equatable, Identifiable {
         }
     }
 
+    var isLinkOnly: Bool {
+        if case .linkOnly = self { return true }
+        return false
+    }
+
     var caption: String? {
         if case .linkOnly(_, let caption) = self { return caption }
         return nil

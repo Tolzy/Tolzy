@@ -16,4 +16,6 @@ protocol MediaProcessing {
     func makeThumbnail(forMediaNamed name: String) async -> String?
     /// Exports the audio track to an `.m4a` file for transcription.
     func extractAudio(from url: URL) async throws -> URL
+    /// Copies a poster image into the library and returns its file name.
+    func storeImage(at url: URL) -> String?
 }

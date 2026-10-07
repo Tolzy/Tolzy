@@ -63,6 +63,8 @@ Each step is a protocol and responses are strongly typed `LessonAnalysis`.
 
 **Motion is a design-system layer.** Screens never pick curves: they state an intent (`tap`, `select`, `reveal`, `panel`, `swap`, `emphasis`, `ambient`) and use shared primitives — Reduce-Motion-aware transitions built on the iOS 17 `Transition` protocol, staggered entrances, `keyframeAnimator` pop/shake, a `PhaseAnimator` lens pulse, scroll-driven effects (stretchy/parallax hero, viewport focus, finger-locked collapsing titles), matched-geometry word highlights, iOS 18 zoom navigation, and semantic haptics. See [`docs/MOTION.md`](docs/MOTION.md) and **Settings → Motion** for a live lab.
 
+**Listen while you watch.** Instagram only ever shares a Reel's *link*. A third target, `FrenchLensBroadcast` (a ReplayKit broadcast upload extension), solves this the Apple-supported way: the learner taps **Start listening** (an `RPSystemBroadcastPickerView` triggered from our own button), plays the Reel in Instagram, comes back and taps **Build my lesson**. The extension writes only the *app audio* to AAC (`ListenRecording`, plus one downscaled still frame for the poster), saves a `SharedPayload` to the App Group inbox and signals the app over Darwin notifications (`DarwinNotifier`); stopping from the status bar posts a local notification instead. Captures are capped at 3 minutes. Nothing leaves the iPhone.
+
 **Hand-off.** iOS does not let a Share Extension open its containing app, so FrenchLens uses only supported paths: the extension queues the payload in the App Group, optionally posts a local "Ready to learn" notification (tap → `frenchlens://ingest?id=…`), and the app drains the inbox every time it becomes active.
 
 ## 2. Files created
@@ -88,6 +90,9 @@ Shared/                          compiled into app AND extension
                  ScrollEffects, Geometry (matched + zoom), Haptics,
                  Pressable, MotionPrimitives (LensPulse, DrawnCheckmark,
                  shimmer, toast)
+BroadcastExtension/
+  SampleHandler                  ReplayKit broadcast: app audio → inbox
+  ListenRecording                AAC writer + poster frame
 ShareExtension/
   ShareViewController            principal class; hosts SwiftUI
   ShareExtensionModel            parse → save to inbox → notify

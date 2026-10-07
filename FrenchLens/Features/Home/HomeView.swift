@@ -33,7 +33,36 @@ struct HomeView: View {
                     .padding(.top, FLSpacing.xl)
                     .flAppear(3)
 
-                    Text("Or share any French video to FrenchLens from Instagram, TikTok or YouTube.")
+                    Button {
+                        router.isShowingListen = true
+                    } label: {
+                        HStack(spacing: FLSpacing.s) {
+                            ListeningWaveform(isActive: false, barCount: 5, height: 18)
+                            VStack(alignment: .leading, spacing: 1) {
+                                Text("Listen while you watch")
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundStyle(FLColor.textPrimary)
+                                Text("Learn from a Reel as it plays in Instagram")
+                                    .font(.footnote)
+                                    .foregroundStyle(FLColor.textSecondary)
+                            }
+                            Spacer(minLength: 0)
+                            Image(systemName: "chevron.right")
+                                .font(.footnote.weight(.semibold))
+                                .foregroundStyle(FLColor.textTertiary)
+                        }
+                        .padding(.horizontal, FLSpacing.m)
+                        .padding(.vertical, FLSpacing.s)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .flSurface(FLColor.surface, radius: FLRadius.medium)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(FLPressableStyle(scale: 0.98, highlights: false))
+                    .accessibilityIdentifier("homeListen")
+                    .padding(.top, FLSpacing.s)
+                    .flAppear(4)
+
+                    Text("Or share any French video to FrenchLens from TikTok, YouTube or Photos.")
                         .font(.footnote)
                         .foregroundStyle(FLColor.textTertiary)
                         .padding(.top, FLSpacing.s)

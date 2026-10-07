@@ -81,5 +81,13 @@ final class ScreenshotTests: XCTestCase {
 
         app.tabBars.buttons["Settings"].tap()
         snapshot("12-settings")
+
+        app.tabBars.buttons["Home"].tap()
+        let listen = element("homeListen")
+        if listen.waitForExistence(timeout: 3) {
+            listen.tap()
+            _ = element("startListening").waitForExistence(timeout: 3)
+            snapshot("13-listen-while-you-watch")
+        }
     }
 }

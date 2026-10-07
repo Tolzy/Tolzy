@@ -17,6 +17,7 @@ struct FrenchLensApp: App {
                 .environment(environment.store)
                 .environment(environment.router)
                 .environment(environment.ingest)
+                .environment(environment.listen)
                 .environment(\.tts, environment.tts)
                 .preferredColorScheme(environment.settings.appearance.colorScheme)
                 .tint(FLColor.accent)

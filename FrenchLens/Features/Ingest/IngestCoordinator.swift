@@ -144,7 +144,14 @@ final class IngestCoordinator {
             await processMedia(at: inbox.fileURL(named: video.fileName, in: payload.id), link: link)
         case .audio(let audio, let link):
             guard let inbox else { return fail(.processingFailed) }
-            await processMedia(at: inbox.fileURL(named: audio.fileName, in: payload.id), link: link)
+            let listened = payload.registeredTypeIdentifiers.contains(Self.listenMarker)
+            let poster = payload.images.first.map { inbox.fileURL(named: $0.fileName, in: payload.id) }
+            await processMedia(
+                at: inbox.fileURL(named: audio.fileName, in: payload.id),
+                link: link,
+                kind: listened ? .listened : nil,
+                poster: poster
+            )
         case .link(let url, let caption):
             pendingLink = url
             fail(.linkOnly(url, caption: caption))
@@ -157,7 +164,10 @@ final class IngestCoordinator {
         }
     }
 
-    private func processMedia(at url: URL, link: URL?) async {
+    /// Marks payloads written by the "Listen while you watch" extension.
+    static let listenMarker = "frenchlens.listen"
+
+    private func processMedia(at url: URL, link: URL?, kind: LessonSource.Kind? = nil, poster: URL? = nil) async {
         guard await media.hasAudioTrack(at: url) else { return fail(.noAudio) }
 
         let storedName: String
@@ -166,9 +176,12 @@ final class IngestCoordinator {
         } catch {
             return fail(.processingFailed)
         }
-        let thumbnail = await media.makeThumbnail(forMediaNamed: storedName)
+        var thumbnail = await media.makeThumbnail(forMediaNamed: storedName)
+        if thumbnail == nil, let poster {
+            thumbnail = media.storeImage(at: poster)
+        }
         let source = LessonSource(
-            kind: link == nil ? .upload : LessonSource.kind(for: link),
+            kind: kind ?? (link == nil ? .upload : LessonSource.kind(for: link)),
             url: link,
             mediaFileName: storedName,
             thumbnailFileName: thumbnail

@@ -6,6 +6,7 @@ import SwiftUI
 struct ProcessingView: View {
     @Environment(IngestCoordinator.self) private var ingest
     @Environment(AppEnvironment.self) private var environment
+    @Environment(AppRouter.self) private var router
 
     var body: some View {
         ZStack {
@@ -22,6 +23,15 @@ struct ProcessingView: View {
                     onTryDemo: {
                         ingest.dismiss()
                         environment.openDemo(environment.demoLibrary.lessons.first)
+                    },
+                    onListen: {
+                        ingest.dismiss()
+                        let router = self.router
+                        Task { @MainActor in
+                            // Let the cover finish leaving before the sheet arrives.
+                            try? await Task.sleep(for: .milliseconds(500))
+                            router.isShowingListen = true
+                        }
                     },
                     onClose: { ingest.dismiss() }
                 )
