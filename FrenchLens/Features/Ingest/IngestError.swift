@@ -17,6 +17,12 @@ enum IngestError: Error, Equatable, Identifiable {
     case processingFailed
     case network
     case aiFailure
+    /// Speech recognition heard no French.
+    case noSpeech
+    case speechPermissionDenied
+    /// Apple Intelligence can't run right now; the message says why.
+    case onDeviceUnavailable(String)
+    case contentBlocked
 
     var id: String { String(describing: self) }
 
@@ -32,6 +38,10 @@ enum IngestError: Error, Equatable, Identifiable {
         case .processingFailed: "Something went wrong with this video."
         case .network: "You're offline."
         case .aiFailure: "We couldn't build this lesson."
+        case .noSpeech: "We couldn't hear any French."
+        case .speechPermissionDenied: "FrenchLens needs Speech Recognition."
+        case .onDeviceUnavailable: "Apple Intelligence isn't ready."
+        case .contentBlocked: "This video couldn't be analysed."
         }
     }
 
@@ -59,7 +69,15 @@ enum IngestError: Error, Equatable, Identifiable {
         case .network:
             "Check your connection and try again. Your share is kept until it works."
         case .aiFailure:
-            "The analysis service didn't respond as expected. Try again in a moment."
+            "The analysis didn't work this time. Try again in a moment."
+        case .noSpeech:
+            "Try a video where someone speaks clearly, without loud music over the voice."
+        case .speechPermissionDenied:
+            "Allow it in Settings → Apps → FrenchLens → Speech Recognition, then try again."
+        case .onDeviceUnavailable(let reason):
+            reason
+        case .contentBlocked:
+            "Apple Intelligence declined to analyse this content. Try another video."
         }
     }
 
@@ -74,20 +92,24 @@ enum IngestError: Error, Equatable, Identifiable {
         case .processingFailed: "exclamationmark.triangle"
         case .network: "wifi.slash"
         case .aiFailure: "sparkles"
+        case .noSpeech: "waveform.slash"
+        case .speechPermissionDenied: "mic.slash"
+        case .onDeviceUnavailable: "sparkles"
+        case .contentBlocked: "hand.raised"
         }
     }
 
     /// Whether "Add video" is the right next step.
     var offersVideoUpload: Bool {
         switch self {
-        case .network, .aiFailure: false
+        case .network, .aiFailure, .speechPermissionDenied, .onDeviceUnavailable: false
         default: true
         }
     }
 
     var canRetry: Bool {
         switch self {
-        case .network, .aiFailure, .processingFailed: true
+        case .network, .aiFailure, .processingFailed, .speechPermissionDenied, .onDeviceUnavailable: true
         default: false
         }
     }
@@ -105,7 +127,16 @@ enum IngestError: Error, Equatable, Identifiable {
         case let error as APIError:
             if case .transport = error { return .network }
             return .aiFailure
-        case is AIServiceError: return .aiFailure
+        case let error as AIServiceError:
+            switch error {
+            case .noSpeech, .emptyTranscript: return .noSpeech
+            case .speechPermissionDenied: return .speechPermissionDenied
+            case .modelUnavailable(let reason): return .onDeviceUnavailable(reason)
+            case .contentBlocked: return .contentBlocked
+            case .speechUnavailable:
+                return .onDeviceUnavailable("French speech recognition isn't available right now. Check your connection, or download French under Settings → General → Keyboard → Dictation Languages.")
+            default: return .aiFailure
+            }
         case is URLError: return .network
         default: return .processingFailed
         }

@@ -8,7 +8,8 @@ The core loop: **Find French video → Share → FrenchLens → Understand → L
 
 - Swift, SwiftUI, async/await, Observation (`@Observable`), iOS 17+
 - A real Share Extension target (`NSExtensionContext` / `NSExtensionItem` / `NSItemProvider` / `UTType` / App Groups)
-- Runs fully in **Demo Mode** with no backend and no API keys
+- Builds real lessons **on the iPhone**: Apple speech recognition (French) + Apple Intelligence (Foundation Models, iOS 26+). No server, no API keys
+- Falls back to **sample lessons** (Demo) on older iOS or in UI tests
 
 ---
 
@@ -49,7 +50,12 @@ The core loop: **Find French video → Share → FrenchLens → Understand → L
 | Share | `Shared/Share` | Capabilities, `ShareItemParser`, `ContentResolver`, `ShareInbox`, `URLExtractor`, `SupportedContent`, `DeepLink` |
 | App | `FrenchLens/App` | `AppEnvironment` (dependency container), `AppRouter`, `RootView`, `AppDelegate` |
 
-**AI is provider-agnostic.** The UI only knows `AIService.makeLesson(from:level:progress:)`. `AIServiceFactory` returns `DemoAIService` (bundled samples) or `RemoteAIService`, which composes `MediaProcessing.extractAudio` → `TranscriptionService` → `LanguageAnalysisService` (→ `TranslationService` as fallback). Each step is a protocol, so e.g. on-device transcription can be swapped in without touching anything else. Responses decode into strongly typed `LessonAnalysis`.
+**AI is provider-agnostic.** The UI only knows `AIService.makeLesson(from:level:progress:)`. `AIServiceFactory` returns, per **Settings → Analysis**:
+- **On this iPhone** (default): `PipelineAIService` with `SpeechTranscriptionService` (SFSpeechRecognizer, fr-FR, on-device when the French model is installed, timed sentences via `SentenceSplitter`) and `OnDeviceLanguageAnalysisService` (Foundation Models, three `@Generable` requests: overview + per-sentence translations, vocabulary + expressions, verbs + grammar). `LessonAssembler` then validates the draft against the transcript, dropping any verb, word or grammar excerpt that wasn't actually said, and links tappable words to glossary entries.
+- **FrenchLens server**: the same pipeline with the remote services (when `FRENCHLENS_API_BASE_URL` is set).
+- **Sample lessons**: `DemoAIService`.
+
+Each step is a protocol and responses are strongly typed `LessonAnalysis`.
 
 **CEFR adaptation.** Explanations are `LevelledText` (`a1` required, `a2`/`b1`/`b2` optional, falling back downward). The level picked in Settings (default A1) selects the text everywhere; B2 text is French-first. The remote analysis request includes the level so the backend generates for it.
 
@@ -92,7 +98,9 @@ FrenchLens/
                 LearningItems (vocabulary, verbs, expressions, grammar,
                 pronunciation, glossary), Lesson, DemoLesson
   Services/
-    AI/               AIService, DemoAIService, DemoLibrary, RemoteAIService
+    AI/               AIService, PipelineAIService, DemoAIService, DemoLibrary
+      OnDevice/       OnDeviceCapability, OnDeviceLanguageAnalysisService,
+                      LessonDraft, LessonAssembler
     Transcription/    TranscriptionService (+ remote)
     Translation/      TranslationService (+ remote)
     LanguageAnalysis/ LanguageAnalysisService (+ remote)
@@ -133,7 +141,7 @@ Requirements: **Xcode 16+** (the project uses file-system-synchronized folders),
 1. Open `FrenchLens.xcodeproj`.
 2. Select the **FrenchLens** scheme and an iPhone simulator → **Run**.
 
-That's it: with no backend configured the app runs in **Demo Mode** and is seeded with three sample lessons (*J'en ai marre de travailler…*, a futur proche breakfast Reel, and a passé composé market TikTok). Try **Understand something → Try a demo lesson**, tap words in the transcript, open **Verbs**, save a lesson, then visit **Library** and **Review**.
+That's it: the app is seeded with three sample lessons (*J'en ai marre de travailler…*, a futur proche breakfast Reel, and a passé composé market TikTok). Try **Understand something → Try a demo lesson**, tap words in the transcript, open **Verbs**, save a lesson, then visit **Library** and **Review**.
 
 For a device (or to exercise the Share Extension's App Group):
 
@@ -171,7 +179,8 @@ FrenchLens never scrapes Instagram, never calls private APIs, never bypasses aut
 ## 6. Known limitations
 
 - **Not compiled in this environment.** The project was authored on Linux without Xcode. The platform-independent core (Share parsing, resolver, models, demo JSON, services, ingestion state machine, review generator, motion math — ~30 files) was compiled with Swift 6.0.3 and all 56 unit tests pass against it; the SwiftUI/UIKit/AVFoundation layers and the UI tests have not yet been built or run. Expect possible small compile fixes on first open in Xcode.
-- **Demo Mode returns samples.** With no backend, any video or text you add gets one of the three bundled analyses, clearly labelled with a banner. Synchronised highlighting against *your* video uses the sample's timings.
+- **On-device analysis needs iOS 26+ and Apple Intelligence** (iPhone 15 Pro or later, turned on in Settings). Otherwise the app explains what to enable, or you can switch to sample lessons. The on-device model is smaller than cloud models, so lessons are simpler; long videos are analysed from their first ~320 words.
+- **Sample lessons** (Settings → Analysis → Sample lessons) give any video one of three bundled analyses, clearly labelled.
 - **No backend server is included** — only the client API layer and its contract (`docs/BACKEND_API.md`).
 - **Hand-off requires opening the app.** iOS doesn't let share extensions launch their app; FrenchLens queues the share and (if allowed) posts a notification.
 - **Images are recorded but not analysed** (no OCR yet).
@@ -185,14 +194,14 @@ The iOS client never holds AI provider keys. It only knows the FrenchLens backen
 
 | Variable | Where | Purpose |
 | --- | --- | --- |
-| `FRENCHLENS_API_BASE_URL` | Xcode scheme env var, or `Config/Secrets.xcconfig` (→ Info.plist `FLBackendBaseURL`) | Backend base URL. Empty → Demo Mode. In xcconfig write `https:/$()/api.example.com` (`//` starts a comment). |
+| `FRENCHLENS_API_BASE_URL` | Xcode scheme env var, or `Config/Secrets.xcconfig` (→ Info.plist `FLBackendBaseURL`) | Backend base URL. Empty → server mode unavailable. In xcconfig write `https:/$()/api.example.com` (`//` starts a comment). |
 | `FRENCHLENS_BUNDLE_ID_PREFIX` | `Config/*.xcconfig` | Bundle IDs and App Group. |
 | `FRENCHLENS_APP_GROUP` | `Config/FrenchLens.xcconfig` (derived) | Shared container for app ⇄ extension. |
 | `DEVELOPMENT_TEAM` | `Config/Secrets.xcconfig` | Code signing. |
 
 Suggested **server-side** variables (never in the app): `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` / `DEEPGRAM_API_KEY` (whichever providers you choose), `FRENCHLENS_TRANSCRIPTION_PROVIDER`, `FRENCHLENS_ANALYSIS_MODEL`, `FRENCHLENS_TTS_PROVIDER`, `FRENCHLENS_MAX_UPLOAD_MB`. Endpoints and JSON shapes are in [`docs/BACKEND_API.md`](docs/BACKEND_API.md).
 
-When a backend URL is set, **Settings → Demo Mode** can be switched off to use it.
+When a backend URL is set, **Settings → Analysis → FrenchLens server** uses it.
 
 ## 8. Next steps for production
 

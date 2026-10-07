@@ -52,4 +52,13 @@ enum AIServiceError: Error, Equatable {
     case notConfigured
     case emptyTranscript
     case invalidResponse
+    /// Speech recognition heard no words.
+    case noSpeech
+    case speechPermissionDenied
+    case speechUnavailable
+    /// The on-device model can't run; the message says why and what to do.
+    case modelUnavailable(String)
+    /// The model's safety guardrails declined the content.
+    case contentBlocked
+    case transcriptTooLong
 }

@@ -76,9 +76,7 @@ struct CaptureSheet: View {
                     .flAppear(3)
                 }
 
-                if environment.aiFactory.isDemoMode {
-                    demoLessons
-                }
+                demoLessons
             }
             .padding(.horizontal, FLSpacing.gutter)
             .padding(.bottom, FLSpacing.xl)

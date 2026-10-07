@@ -16,25 +16,45 @@ enum Appearance: String, CaseIterable, Identifiable {
     }
 }
 
+/// How lessons are produced.
+enum AnalysisMode: String, CaseIterable, Identifiable {
+    /// Apple speech recognition + Apple Intelligence on the iPhone.
+    case onDevice
+    /// The FrenchLens backend (when configured).
+    case backend
+    /// Bundled sample lessons.
+    case demo
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .onDevice: "On this iPhone"
+        case .backend: "FrenchLens server"
+        case .demo: "Sample lessons"
+        }
+    }
+}
+
 /// Learner preferences, persisted in `UserDefaults`.
 @Observable
 final class AppSettings {
     private enum Keys {
         static let level = "settings.level"
-        static let demoMode = "settings.demoMode"
+        static let analysisMode = "settings.analysisMode"
         static let appearance = "settings.appearance"
     }
 
     @ObservationIgnored private let defaults: UserDefaults
 
     private var storedLevel: CEFRLevel
-    private var storedDemoMode: Bool
+    private var storedAnalysisMode: AnalysisMode
     private var storedAppearance: Appearance
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         storedLevel = defaults.string(forKey: Keys.level).flatMap(CEFRLevel.init(rawValue:)) ?? .a1
-        storedDemoMode = defaults.object(forKey: Keys.demoMode) as? Bool ?? true
+        storedAnalysisMode = defaults.string(forKey: Keys.analysisMode).flatMap(AnalysisMode.init(rawValue:)) ?? .onDevice
         storedAppearance = defaults.string(forKey: Keys.appearance).flatMap(Appearance.init(rawValue:)) ?? .dark
     }
 
@@ -47,12 +67,12 @@ final class AppSettings {
         }
     }
 
-    /// When on, lessons come from bundled samples instead of the backend.
-    var demoModeEnabled: Bool {
-        get { storedDemoMode }
+    /// How lessons are produced. Default: on this iPhone.
+    var analysisMode: AnalysisMode {
+        get { storedAnalysisMode }
         set {
-            storedDemoMode = newValue
-            defaults.set(newValue, forKey: Keys.demoMode)
+            storedAnalysisMode = newValue
+            defaults.set(newValue.rawValue, forKey: Keys.analysisMode)
         }
     }
 

@@ -11,6 +11,10 @@ struct LessonHeader: View {
                     Text("·")
                     Text(author)
                 }
+                if lesson.origin == .onDevice {
+                    Text("·")
+                    Text("On-device")
+                }
             }
             .flTextStyle(.label)
             .foregroundStyle(FLColor.textTertiary)
@@ -38,7 +42,7 @@ struct DemoBanner: View {
         HStack(alignment: .top, spacing: FLSpacing.s) {
             Image(systemName: "info.circle")
                 .foregroundStyle(FLColor.info)
-            Text("Demo Mode: this is a sample analysis, not a transcript of what you shared. Connect a backend in Settings to analyse your own content.")
+            Text("Sample lesson: this isn't a transcript of what you shared. Choose “On this iPhone” under Settings → Analysis to analyse your own videos.")
                 .font(.footnote)
                 .foregroundStyle(FLColor.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)

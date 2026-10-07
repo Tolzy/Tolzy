@@ -53,6 +53,8 @@ struct LessonSource: Codable, Hashable {
 /// sample is never presented as an analysis of the learner's own video.
 enum AnalysisOrigin: String, Codable {
     case demo
+    /// Apple speech recognition + Apple Intelligence, on the iPhone.
+    case onDevice
     case backend
 }
 

@@ -1,16 +1,16 @@
 import Foundation
 
-/// Production pipeline: extract audio → transcribe → analyse (→ translate if needed).
+/// The real pipeline: extract audio → transcribe → analyse (→ translate if needed).
 ///
-/// Each step is a separate protocol so providers can be swapped independently
-/// (e.g. on-device transcription with a server-side analysis model).
-struct RemoteAIService: AIService {
+/// Each step is a protocol, so the same pipeline runs fully on the iPhone
+/// (Apple speech recognition + Apple Intelligence) or against the FrenchLens
+/// backend, and steps can be mixed.
+struct PipelineAIService: AIService {
     let media: MediaProcessing
     let transcription: TranscriptionService
     let analysis: LanguageAnalysisService
-    let translation: TranslationService
-
-    var origin: AnalysisOrigin { .backend }
+    var translation: TranslationService?
+    let origin: AnalysisOrigin
 
     func makeLesson(
         from input: LessonInput,
@@ -30,13 +30,13 @@ struct RemoteAIService: AIService {
         }
 
         guard !transcript.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            throw AIServiceError.emptyTranscript
+            throw AIServiceError.noSpeech
         }
 
         progress(.analyzing)
         var result = try await analysis.analyze(transcript, level: level)
 
-        if result.translation.natural.isEmpty {
+        if result.translation.natural.isEmpty, let translation {
             result.translation.natural = try await translation.translate(transcript.text, from: "fr", to: "en")
         }
         progress(.buildingLesson)

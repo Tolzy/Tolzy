@@ -80,8 +80,14 @@ final class AppEnvironment {
             store.seedDemoLessonsIfNeeded(from: demoLibrary)
         }
 
+        let settings = AppSettings(defaults: defaults)
+        if isUITesting {
+            // Simulators in CI have no Apple Intelligence; UI tests use samples.
+            settings.analysisMode = .demo
+        }
+
         return AppEnvironment(
-            settings: AppSettings(defaults: defaults),
+            settings: settings,
             store: store,
             demoLibrary: demoLibrary,
             media: MediaService(directory: supportDirectory.appendingPathComponent("Media", isDirectory: true)),

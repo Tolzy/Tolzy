@@ -37,23 +37,16 @@ struct SettingsView: View {
                 }
 
                 Section {
-                    Toggle("Demo Mode", isOn: Binding(
-                        get: { environment.aiFactory.isDemoMode },
-                        set: { settings.demoModeEnabled = $0 }
-                    ))
-                    .disabled(!environment.apiConfiguration.isConfigured)
-                    .accessibilityIdentifier("demoModeToggle")
-
-                    LabeledContent("Backend") {
-                        Text(environment.apiConfiguration.baseURL?.host ?? "Not configured")
-                            .foregroundStyle(FLColor.textSecondary)
+                    Picker("Build lessons", selection: $settings.analysisMode) {
+                        ForEach(availableModes) { mode in
+                            Text(mode.title).tag(mode)
+                        }
                     }
+                    .accessibilityIdentifier("analysisModePicker")
                 } header: {
                     Text("Analysis")
                 } footer: {
-                    Text(environment.apiConfiguration.isConfigured
-                         ? "Turn Demo Mode off to analyse your own videos with the FrenchLens backend."
-                         : "No backend is configured, so FrenchLens uses built-in sample lessons. Set FRENCHLENS_API_BASE_URL to connect one.")
+                    Text(analysisFooter)
                 }
 
                 Section("Appearance") {
@@ -101,6 +94,26 @@ struct SettingsView: View {
             .background(FLColor.background.ignoresSafeArea())
             .navigationTitle("Settings")
             .task { await refreshNotificationStatus() }
+        }
+    }
+
+    private var availableModes: [AnalysisMode] {
+        AnalysisMode.allCases.filter { $0 != .backend || environment.apiConfiguration.isConfigured }
+    }
+
+    private var analysisFooter: String {
+        switch environment.aiFactory.resolvedMode {
+        case .onDevice:
+            let status = OnDeviceCapability.status
+            return status == .available
+                ? "FrenchLens listens with Apple speech recognition and builds lessons with Apple Intelligence on this iPhone. Nothing is uploaded."
+                : OnDeviceCapability.message(for: status)
+        case .backend:
+            return "Videos are analysed by the FrenchLens server at \(environment.apiConfiguration.baseURL?.host ?? "")."
+        case .demo:
+            return settings.analysisMode == .demo
+                ? "Every video gets one of the built-in sample lessons. Handy for trying the app."
+                : OnDeviceCapability.message(for: .unsupportedOS) + " Using sample lessons for now."
         }
     }
 

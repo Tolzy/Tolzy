@@ -14,7 +14,7 @@ struct ProcessingView: View {
             case .failed(let error):
                 ErrorStateView(
                     error: error,
-                    isDemoMode: environment.aiFactory.isDemoMode,
+                    isDemoMode: true,
                     onVideoPicked: { ingest.submit(.video($0)) },
                     onPickerFailed: { ingest.present($0) },
                     onUseCaption: { ingest.submit(.text($0)) },
