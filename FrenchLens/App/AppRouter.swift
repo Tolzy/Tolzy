@@ -2,7 +2,7 @@ import Observation
 import SwiftUI
 
 enum AppTab: String, CaseIterable, Hashable, Identifiable {
-    case home, library, review, settings
+    case home, library, speak, review, settings
 
     var id: String { rawValue }
 
@@ -10,6 +10,7 @@ enum AppTab: String, CaseIterable, Hashable, Identifiable {
         switch self {
         case .home: "Home"
         case .library: "Library"
+        case .speak: "Speak"
         case .review: "Review"
         case .settings: "Settings"
         }
@@ -19,6 +20,7 @@ enum AppTab: String, CaseIterable, Hashable, Identifiable {
         switch self {
         case .home: "house"
         case .library: "books.vertical"
+        case .speak: "bubble.left.and.bubble.right"
         case .review: "rectangle.on.rectangle"
         case .settings: "gearshape"
         }
@@ -38,6 +40,7 @@ final class AppRouter {
     var selectedTab: AppTab = .home
     var homePath: [LessonRoute] = []
     var libraryPath: [LessonRoute] = []
+    var speakPath: [PracticeScenario] = []
     var isShowingCaptureSheet = false
     var isShowingHowItWorks = false
     var isShowingListen = false
@@ -61,5 +64,11 @@ final class AppRouter {
         isShowingCaptureSheet = false
         selectedTab = .home
         homePath = [LessonRoute(id: id)]
+    }
+
+    /// Opens a speaking practice conversation about a lesson.
+    func practice(_ lesson: Lesson) {
+        selectedTab = .speak
+        speakPath = [PracticeScenario.about(lesson)]
     }
 }

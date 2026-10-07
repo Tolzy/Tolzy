@@ -79,6 +79,22 @@ final class ScreenshotTests: XCTestCase {
             }
         }
 
+        app.tabBars.buttons["Speak"].tap()
+        let cafe = element("speak.scenario.cafe")
+        if cafe.waitForExistence(timeout: 3) {
+            snapshot("14-speak")
+            cafe.tap()
+            if element("chat.tutor").waitForExistence(timeout: 5) {
+                let input = element("conversation.input")
+                input.tap()
+                input.typeText("Je suis faim")
+                element("conversation.send").tap()
+                _ = element("chat.correction").waitForExistence(timeout: 5)
+                snapshot("15-speak-conversation")
+            }
+            app.navigationBars.buttons.element(boundBy: 0).tap()
+        }
+
         app.tabBars.buttons["Settings"].tap()
         snapshot("12-settings")
 

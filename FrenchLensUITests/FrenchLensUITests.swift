@@ -39,7 +39,7 @@ final class FrenchLensUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Bonjour."].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["What did you find today?"].exists)
         XCTAssertTrue(element("understandButton").exists)
-        for tab in ["Home", "Library", "Review", "Settings"] {
+        for tab in ["Home", "Library", "Speak", "Review", "Settings"] {
             XCTAssertTrue(app.tabBars.buttons[tab].exists, tab)
         }
     }
@@ -120,6 +120,35 @@ final class FrenchLensUITests: XCTestCase {
         XCTAssertTrue(link.waitForExistence(timeout: 3))
         link.tap()
         XCTAssertTrue(element("motionLab").waitForExistence(timeout: 3))
+    }
+
+    func testSpeakConversationRepliesAndCorrects() {
+        app.tabBars.buttons["Speak"].tap()
+        let cafe = element("speak.scenario.cafe")
+        XCTAssertTrue(cafe.waitForExistence(timeout: 5))
+        cafe.tap()
+
+        // Camille opens the conversation (sample replies in UI tests).
+        XCTAssertTrue(element("chat.tutor").waitForExistence(timeout: 5))
+        XCTAssertTrue(element("conversation.sampleNotice").exists)
+        XCTAssertTrue(element("conversation.mic").exists)
+
+        let input = element("conversation.input")
+        input.tap()
+        input.typeText("Je suis faim")
+        element("conversation.send").tap()
+
+        XCTAssertTrue(element("chat.learner").waitForExistence(timeout: 5))
+        XCTAssertTrue(element("chat.correction").waitForExistence(timeout: 5))
+        XCTAssertEqual(app.descendants(matching: .any).matching(identifier: "chat.tutor").count, 2)
+    }
+
+    func testPractiseSpeakingFromLesson() {
+        openFirstLesson()
+        let practice = element("lesson.practiceSpeaking")
+        for _ in 0..<8 where !practice.isHittable { app.swipeUp() }
+        practice.tap()
+        XCTAssertTrue(element("chat.tutor").waitForExistence(timeout: 5))
     }
 
     func testListenWhileYouWatchOpensFromHome() {

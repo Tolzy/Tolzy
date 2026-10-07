@@ -617,7 +617,8 @@
 				INFOPLIST_FILE = "Config/FrenchLens-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = FrenchLens;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
-				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "FrenchLens writes down the French in videos you add so it can turn them into lessons. Speech is recognised on your iPhone when possible.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "FrenchLens listens when you tap the microphone in Speak, so you can practise talking French with your tutor.";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "FrenchLens writes down the French in videos you add, and what you say when practising, so it can teach you. Speech is recognised on your iPhone when possible.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -647,7 +648,8 @@
 				INFOPLIST_FILE = "Config/FrenchLens-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = FrenchLens;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
-				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "FrenchLens writes down the French in videos you add so it can turn them into lessons. Speech is recognised on your iPhone when possible.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "FrenchLens listens when you tap the microphone in Speak, so you can practise talking French with your tutor.";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "FrenchLens writes down the French in videos you add, and what you say when practising, so it can teach you. Speech is recognised on your iPhone when possible.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

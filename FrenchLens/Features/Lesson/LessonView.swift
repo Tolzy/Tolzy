@@ -36,6 +36,7 @@ struct LessonDetailView: View {
     @Environment(AppEnvironment.self) private var environment
     @Environment(LessonStore.self) private var store
     @Environment(AppSettings.self) private var settings
+    @Environment(AppRouter.self) private var router
     @Environment(\.tts) private var tts
     @Environment(\.motion) private var motion
 
@@ -111,6 +112,13 @@ struct LessonDetailView: View {
                         }
                         .flAppear(analysis.transcript.segments.count + 2)
                     }
+
+                    PracticeLessonButton {
+                        tts.stop()
+                        playback?.pause()
+                        router.practice(lesson)
+                    }
+                    .flAppear(analysis.transcript.segments.count + 3)
                 }
                 .padding(.horizontal, FLSpacing.gutter)
                 // Room for the word panel so the last line is never covered.
@@ -291,5 +299,42 @@ struct LessonDetailView: View {
 
     private func closeWordPanel() {
         motion.perform(.panel) { selection = nil }
+    }
+}
+
+/// Leads from studying a video to talking about it.
+private struct PracticeLessonButton: View {
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: FLSpacing.m) {
+                Image(systemName: "bubble.left.and.bubble.right.fill")
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(FLColor.accent)
+                    .frame(width: 44, height: 44)
+                    .background(Circle().fill(FLColor.accentSoft))
+                    .accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Practise speaking about this")
+                        .font(.body.weight(.semibold))
+                        .foregroundStyle(FLColor.textPrimary)
+                    Text("Chat out loud with Camille, using these words")
+                        .font(.footnote)
+                        .foregroundStyle(FLColor.textSecondary)
+                }
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.right")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(FLColor.textTertiary)
+            }
+            .padding(FLSpacing.m)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .flSurface(FLColor.surface, radius: FLRadius.large)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(FLPressableStyle(scale: 0.98, highlights: false))
+        .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("lesson.practiceSpeaking")
     }
 }

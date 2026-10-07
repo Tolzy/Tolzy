@@ -65,6 +65,8 @@ Each step is a protocol and responses are strongly typed `LessonAnalysis`.
 
 **Listen while you watch.** Instagram only ever shares a Reel's *link*. A third target, `FrenchLensBroadcast` (a ReplayKit broadcast upload extension), solves this the Apple-supported way: the learner taps **Start listening** (an `RPSystemBroadcastPickerView` triggered from our own button), plays the Reel in Instagram, comes back and taps **Build my lesson**. The extension writes only the *app audio* to AAC (`ListenRecording`, plus one downscaled still frame for the poster), saves a `SharedPayload` to the App Group inbox and signals the app over Darwin notifications (`DarwinNotifier`); stopping from the status bar posts a local notification instead. Captures are capped at 3 minutes. Nothing leaves the iPhone.
 
+**Speak (conversation practice).** A ChatGPT-style chat with "Camille", a French tutor, for practising out loud. Pick a situation (café, introductions, your weekend, directions, free chat) or **Practise speaking about this** from any lesson, which seeds the conversation with that video's words. Tap the mic and talk (`SpeakInput`: `AVAudioEngine` + `SFSpeechAudioBufferRecognitionRequest`, on-device French, live words and a level meter) or type. Replies stream in from Apple Intelligence (`OnDeviceTutor`: one `LanguageModelSession` per conversation, `streamResponse` into a `@Generable` turn whose correction is decided before the reply) and are read aloud. When something you said could be more natural, a **More natural** card appears under your message with a one-line tip; accent/punctuation-only differences are ignored. Long chats continue from a recap when the model's context fills. Without Apple Intelligence (and in UI tests) `ScriptedTutor` gives clearly labelled sample replies.
+
 **Hand-off.** iOS does not let a Share Extension open its containing app, so FrenchLens uses only supported paths: the extension queues the payload in the App Group, optionally posts a local "Ready to learn" notification (tap → `frenchlens://ingest?id=…`), and the app drains the inbox every time it becomes active.
 
 ## 2. Files created
@@ -121,6 +123,10 @@ FrenchLens/
     Settings/    SettingsView, MotionLabView
     Ingest/      IngestCoordinator, IngestError, ProcessingView
     Onboarding/  HowItWorksView
+    Listen/      ListenSession, ListenView, BroadcastPicker
+    Speak/       SpeakView, ConversationView, ConversationController,
+                 SpeakInput (+ MicTranscriber), OnDeviceTutor, ScriptedTutor,
+                 TutorPrompt, PracticeModels
   Components/    Buttons, FrenchText, TranslationBlock, AudioControls,
                  VocabularyRow, VerbCard, ExpressionCard, GrammarSection,
                  PronunciationRow, FlowLayout, TranscriptView, WordPopover,
@@ -133,8 +139,10 @@ FrenchLens/
 FrenchLensTests/     URL extraction, supported content, Share Extension parsing,
                      resolver, lesson/vocabulary/verb decoding, store,
                      ingestion state machine, review generator, deep links/inbox,
-                     motion timing/scroll mapping
-FrenchLensUITests/   launch, demo lesson, tap word, verbs, save, library, review
+                     motion timing/scroll mapping, tutor corrections/prompts,
+                     conversation controller
+FrenchLensUITests/   launch, demo lesson, tap word, verbs, save, library, review,
+                     listen, speak conversation, practise from a lesson
 docs/BACKEND_API.md  the backend contract
 docs/MOTION.md       the motion system: intents, primitives, choreography
 ```
@@ -189,6 +197,7 @@ FrenchLens never scrapes Instagram, never calls private APIs, never bypasses aut
 - **No backend server is included** — only the client API layer and its contract (`docs/BACKEND_API.md`).
 - **Hand-off requires opening the app.** iOS doesn't let share extensions launch their app; FrenchLens queues the share and (if allowed) posts a notification.
 - **Images are recorded but not analysed** (no OCR yet).
+- **Speak** needs Apple Intelligence for real conversations (otherwise sample replies). Speaking uses push-to-talk (tap to start, tap to send) rather than hands-free turn-taking, and the on-device model's corrections are helpful but not infallible.
 - Share Extensions have a ~120 MB memory limit; media is streamed to disk (`loadFileRepresentation` + copy), never loaded into memory, but very large files may still take time to copy.
 - TTS uses the on-device `AVSpeechSynthesizer` French voice; quality depends on which voices are installed (Settings → Accessibility → Spoken Content → Voices → French → Enhanced/Premium).
 - Persistence is a single JSON file — fine for a prototype, not for thousands of lessons.

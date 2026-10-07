@@ -139,6 +139,18 @@ final class AppEnvironment {
         }
     }
 
+    /// A live Apple Intelligence tutor when this iPhone has one; otherwise
+    /// sample replies (also used by UI tests).
+    func makeTutor(for scenario: PracticeScenario) -> TutorEngine {
+        #if canImport(FoundationModels)
+        if #available(iOS 26.0, *), !isUITesting, settings.analysisMode == .onDevice,
+           OnDeviceCapability.status == .available {
+            return OnDeviceTutor(level: settings.level, scenario: scenario)
+        }
+        #endif
+        return ScriptedTutor(scenario: scenario, delay: isUITesting ? .milliseconds(40) : .milliseconds(450))
+    }
+
     func mediaURL(for lesson: Lesson) -> URL? {
         lesson.source.mediaFileName.map(media.mediaURL(named:))
     }
@@ -155,6 +167,7 @@ final class AppEnvironment {
         inbox?.removeAll()
         router.homePath = []
         router.libraryPath = []
+        router.speakPath = []
     }
 }
 

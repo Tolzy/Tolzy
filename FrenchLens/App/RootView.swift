@@ -14,6 +14,7 @@ struct RootView: View {
             switch tab {
             case .home: HomeView()
             case .library: LibraryView()
+            case .speak: SpeakView()
             case .review: ReviewView()
             case .settings: SettingsView()
             }
