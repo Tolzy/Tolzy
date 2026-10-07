@@ -102,31 +102,47 @@ struct FlashcardDeckView: View {
     private func deck(width: CGFloat) -> some View {
         let cardWidth: CGFloat = width - 40
         let cardHeight: CGFloat = min(cardWidth * 0.82, 310)
+        let behind: [(depth: Int, card: Flashcard)] = session.upcoming.enumerated().map { (depth: $0.offset, card: $0.element) }.reversed()
         return ZStack {
-            ForEach(Array(session.upcoming.enumerated().reversed()), id: \.element.id) { depth, card in
-                let rise: Double = depth == 0 ? pull : 0
-                let level: Double = Double(depth + 1) - rise
-                let step: CGFloat = CGFloat(level)
-                FlashcardTile(card: card)
-                    .frame(width: cardWidth, height: cardHeight)
-                    .scaleEffect(1 - 0.06 * step)
-                    .rotationEffect(.degrees(motion.allowsMovement ? 4 * level : 0))
-                    .offset(x: 26 * step, y: 6 * step)
-                    .opacity(1 - 0.18 * level)
-                    .allowsHitTesting(false)
-                    .accessibilityHidden(true)
+            ForEach(behind, id: \.card.id) { entry in
+                behindCard(entry.card, depth: entry.depth, width: cardWidth, height: cardHeight)
             }
             if let card = session.current {
                 topCard(card, width: cardWidth, height: cardHeight)
                     .id(card.id)
-                    .transition(.asymmetric(
-                        insertion: .offset(x: direction < 0 ? -cardWidth : 0).combined(with: .opacity),
-                        removal: .identity
-                    ))
+                    .transition(entrance(width: cardWidth))
             }
         }
         .animation(.spring(duration: 0.5, bounce: 0.2), value: session.index)
         .animation(.spring(duration: 0.5, bounce: 0.2), value: session.cards.count)
+    }
+
+    /// A card waiting in the fan: further back is smaller, turned and
+    /// dimmer; the nearest one rises as you pull the top card away.
+    private func behindCard(_ card: Flashcard, depth: Int, width: CGFloat, height: CGFloat) -> some View {
+        let rise: Double = depth == 0 ? pull : 0
+        let level: Double = Double(depth + 1) - rise
+        let step: CGFloat = CGFloat(level)
+        let scale: CGFloat = 1 - 0.06 * step
+        let angle: Double = motion.allowsMovement ? 4 * level : 0
+        let x: CGFloat = 26 * step
+        let y: CGFloat = 6 * step
+        let opacity: Double = 1 - 0.18 * level
+        return FlashcardTile(card: card)
+            .frame(width: width, height: height)
+            .scaleEffect(scale)
+            .rotationEffect(.degrees(angle))
+            .offset(x: x, y: y)
+            .opacity(opacity)
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
+    }
+
+    /// Going back, the previous card slides in from the left.
+    private func entrance(width: CGFloat) -> AnyTransition {
+        let from: CGFloat = direction < 0 ? -width : 0
+        let insertion: AnyTransition = AnyTransition.offset(x: from, y: 0).combined(with: .opacity)
+        return AnyTransition.asymmetric(insertion: insertion, removal: .identity)
     }
 
     private func topCard(_ card: Flashcard, width: CGFloat, height: CGFloat) -> some View {
