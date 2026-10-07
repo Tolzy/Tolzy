@@ -1,0 +1,279 @@
+import XCTest
+
+/// End-to-end flows in Demo Mode, with isolated storage (`-ui-testing`).
+final class FrenchLensUITests: XCTestCase {
+    private var app: XCUIApplication!
+
+    override func setUpWithError() throws {
+        continueAfterFailure = false
+        app = XCUIApplication()
+        app.launchArguments = ["-ui-testing"]
+        app.launch()
+    }
+
+    private func element(_ identifier: String) -> XCUIElement {
+        app.descendants(matching: .any).matching(identifier: identifier).firstMatch
+    }
+
+    private func openFirstLesson() {
+        let row = element("lessonRow")
+        XCTAssertTrue(row.waitForExistence(timeout: 5))
+        row.tap()
+        XCTAssertTrue(app.staticTexts["What they said"].waitForExistence(timeout: 5))
+    }
+
+    private func openDemo(_ id: String) {
+        element("understandButton").tap()
+        let demo = element("demoLesson.\(id)")
+        XCTAssertTrue(demo.waitForExistence(timeout: 5))
+        // The demo list sits below the fold at the sheet's medium height, where
+        // XCUITest can report a row as hittable while the tap lands off-screen.
+        // Expand the sheet first, as a person would.
+        app.swipeUp()
+        XCTAssertTrue(demo.waitForExistence(timeout: 3))
+        demo.tap()
+        XCTAssertTrue(app.staticTexts["What they said"].waitForExistence(timeout: 5))
+    }
+
+    func testLaunchShowsHome() {
+        XCTAssertTrue(app.staticTexts["Bonjour."].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["What did you find today?"].exists)
+        XCTAssertTrue(element("understandButton").exists)
+        for tab in ["Home", "Library", "Speak", "Review", "Settings"] {
+            XCTAssertTrue(app.tabBars.buttons[tab].exists, tab)
+        }
+    }
+
+    func testOpenDemoLesson() {
+        openFirstLesson()
+        XCTAssertTrue(element("videoHero").exists)
+        XCTAssertTrue(app.staticTexts["Meaning"].exists)
+    }
+
+    func testTapTranscriptWordShowsPopover() {
+        openDemo("demo-futur-proche")
+        let word = element("token.prépare")
+        XCTAssertTrue(word.waitForExistence(timeout: 5))
+        word.tap()
+
+        let popover = element("wordPopover")
+        XCTAssertTrue(popover.waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["PRÉPARER"].exists)
+        XCTAssertTrue(app.staticTexts["to prepare"].exists)
+        XCTAssertTrue(app.staticTexts["je prépare"].exists)
+
+        app.buttons["Close"].firstMatch.tap()
+        XCTAssertTrue(popover.waitForNonExistence(timeout: 3))
+    }
+
+    func testVerbAnalysis() {
+        openDemo("demo-passe-compose")
+        app.swipeUp()
+        element("segment.Verbs").tap()
+        XCTAssertTrue(app.staticTexts["SUIS ALLÉ"].waitForExistence(timeout: 3))
+        XCTAssertTrue(element("verbCard.aller").exists)
+        XCTAssertTrue(app.staticTexts["aller"].exists)
+    }
+
+    func testSaveLessonThenOpenLibrary() {
+        openFirstLesson()
+        let save = element("saveLessonButton")
+        XCTAssertTrue(save.waitForExistence(timeout: 3))
+        save.tap()
+        XCTAssertEqual(save.label, "Saved to Library")
+
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        app.tabBars.buttons["Library"].tap()
+        XCTAssertTrue(element("savedLessonRow").waitForExistence(timeout: 3))
+
+        app.segmentedControls.buttons["Vocabulary"].tap()
+        XCTAssertTrue(element("vocabulary.franchement").waitForExistence(timeout: 3))
+    }
+
+    func testLibraryEmptyState() {
+        app.tabBars.buttons["Library"].tap()
+        XCTAssertTrue(element("library.emptyState").waitForExistence(timeout: 3))
+    }
+
+    func testOpenReview() {
+        app.tabBars.buttons["Review"].tap()
+        XCTAssertTrue(element("review.title").waitForExistence(timeout: 3))
+        XCTAssertTrue(element("review.emptyState").exists)
+
+        // Save a lesson, then review it.
+        app.tabBars.buttons["Home"].tap()
+        openFirstLesson()
+        element("saveLessonButton").tap()
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        app.tabBars.buttons["Review"].tap()
+
+        element("review.quiz").tap()
+        let option = element("review.option")
+        XCTAssertTrue(option.waitForExistence(timeout: 3))
+        option.tap()
+        XCTAssertTrue(element("review.continue").waitForExistence(timeout: 3))
+    }
+
+    func testSwipeDeckFlipsAndFinishes() {
+        openFirstLesson()
+        element("saveLessonButton").tap()
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        app.tabBars.buttons["Review"].tap()
+
+        element("review.start").tap()
+        let card = element("deck.card")
+        XCTAssertTrue(card.waitForExistence(timeout: 3))
+
+        // Swipe to browse the carousel.
+        card.swipeLeft()
+        XCTAssertTrue(element("deck.card").waitForExistence(timeout: 3))
+
+        // Tap a card: it opens to everything about it.
+        element("deck.card").tap()
+        XCTAssertTrue(element("deck.meaning").waitForExistence(timeout: 3))
+        element("deck.practise").tap()
+
+        // Learn them all.
+        for _ in 0..<40 where !element("deck.summary").exists {
+            let top = element("deck.card")
+            guard top.waitForExistence(timeout: 3) else { break }
+            top.tap()
+            let known = element("deck.known")
+            guard known.waitForExistence(timeout: 3) else { break }
+            known.tap()
+        }
+        XCTAssertTrue(element("deck.summary").waitForExistence(timeout: 5))
+        element("deck.done").tap()
+        XCTAssertTrue(element("review.start").waitForExistence(timeout: 3))
+    }
+
+    func testMotionLabOpensFromSettings() {
+        app.tabBars.buttons["Settings"].tap()
+        let link = element("motionLabLink")
+        XCTAssertTrue(link.waitForExistence(timeout: 3))
+        link.tap()
+        XCTAssertTrue(element("motionLab").waitForExistence(timeout: 3))
+    }
+
+    func testSpeakConversationRepliesAndCorrects() {
+        app.tabBars.buttons["Speak"].tap()
+        let cafe = element("speak.scenario.cafe")
+        XCTAssertTrue(cafe.waitForExistence(timeout: 5))
+        cafe.tap()
+
+        // Camille opens the conversation (sample replies in UI tests).
+        XCTAssertTrue(element("chat.tutor").waitForExistence(timeout: 5))
+        XCTAssertTrue(element("conversation.sampleNotice").exists)
+        XCTAssertTrue(element("conversation.mic").exists)
+
+        let input = element("conversation.input")
+        input.tap()
+        input.typeText("Je suis faim")
+        element("conversation.send").tap()
+
+        XCTAssertTrue(element("chat.learner").waitForExistence(timeout: 5))
+        XCTAssertTrue(element("chat.correction").waitForExistence(timeout: 5))
+        XCTAssertEqual(app.descendants(matching: .any).matching(identifier: "chat.tutor").count, 2)
+    }
+
+    func testVoiceModeOpensAndCloses() {
+        app.tabBars.buttons["Speak"].tap()
+        let hero = element("speak.voiceHero")
+        XCTAssertTrue(hero.waitForExistence(timeout: 5))
+        hero.tap()
+
+        XCTAssertTrue(element("voice.orb").waitForExistence(timeout: 5))
+        XCTAssertTrue(element("voice.mute").exists)
+        let status = element("voice.status")
+        XCTAssertTrue(status.waitForExistence(timeout: 3))
+
+        element("voice.close").tap()
+        // A free conversation waits for the learner to say hello first.
+        XCTAssertTrue(element("conversation.yourTurn").waitForExistence(timeout: 5))
+        XCTAssertTrue(element("voice.open").exists)
+
+        let input = element("conversation.input")
+        input.tap()
+        input.typeText("Bonjour, je m'appelle Tosin, comment ça va ?")
+        element("conversation.send").tap()
+        let reply = element("chat.tutor")
+        XCTAssertTrue(reply.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts.containing(NSPredicate(format: "label CONTAINS 'Tosin'")).firstMatch.waitForExistence(timeout: 5))
+    }
+
+    func testSaveYourNameForCamille() {
+        app.tabBars.buttons["Speak"].tap()
+        let row = element("speak.name")
+        XCTAssertTrue(row.waitForExistence(timeout: 5))
+        row.tap()
+        let field = element("name.field")
+        XCTAssertTrue(field.waitForExistence(timeout: 3))
+        field.tap()
+        field.typeText("Tosin")
+        XCTAssertTrue(app.textFields["Tossine"].waitForExistence(timeout: 3), "Suggests how the voice should say it")
+        element("name.save").tap()
+        XCTAssertTrue(app.staticTexts["Camille calls you Tosin"].waitForExistence(timeout: 3))
+    }
+
+    func testMomentsGalleryOpensFromHome() {
+        let row = element("homeMoments")
+        XCTAssertTrue(row.waitForExistence(timeout: 5))
+        row.tap()
+        XCTAssertTrue(element("moments.gallery").waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["Your first voice conversation"].exists)
+    }
+
+    func testPractiseSpeakingFromLesson() {
+        openFirstLesson()
+        let practice = element("lesson.practiceSpeaking")
+        for _ in 0..<8 where !practice.isHittable { app.swipeUp() }
+        practice.tap()
+        XCTAssertTrue(element("chat.tutor").waitForExistence(timeout: 5))
+    }
+
+    func testListenWhileYouWatchOpensFromHome() {
+        let entry = element("homeListen")
+        XCTAssertTrue(entry.waitForExistence(timeout: 5))
+        entry.tap()
+        XCTAssertTrue(element("startListening").waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["Listen while\nyou watch"].exists || app.staticTexts.containing(NSPredicate(format: "label CONTAINS 'Listen while'")).firstMatch.exists)
+    }
+}
+
+/// Celebrations are off in the other UI tests; this suite turns them on.
+final class MomentsUITests: XCTestCase {
+    private let app = XCUIApplication()
+
+    override func setUp() {
+        continueAfterFailure = false
+        app.launchArguments = ["-ui-testing", "-milestones"]
+        app.launch()
+    }
+
+    private func element(_ identifier: String) -> XCUIElement {
+        app.descendants(matching: .any).matching(identifier: identifier).firstMatch
+    }
+
+    func testFirstChatIsCelebratedAfterLeavingTheConversation() {
+        app.tabBars.buttons["Speak"].tap()
+        let cafe = element("speak.scenario.cafe")
+        XCTAssertTrue(cafe.waitForExistence(timeout: 5))
+        cafe.tap()
+        XCTAssertTrue(element("chat.tutor").waitForExistence(timeout: 5))
+
+        let input = element("conversation.input")
+        input.tap()
+        input.typeText("Je voudrais un café")
+        element("conversation.send").tap()
+        XCTAssertTrue(element("chat.learner").waitForExistence(timeout: 5))
+        XCTAssertFalse(element("moment.celebration").exists, "Never mid-conversation")
+
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        XCTAssertTrue(element("moment.celebration").waitForExistence(timeout: 6))
+        XCTAssertTrue(app.staticTexts["Your first chat with Camille"].exists)
+        XCTAssertTrue(element("moment.share").waitForExistence(timeout: 3))
+
+        element("moment.continue").tap()
+        XCTAssertTrue(element("moment.celebration").waitForNonExistence(timeout: 3))
+    }
+}

@@ -1,0 +1,16 @@
+// FrenchLens shared build configuration.
+//
+// Change FRENCHLENS_BUNDLE_ID_PREFIX to a reverse-DNS prefix you own before
+// running on a device. The App Group identifier is derived from it and must be
+// enabled for both the app and the Share Extension in your developer account.
+
+FRENCHLENS_BUNDLE_ID_PREFIX = com.tolzy
+FRENCHLENS_APP_GROUP = group.$(FRENCHLENS_BUNDLE_ID_PREFIX).frenchlens
+
+// Base URL of the FrenchLens backend (which holds every AI provider key).
+// Leave empty to run in Demo Mode. Note: `//` starts a comment in xcconfig,
+// so write URLs as `https:/$()/api.example.com`.
+FRENCHLENS_API_BASE_URL =
+
+// Optional, git-ignored overrides (team ID, backend URL, bundle prefix).
+#include? "Secrets.xcconfig"

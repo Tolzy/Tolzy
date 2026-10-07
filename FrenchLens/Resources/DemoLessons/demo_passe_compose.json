@@ -1,0 +1,629 @@
+{
+  "id": "demo-passe-compose",
+  "keywords": [
+    "marché",
+    "hier",
+    "allé",
+    "acheté",
+    "mangé"
+  ],
+  "source": {
+    "kind": "tiktok",
+    "author": "@leo.a.lyon",
+    "url": "https://www.tiktok.com/@leo.a.lyon/video/DEMO"
+  },
+  "analysis": {
+    "title": "A Saturday at the market",
+    "cefrLevel": "A2",
+    "transcript": {
+      "segments": [
+        {
+          "id": "s1",
+          "start": 0.0,
+          "end": 2.4,
+          "tokens": [
+            {
+              "text": "Hier,",
+              "lookup": "hier"
+            },
+            "je",
+            {
+              "text": "suis",
+              "lookup": "aller"
+            },
+            {
+              "text": "allé",
+              "lookup": "aller"
+            },
+            "au",
+            {
+              "text": "marché.",
+              "lookup": "marche"
+            }
+          ],
+          "translation": "Yesterday, I went to the market."
+        },
+        {
+          "id": "s2",
+          "start": 2.4,
+          "end": 5.0,
+          "tokens": [
+            {
+              "text": "J'ai",
+              "lookup": "acheter"
+            },
+            {
+              "text": "acheté",
+              "lookup": "acheter"
+            },
+            "des",
+            {
+              "text": "fraises",
+              "lookup": "fraise"
+            },
+            "et",
+            "du",
+            {
+              "text": "fromage.",
+              "lookup": "fromage"
+            }
+          ],
+          "translation": "I bought strawberries and some cheese."
+        },
+        {
+          "id": "s3",
+          "start": 5.0,
+          "end": 8.0,
+          "tokens": [
+            {
+              "text": "Après,",
+              "lookup": "apres"
+            },
+            {
+              "text": "on",
+              "lookup": "on"
+            },
+            {
+              "text": "a",
+              "lookup": "manger"
+            },
+            {
+              "text": "mangé",
+              "lookup": "manger"
+            },
+            {
+              "text": "dehors",
+              "lookup": "dehors"
+            },
+            "avec",
+            "des",
+            {
+              "text": "amis.",
+              "lookup": "ami"
+            }
+          ],
+          "translation": "Afterwards, we ate outside with friends."
+        },
+        {
+          "id": "s4",
+          "start": 8.0,
+          "end": 9.4,
+          "tokens": [
+            {
+              "text": "C'était",
+              "lookup": "etre"
+            },
+            {
+              "text": "trop",
+              "lookup": "trop_bien"
+            },
+            {
+              "text": "bien",
+              "lookup": "trop_bien"
+            },
+            "!"
+          ],
+          "translation": "It was so good!"
+        }
+      ]
+    },
+    "translation": {
+      "natural": "Yesterday I went to the market. I bought strawberries and some cheese. Afterwards we ate outside with friends. It was so good!",
+      "literal": "Yesterday, I am gone to-the market. I have bought some strawberries and some cheese. After, one has eaten outside with some friends. It was too good!"
+    },
+    "vocabulary": [
+      {
+        "french": "hier",
+        "english": "yesterday",
+        "cefr": "A1",
+        "partOfSpeech": "adverb",
+        "example": "Hier, il a plu.",
+        "exampleTranslation": "It rained yesterday."
+      },
+      {
+        "french": "le marché",
+        "english": "market",
+        "cefr": "A1",
+        "partOfSpeech": "noun",
+        "example": "Le marché ouvre à huit heures.",
+        "exampleTranslation": "The market opens at eight."
+      },
+      {
+        "french": "les fraises",
+        "english": "strawberries",
+        "cefr": "A1",
+        "partOfSpeech": "noun · feminine"
+      },
+      {
+        "french": "le fromage",
+        "english": "cheese",
+        "cefr": "A1",
+        "partOfSpeech": "noun"
+      },
+      {
+        "french": "dehors",
+        "english": "outside",
+        "cefr": "A2",
+        "partOfSpeech": "adverb",
+        "example": "On mange dehors ce soir ?",
+        "exampleTranslation": "Shall we eat outside tonight?"
+      },
+      {
+        "french": "après",
+        "english": "afterwards, after",
+        "cefr": "A1",
+        "partOfSpeech": "adverb"
+      }
+    ],
+    "verbs": [
+      {
+        "infinitive": "aller",
+        "english": "to go",
+        "formUsed": "suis allé",
+        "tense": "passé composé",
+        "person": "je · 1st person singular",
+        "auxiliary": "être",
+        "conjugation": [
+          {
+            "pronoun": "je",
+            "form": "suis allé(e)"
+          },
+          {
+            "pronoun": "tu",
+            "form": "es allé(e)"
+          },
+          {
+            "pronoun": "il/elle",
+            "form": "est allé(e)"
+          },
+          {
+            "pronoun": "nous",
+            "form": "sommes allé(e)s"
+          },
+          {
+            "pronoun": "vous",
+            "form": "êtes allé(e)(s)"
+          },
+          {
+            "pronoun": "ils/elles",
+            "form": "sont allé(e)s"
+          }
+        ],
+        "example": "Je suis allé au marché hier.",
+        "exampleTranslation": "I went to the market yesterday.",
+        "cefr": "A2",
+        "note": {
+          "a1": "Aller uses être, not avoir, in the past: je suis allé = I went.",
+          "a2": "Aller uses être. A woman writes je suis allée (with an extra e). You can't hear the difference.",
+          "b1": "Verbs of movement like aller, venir, partir, arriver take être, and the participle agrees with the subject.",
+          "b2": "Les verbes de mouvement (aller, venir, partir…) se conjuguent avec « être » ; le participe s'accorde avec le sujet."
+        }
+      },
+      {
+        "infinitive": "acheter",
+        "english": "to buy",
+        "formUsed": "ai acheté",
+        "tense": "passé composé",
+        "person": "je · 1st person singular",
+        "auxiliary": "avoir",
+        "conjugation": [
+          {
+            "pronoun": "je",
+            "form": "ai acheté"
+          },
+          {
+            "pronoun": "tu",
+            "form": "as acheté"
+          },
+          {
+            "pronoun": "il/elle",
+            "form": "a acheté"
+          },
+          {
+            "pronoun": "nous",
+            "form": "avons acheté"
+          },
+          {
+            "pronoun": "vous",
+            "form": "avez acheté"
+          },
+          {
+            "pronoun": "ils/elles",
+            "form": "ont acheté"
+          }
+        ],
+        "example": "J'ai acheté du pain.",
+        "exampleTranslation": "I bought some bread.",
+        "cefr": "A1",
+        "note": {
+          "a1": "Most verbs use avoir in the past: j'ai acheté = I bought."
+        }
+      },
+      {
+        "infinitive": "manger",
+        "english": "to eat",
+        "formUsed": "a mangé",
+        "tense": "passé composé",
+        "person": "on · we (informal)",
+        "auxiliary": "avoir",
+        "conjugation": [
+          {
+            "pronoun": "je",
+            "form": "ai mangé"
+          },
+          {
+            "pronoun": "tu",
+            "form": "as mangé"
+          },
+          {
+            "pronoun": "il/elle/on",
+            "form": "a mangé"
+          },
+          {
+            "pronoun": "nous",
+            "form": "avons mangé"
+          },
+          {
+            "pronoun": "vous",
+            "form": "avez mangé"
+          },
+          {
+            "pronoun": "ils/elles",
+            "form": "ont mangé"
+          }
+        ],
+        "example": "On a mangé dehors.",
+        "exampleTranslation": "We ate outside.",
+        "cefr": "A1",
+        "note": {
+          "a1": "On a mangé = we ate. In spoken French, on often means we.",
+          "a2": "On takes the il/elle form of the verb, even when it means we.",
+          "b1": "On is far more common than nous in conversation.",
+          "b2": "À l'oral, « on » remplace très souvent « nous » ; le verbe reste à la 3e personne du singulier."
+        }
+      },
+      {
+        "infinitive": "être",
+        "english": "to be",
+        "formUsed": "était",
+        "tense": "imparfait",
+        "person": "ce (c') · it",
+        "conjugation": [
+          {
+            "pronoun": "je",
+            "form": "étais"
+          },
+          {
+            "pronoun": "tu",
+            "form": "étais"
+          },
+          {
+            "pronoun": "il/elle",
+            "form": "était"
+          },
+          {
+            "pronoun": "nous",
+            "form": "étions"
+          },
+          {
+            "pronoun": "vous",
+            "form": "étiez"
+          },
+          {
+            "pronoun": "ils/elles",
+            "form": "étaient"
+          }
+        ],
+        "example": "C'était trop bien !",
+        "exampleTranslation": "It was so good!",
+        "cefr": "A2",
+        "note": {
+          "a1": "C'était = it was. Use it to describe how something was.",
+          "b1": "The imparfait describes the scene or a feeling; the passé composé tells what happened.",
+          "b2": "L'imparfait sert à décrire (c'était bien) ; le passé composé raconte les événements (je suis allé)."
+        }
+      }
+    ],
+    "expressions": [
+      {
+        "phrase": "c'était trop bien",
+        "literal": "it was too good",
+        "natural": "it was so good / it was amazing",
+        "register": "informal",
+        "cefr": "A2",
+        "example": "Le concert ? C'était trop bien !",
+        "note": {
+          "a1": "In casual French, trop often means very or so, not too.",
+          "b1": "Trop = 'very' is informal and especially common among younger speakers.",
+          "b2": "Emploi familier de « trop » au sens de « très », fréquent à l'oral."
+        }
+      }
+    ],
+    "grammar": [
+      {
+        "id": "pc-avoir",
+        "title": "Passé composé with avoir",
+        "pattern": "avoir (présent) + past participle",
+        "excerpt": "J'ai acheté… on a mangé",
+        "cefr": "A2",
+        "explanation": {
+          "a1": "To say what you did, use avoir + the past form of the verb. J'ai acheté = I bought.",
+          "a2": "Avoir + past participle. -er verbs end in -é: acheter → acheté, manger → mangé.",
+          "b1": "Most verbs form the passé composé with avoir. The participle doesn't agree with the subject.",
+          "b2": "La majorité des verbes forment le passé composé avec « avoir » ; le participe ne s'accorde pas avec le sujet."
+        },
+        "examples": [
+          "J'ai mangé une pomme.",
+          "Tu as acheté du pain ?"
+        ]
+      },
+      {
+        "id": "pc-etre",
+        "title": "Passé composé with être",
+        "pattern": "être (présent) + past participle",
+        "excerpt": "je suis allé",
+        "cefr": "A2",
+        "explanation": {
+          "a1": "Some verbs, like aller, use être instead: je suis allé = I went.",
+          "a2": "Aller, venir, partir, arriver, rester… use être. Je suis allé (man), je suis allée (woman).",
+          "b1": "With être, the participle agrees with the subject in gender and number: elles sont allées.",
+          "b2": "Avec « être », le participe passé s'accorde avec le sujet : « elles sont allées »."
+        },
+        "examples": [
+          "Elle est allée à Paris.",
+          "Nous sommes partis tôt."
+        ]
+      }
+    ],
+    "pronunciation": [
+      {
+        "phrase": "je suis allé",
+        "ipa": "/ʒə sɥi.z‿a.le/",
+        "tip": {
+          "a1": "Link suis to allé with a z sound: \"swee-zalay\".",
+          "b1": "Liaison after suis is very common but optional in casual speech.",
+          "b2": "Liaison facultative mais fréquente après « suis »."
+        }
+      },
+      {
+        "phrase": "C'était",
+        "ipa": "/se.tɛ/",
+        "tip": {
+          "a1": "Say \"say-teh\". The t at the end is silent."
+        }
+      }
+    ],
+    "glossary": [
+      {
+        "key": "hier",
+        "lemma": "hier",
+        "english": "yesterday",
+        "partOfSpeech": "adverb",
+        "cefr": "A1"
+      },
+      {
+        "key": "aller",
+        "lemma": "aller",
+        "english": "to go",
+        "partOfSpeech": "verb",
+        "cefr": "A1",
+        "forms": [
+          {
+            "pronoun": "je",
+            "form": "vais"
+          },
+          {
+            "pronoun": "tu",
+            "form": "vas"
+          },
+          {
+            "pronoun": "il/elle",
+            "form": "va"
+          },
+          {
+            "pronoun": "nous",
+            "form": "allons"
+          },
+          {
+            "pronoun": "vous",
+            "form": "allez"
+          },
+          {
+            "pronoun": "ils/elles",
+            "form": "vont"
+          }
+        ],
+        "note": {
+          "a1": "Here: je suis allé = I went (passé composé)."
+        }
+      },
+      {
+        "key": "marche",
+        "lemma": "le marché",
+        "english": "market",
+        "partOfSpeech": "noun · masculine",
+        "cefr": "A1"
+      },
+      {
+        "key": "acheter",
+        "lemma": "acheter",
+        "english": "to buy",
+        "partOfSpeech": "verb",
+        "cefr": "A1",
+        "forms": [
+          {
+            "pronoun": "je",
+            "form": "achète"
+          },
+          {
+            "pronoun": "tu",
+            "form": "achètes"
+          },
+          {
+            "pronoun": "il/elle",
+            "form": "achète"
+          },
+          {
+            "pronoun": "nous",
+            "form": "achetons"
+          },
+          {
+            "pronoun": "vous",
+            "form": "achetez"
+          },
+          {
+            "pronoun": "ils/elles",
+            "form": "achètent"
+          }
+        ],
+        "note": {
+          "a1": "Here: j'ai acheté = I bought."
+        }
+      },
+      {
+        "key": "fraise",
+        "lemma": "la fraise",
+        "english": "strawberry",
+        "partOfSpeech": "noun · feminine",
+        "cefr": "A1"
+      },
+      {
+        "key": "fromage",
+        "lemma": "le fromage",
+        "english": "cheese",
+        "partOfSpeech": "noun · masculine",
+        "cefr": "A1"
+      },
+      {
+        "key": "apres",
+        "lemma": "après",
+        "english": "afterwards, after",
+        "partOfSpeech": "adverb",
+        "cefr": "A1"
+      },
+      {
+        "key": "on",
+        "lemma": "on",
+        "english": "we (informal), one",
+        "partOfSpeech": "pronoun",
+        "cefr": "A1",
+        "note": {
+          "a1": "In speech, on usually means we."
+        }
+      },
+      {
+        "key": "manger",
+        "lemma": "manger",
+        "english": "to eat",
+        "partOfSpeech": "verb",
+        "cefr": "A1",
+        "forms": [
+          {
+            "pronoun": "je",
+            "form": "mange"
+          },
+          {
+            "pronoun": "tu",
+            "form": "manges"
+          },
+          {
+            "pronoun": "il/elle",
+            "form": "mange"
+          },
+          {
+            "pronoun": "nous",
+            "form": "mangeons"
+          },
+          {
+            "pronoun": "vous",
+            "form": "mangez"
+          },
+          {
+            "pronoun": "ils/elles",
+            "form": "mangent"
+          }
+        ],
+        "note": {
+          "a1": "Here: on a mangé = we ate."
+        }
+      },
+      {
+        "key": "dehors",
+        "lemma": "dehors",
+        "english": "outside",
+        "partOfSpeech": "adverb",
+        "cefr": "A2"
+      },
+      {
+        "key": "ami",
+        "lemma": "un ami / une amie",
+        "english": "friend",
+        "partOfSpeech": "noun",
+        "cefr": "A1"
+      },
+      {
+        "key": "etre",
+        "lemma": "être",
+        "english": "to be",
+        "partOfSpeech": "verb",
+        "cefr": "A1",
+        "forms": [
+          {
+            "pronoun": "je",
+            "form": "suis"
+          },
+          {
+            "pronoun": "tu",
+            "form": "es"
+          },
+          {
+            "pronoun": "il/elle",
+            "form": "est"
+          },
+          {
+            "pronoun": "nous",
+            "form": "sommes"
+          },
+          {
+            "pronoun": "vous",
+            "form": "êtes"
+          },
+          {
+            "pronoun": "ils/elles",
+            "form": "sont"
+          }
+        ],
+        "note": {
+          "a1": "Here: c'était = it was (imparfait)."
+        }
+      },
+      {
+        "key": "trop_bien",
+        "lemma": "trop bien",
+        "english": "so good, amazing",
+        "partOfSpeech": "expression · informal",
+        "cefr": "A2"
+      }
+    ]
+  }
+}

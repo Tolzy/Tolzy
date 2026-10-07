@@ -1,0 +1,10 @@
+# Xcode
+DerivedData/
+build/
+*.xcuserstate
+xcuserdata/
+*.xcscmblueprint
+.DS_Store
+
+# Local secrets (backend URL, team ID). Never commit.
+Config/Secrets.xcconfig

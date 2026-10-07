@@ -1,0 +1,640 @@
+{
+  "id": "demo-en-avoir-marre",
+  "keywords": [
+    "marre",
+    "travailler",
+    "loyer",
+    "franchement"
+  ],
+  "source": {
+    "kind": "instagramReel",
+    "author": "@camille.au.bureau",
+    "url": "https://www.instagram.com/reel/DEMO-marre/"
+  },
+  "analysis": {
+    "title": "Fed up with work",
+    "cefrLevel": "A1",
+    "transcript": {
+      "segments": [
+        {
+          "id": "s1",
+          "start": 0.0,
+          "end": 2.6,
+          "tokens": [
+            {
+              "text": "J'en",
+              "lookup": "en_avoir_marre"
+            },
+            {
+              "text": "ai",
+              "lookup": "avoir"
+            },
+            {
+              "text": "marre",
+              "lookup": "en_avoir_marre"
+            },
+            "de",
+            {
+              "text": "travailler",
+              "lookup": "travailler"
+            },
+            {
+              "text": "tous",
+              "lookup": "tous_les_jours"
+            },
+            {
+              "text": "les",
+              "lookup": "tous_les_jours"
+            },
+            {
+              "text": "jours.",
+              "lookup": "tous_les_jours"
+            }
+          ],
+          "translation": "I'm tired of working every day."
+        },
+        {
+          "id": "s2",
+          "start": 2.6,
+          "end": 5.4,
+          "tokens": [
+            {
+              "text": "Franchement,",
+              "lookup": "franchement"
+            },
+            "je",
+            {
+              "text": "veux",
+              "lookup": "vouloir"
+            },
+            {
+              "text": "juste",
+              "lookup": "juste"
+            },
+            {
+              "text": "rester",
+              "lookup": "rester"
+            },
+            "au",
+            {
+              "text": "lit.",
+              "lookup": "lit"
+            }
+          ],
+          "translation": "Honestly, I just want to stay in bed."
+        },
+        {
+          "id": "s3",
+          "start": 5.4,
+          "end": 8.2,
+          "tokens": [
+            {
+              "text": "Mais",
+              "lookup": "mais_bon"
+            },
+            {
+              "text": "bon…",
+              "lookup": "mais_bon"
+            },
+            "il",
+            {
+              "text": "faut",
+              "lookup": "falloir"
+            },
+            {
+              "text": "payer",
+              "lookup": "payer"
+            },
+            "le",
+            {
+              "text": "loyer",
+              "lookup": "loyer"
+            },
+            "!"
+          ],
+          "translation": "But oh well… the rent won't pay itself!"
+        }
+      ]
+    },
+    "translation": {
+      "natural": "I'm tired of working every day. Honestly, I just want to stay in bed. But oh well… the rent won't pay itself!",
+      "literal": "I of-it have enough of to-work all the days. Frankly, I want just to-stay at-the bed. But good… it is-necessary to-pay the rent!"
+    },
+    "vocabulary": [
+      {
+        "french": "franchement",
+        "english": "honestly",
+        "cefr": "A2",
+        "partOfSpeech": "adverb",
+        "example": "Franchement, c'est trop cher.",
+        "exampleTranslation": "Honestly, it's too expensive."
+      },
+      {
+        "french": "travailler",
+        "english": "to work",
+        "cefr": "A1",
+        "partOfSpeech": "verb",
+        "example": "Je travaille à Paris.",
+        "exampleTranslation": "I work in Paris."
+      },
+      {
+        "french": "tous les jours",
+        "english": "every day",
+        "cefr": "A1",
+        "partOfSpeech": "phrase",
+        "example": "Je bois du café tous les jours.",
+        "exampleTranslation": "I drink coffee every day."
+      },
+      {
+        "french": "rester",
+        "english": "to stay",
+        "cefr": "A1",
+        "partOfSpeech": "verb",
+        "example": "Je reste à la maison.",
+        "exampleTranslation": "I'm staying at home."
+      },
+      {
+        "french": "le lit",
+        "english": "bed",
+        "cefr": "A1",
+        "partOfSpeech": "noun"
+      },
+      {
+        "french": "le loyer",
+        "english": "rent",
+        "cefr": "A2",
+        "partOfSpeech": "noun",
+        "example": "Le loyer est trop cher à Paris.",
+        "exampleTranslation": "Rent is too expensive in Paris."
+      }
+    ],
+    "verbs": [
+      {
+        "infinitive": "avoir",
+        "english": "to have",
+        "formUsed": "ai",
+        "tense": "présent",
+        "person": "je · 1st person singular",
+        "conjugation": [
+          {
+            "pronoun": "je",
+            "form": "ai"
+          },
+          {
+            "pronoun": "tu",
+            "form": "as"
+          },
+          {
+            "pronoun": "il/elle",
+            "form": "a"
+          },
+          {
+            "pronoun": "nous",
+            "form": "avons"
+          },
+          {
+            "pronoun": "vous",
+            "form": "avez"
+          },
+          {
+            "pronoun": "ils/elles",
+            "form": "ont"
+          }
+        ],
+        "example": "J'en ai marre de travailler.",
+        "exampleTranslation": "I'm fed up with working.",
+        "cefr": "A1",
+        "note": {
+          "a1": "Here avoir is part of the expression en avoir marre. Je + ai becomes j'ai.",
+          "a2": "Je + ai becomes j'ai because ai starts with a vowel. With en: j'en ai.",
+          "b1": "Avoir is one of the most irregular verbs, and it carries many fixed expressions: avoir faim, avoir raison, en avoir marre.",
+          "b2": "Avoir entre dans de nombreuses locutions figées (avoir faim, avoir beau, en avoir marre). Ici, « en » renvoie à la situation évoquée."
+        }
+      },
+      {
+        "infinitive": "vouloir",
+        "english": "to want",
+        "formUsed": "veux",
+        "tense": "présent",
+        "person": "je · 1st person singular",
+        "conjugation": [
+          {
+            "pronoun": "je",
+            "form": "veux"
+          },
+          {
+            "pronoun": "tu",
+            "form": "veux"
+          },
+          {
+            "pronoun": "il/elle",
+            "form": "veut"
+          },
+          {
+            "pronoun": "nous",
+            "form": "voulons"
+          },
+          {
+            "pronoun": "vous",
+            "form": "voulez"
+          },
+          {
+            "pronoun": "ils/elles",
+            "form": "veulent"
+          }
+        ],
+        "example": "Je veux juste rester au lit.",
+        "exampleTranslation": "I just want to stay in bed.",
+        "cefr": "A1",
+        "note": {
+          "a1": "Vouloir + infinitive = to want to do something.",
+          "a2": "Vouloir + infinitive = to want to do something. Je veux partir. — I want to leave.",
+          "b1": "Je veux can sound blunt in requests; je voudrais is the polite form.",
+          "b2": "« Je veux » exprime un désir ferme ; pour une demande polie, on préfère le conditionnel « je voudrais »."
+        }
+      },
+      {
+        "infinitive": "falloir",
+        "english": "to be necessary",
+        "formUsed": "faut",
+        "tense": "présent",
+        "person": "il · impersonal",
+        "conjugation": [
+          {
+            "pronoun": "il",
+            "form": "faut"
+          }
+        ],
+        "example": "Il faut payer le loyer.",
+        "exampleTranslation": "The rent has to be paid.",
+        "cefr": "A2",
+        "note": {
+          "a1": "Falloir only exists with il. Il faut = it's necessary / you have to.",
+          "a2": "Il faut + infinitive = one has to / we have to. Il faut partir. — We have to go.",
+          "b1": "Il faut is impersonal: it doesn't say who must act. Context tells you.",
+          "b2": "Verbe impersonnel : seul « il » est possible. « Il faut » exprime l'obligation générale, sans sujet précis."
+        }
+      },
+      {
+        "infinitive": "travailler",
+        "english": "to work",
+        "formUsed": "travailler",
+        "tense": "infinitif",
+        "person": "after « de »",
+        "conjugation": [
+          {
+            "pronoun": "je",
+            "form": "travaille"
+          },
+          {
+            "pronoun": "tu",
+            "form": "travailles"
+          },
+          {
+            "pronoun": "il/elle",
+            "form": "travaille"
+          },
+          {
+            "pronoun": "nous",
+            "form": "travaillons"
+          },
+          {
+            "pronoun": "vous",
+            "form": "travaillez"
+          },
+          {
+            "pronoun": "ils/elles",
+            "form": "travaillent"
+          }
+        ],
+        "example": "Je travaille tous les jours.",
+        "exampleTranslation": "I work every day.",
+        "cefr": "A1",
+        "note": {
+          "a1": "After de, French uses the infinitive: de travailler = of working.",
+          "a2": "English uses -ing (fed up with working); French uses the infinitive (marre de travailler)."
+        }
+      }
+    ],
+    "expressions": [
+      {
+        "phrase": "en avoir marre de",
+        "literal": "to have enough of it",
+        "natural": "to be fed up with",
+        "register": "informal",
+        "cefr": "A2",
+        "example": "J'en ai marre de la pluie.",
+        "note": {
+          "a1": "Use it to say you're tired of something. Very common in everyday French.",
+          "a2": "Followed by a noun (marre de la pluie) or an infinitive (marre de travailler).",
+          "b1": "Informal but not rude. In formal writing, use « en avoir assez de ».",
+          "b2": "Registre familier. Variantes : « en avoir assez » (neutre), « en avoir ras le bol » (plus familier)."
+        }
+      },
+      {
+        "phrase": "mais bon",
+        "literal": "but good",
+        "natural": "but oh well / anyway",
+        "register": "informal",
+        "cefr": "A2",
+        "note": {
+          "a1": "A shrug in words. People say it to accept something they don't love.",
+          "b1": "Signals resignation or a change of topic. Very frequent in speech.",
+          "b2": "Marqueur de discours exprimant la résignation : on constate, puis on passe à autre chose."
+        }
+      }
+    ],
+    "grammar": [
+      {
+        "id": "marre-de-infinitive",
+        "title": "De + infinitive",
+        "pattern": "en avoir marre de + infinitive",
+        "excerpt": "J'en ai marre de travailler",
+        "cefr": "A2",
+        "explanation": {
+          "a1": "After en avoir marre de, put a verb in its basic form (the infinitive). Travailler = to work.",
+          "a2": "After en avoir marre de, use the infinitive. English says 'fed up with working'; French says 'fed up of to work'.",
+          "b1": "Many French expressions take de + infinitive where English uses -ing: arrêter de fumer, essayer de dormir.",
+          "b2": "Après « en avoir marre de », le verbe est à l'infinitif. Même construction : arrêter de, essayer de, oublier de."
+        },
+        "examples": [
+          "J'en ai marre d'attendre.",
+          "J'en ai marre de cuisiner."
+        ]
+      },
+      {
+        "id": "il-faut-infinitive",
+        "title": "Il faut + infinitive",
+        "pattern": "il faut + infinitive",
+        "excerpt": "il faut payer le loyer",
+        "cefr": "A2",
+        "explanation": {
+          "a1": "Il faut + a verb = you have to do it. Il faut payer = you have to pay.",
+          "a2": "Il faut + infinitive expresses obligation. It's impersonal: it means 'one must' or 'we have to'.",
+          "b1": "For a specific person, French uses il faut que + subjunctive: il faut que je paie.",
+          "b2": "« Il faut + infinitif » exprime une obligation générale ; pour viser une personne : « il faut que + subjonctif »."
+        },
+        "examples": [
+          "Il faut partir.",
+          "Il faut manger."
+        ]
+      }
+    ],
+    "pronunciation": [
+      {
+        "phrase": "J'en ai marre",
+        "ipa": "/ʒɑ̃.n‿e maʁ/",
+        "tip": {
+          "a1": "Link the n of en to ai: \"jan-nay\".",
+          "b1": "This liaison is obligatory: the pronoun en always links to a following vowel.",
+          "b2": "Liaison obligatoire entre le pronom « en » et le verbe."
+        }
+      },
+      {
+        "phrase": "tous les jours",
+        "ipa": "/tu le ʒuʁ/",
+        "tip": {
+          "a1": "The s in tous is silent here: \"too lay zhoor\".",
+          "b1": "Tous is pronounced /tus/ only when it's a pronoun on its own: ils sont tous là.",
+          "b2": "Le « s » de « tous » est muet devant un nom ; il se prononce quand « tous » est pronom."
+        }
+      }
+    ],
+    "glossary": [
+      {
+        "key": "en_avoir_marre",
+        "lemma": "en avoir marre",
+        "english": "to be fed up",
+        "partOfSpeech": "expression",
+        "cefr": "A2",
+        "note": {
+          "a1": "J'en ai marre = I'm fed up.",
+          "b2": "Locution familière : « j'en ai marre » = « j'en ai assez »."
+        }
+      },
+      {
+        "key": "avoir",
+        "lemma": "avoir",
+        "english": "to have",
+        "partOfSpeech": "verb",
+        "cefr": "A1",
+        "forms": [
+          {
+            "pronoun": "je",
+            "form": "ai"
+          },
+          {
+            "pronoun": "tu",
+            "form": "as"
+          },
+          {
+            "pronoun": "il/elle",
+            "form": "a"
+          },
+          {
+            "pronoun": "nous",
+            "form": "avons"
+          },
+          {
+            "pronoun": "vous",
+            "form": "avez"
+          },
+          {
+            "pronoun": "ils/elles",
+            "form": "ont"
+          }
+        ]
+      },
+      {
+        "key": "travailler",
+        "lemma": "travailler",
+        "english": "to work",
+        "partOfSpeech": "verb",
+        "cefr": "A1",
+        "forms": [
+          {
+            "pronoun": "je",
+            "form": "travaille"
+          },
+          {
+            "pronoun": "tu",
+            "form": "travailles"
+          },
+          {
+            "pronoun": "il/elle",
+            "form": "travaille"
+          },
+          {
+            "pronoun": "nous",
+            "form": "travaillons"
+          },
+          {
+            "pronoun": "vous",
+            "form": "travaillez"
+          },
+          {
+            "pronoun": "ils/elles",
+            "form": "travaillent"
+          }
+        ]
+      },
+      {
+        "key": "tous_les_jours",
+        "lemma": "tous les jours",
+        "english": "every day",
+        "partOfSpeech": "phrase",
+        "cefr": "A1"
+      },
+      {
+        "key": "franchement",
+        "lemma": "franchement",
+        "english": "honestly, frankly",
+        "partOfSpeech": "adverb",
+        "cefr": "A2"
+      },
+      {
+        "key": "vouloir",
+        "lemma": "vouloir",
+        "english": "to want",
+        "partOfSpeech": "verb",
+        "cefr": "A1",
+        "forms": [
+          {
+            "pronoun": "je",
+            "form": "veux"
+          },
+          {
+            "pronoun": "tu",
+            "form": "veux"
+          },
+          {
+            "pronoun": "il/elle",
+            "form": "veut"
+          },
+          {
+            "pronoun": "nous",
+            "form": "voulons"
+          },
+          {
+            "pronoun": "vous",
+            "form": "voulez"
+          },
+          {
+            "pronoun": "ils/elles",
+            "form": "veulent"
+          }
+        ]
+      },
+      {
+        "key": "juste",
+        "lemma": "juste",
+        "english": "just, only",
+        "partOfSpeech": "adverb",
+        "cefr": "A1"
+      },
+      {
+        "key": "rester",
+        "lemma": "rester",
+        "english": "to stay",
+        "partOfSpeech": "verb",
+        "cefr": "A1",
+        "forms": [
+          {
+            "pronoun": "je",
+            "form": "reste"
+          },
+          {
+            "pronoun": "tu",
+            "form": "restes"
+          },
+          {
+            "pronoun": "il/elle",
+            "form": "reste"
+          },
+          {
+            "pronoun": "nous",
+            "form": "restons"
+          },
+          {
+            "pronoun": "vous",
+            "form": "restez"
+          },
+          {
+            "pronoun": "ils/elles",
+            "form": "restent"
+          }
+        ]
+      },
+      {
+        "key": "lit",
+        "lemma": "le lit",
+        "english": "bed",
+        "partOfSpeech": "noun · masculine",
+        "cefr": "A1"
+      },
+      {
+        "key": "mais_bon",
+        "lemma": "mais bon",
+        "english": "but oh well",
+        "partOfSpeech": "expression",
+        "cefr": "A2"
+      },
+      {
+        "key": "falloir",
+        "lemma": "falloir",
+        "english": "to be necessary",
+        "partOfSpeech": "verb · impersonal",
+        "cefr": "A2",
+        "forms": [
+          {
+            "pronoun": "il",
+            "form": "faut"
+          }
+        ],
+        "note": {
+          "a1": "Only used with il: il faut = you have to."
+        }
+      },
+      {
+        "key": "payer",
+        "lemma": "payer",
+        "english": "to pay",
+        "partOfSpeech": "verb",
+        "cefr": "A1",
+        "forms": [
+          {
+            "pronoun": "je",
+            "form": "paie"
+          },
+          {
+            "pronoun": "tu",
+            "form": "paies"
+          },
+          {
+            "pronoun": "il/elle",
+            "form": "paie"
+          },
+          {
+            "pronoun": "nous",
+            "form": "payons"
+          },
+          {
+            "pronoun": "vous",
+            "form": "payez"
+          },
+          {
+            "pronoun": "ils/elles",
+            "form": "paient"
+          }
+        ]
+      },
+      {
+        "key": "loyer",
+        "lemma": "le loyer",
+        "english": "rent",
+        "partOfSpeech": "noun · masculine",
+        "cefr": "A2"
+      }
+    ]
+  }
+}
