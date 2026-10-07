@@ -82,6 +82,7 @@ struct ReviewView: View {
             }
         }
         .scrollIndicators(.hidden)
+        .flSoftTopEdge()
     }
 
     // MARK: Question

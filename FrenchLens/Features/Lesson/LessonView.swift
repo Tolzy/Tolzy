@@ -126,6 +126,7 @@ struct LessonDetailView: View {
             }
         }
         .scrollIndicators(.hidden)
+        .flSoftTopEdge()
         .ignoresSafeArea(edges: .top)
         .background(FLColor.background.ignoresSafeArea())
         .overlay(alignment: .bottom) { wordPanel }

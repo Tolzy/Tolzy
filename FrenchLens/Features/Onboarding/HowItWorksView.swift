@@ -58,6 +58,7 @@ struct HowItWorksView: View {
                 }
                 .padding(FLSpacing.gutter)
             }
+            .flSoftTopEdge()
             .background(FLColor.background.ignoresSafeArea())
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {

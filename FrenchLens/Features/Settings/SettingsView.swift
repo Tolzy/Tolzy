@@ -95,6 +95,7 @@ struct SettingsView: View {
                 }
             }
             .scrollContentBackground(.hidden)
+            .flSoftTopEdge()
             .background(FLColor.background.ignoresSafeArea())
             .navigationTitle("Settings")
             .task { await refreshNotificationStatus() }

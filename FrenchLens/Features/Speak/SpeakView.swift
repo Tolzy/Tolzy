@@ -67,6 +67,7 @@ struct SpeakView: View {
                 .padding(.bottom, FLSpacing.xxl)
             }
             .scrollIndicators(.hidden)
+            .flSoftTopEdge()
             .background(FLColor.background.ignoresSafeArea())
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(for: PracticeScenario.self) { scenario in

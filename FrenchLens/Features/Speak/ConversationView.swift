@@ -108,6 +108,7 @@ private struct ConversationContent: View {
                 .flAnimation(.swap, value: controller.errorMessage)
             }
             .scrollDismissesKeyboard(.interactively)
+            .flSoftTopEdge()
             .defaultScrollAnchor(.bottom)
             .onChange(of: scrollKey) { _, _ in
                 motion.perform(.swap) { proxy.scrollTo(ConversationContent.bottomID, anchor: .bottom) }

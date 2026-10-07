@@ -75,6 +75,7 @@ struct HomeView: View {
                 .padding(.bottom, FLSpacing.xxl)
             }
             .scrollIndicators(.hidden)
+            .flSoftTopEdge()
             .background(FLColor.background.ignoresSafeArea())
             .overlay(alignment: .top) {
                 CollapsingTopBar(title: "Bonjour.", progress: barProgress)

@@ -119,3 +119,22 @@ extension CollapsingTopBar where Trailing == EmptyView {
         self.init(title: title, progress: progress, trailing: { EmptyView() })
     }
 }
+
+// MARK: - Soft scroll edge
+
+extension View {
+    /// Content softly fades and blurs as it scrolls under the top bar
+    /// (iOS 26 scroll edge effect). Earlier systems keep their default edge.
+    @ViewBuilder
+    func flSoftTopEdge() -> some View {
+        #if compiler(>=6.2)
+        if #available(iOS 26.0, *) {
+            scrollEdgeEffectStyle(.soft, for: .top)
+        } else {
+            self
+        }
+        #else
+        self
+        #endif
+    }
+}

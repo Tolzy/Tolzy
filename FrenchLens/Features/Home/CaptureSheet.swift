@@ -96,6 +96,7 @@ struct CaptureSheet: View {
             .padding(.horizontal, FLSpacing.gutter)
             .padding(.bottom, FLSpacing.xl)
         }
+        .flSoftTopEdge()
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
         .presentationBackground(FLColor.surface)
