@@ -243,6 +243,8 @@ struct FlashcardDeckView: View {
                 .accessibilityIdentifier("deck.done")
             Spacer(minLength: 0)
         }
+        // A container, so the Done button keeps its own identifier.
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("deck.summary")
     }
 }

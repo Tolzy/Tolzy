@@ -84,6 +84,7 @@ struct MomentsGalleryView: View {
                 MomentCelebrationView(moment: moment, isReplay: true) { replaying = nil }
             }
         }
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("moments.gallery")
     }
 
