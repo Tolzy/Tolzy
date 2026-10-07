@@ -71,11 +71,12 @@ final class ScreenshotTests: XCTestCase {
         if start.waitForExistence(timeout: 3) {
             snapshot("09-review-intro")
             start.tap()
-            let option = element("review.option")
-            if option.waitForExistence(timeout: 3) {
-                snapshot("10-review-question")
-                option.tap()
-                snapshot("11-review-answered")
+            if element("deck.card").waitForExistence(timeout: 3) {
+                snapshot("10-review-deck")
+                element("deck.front").tap()
+                _ = element("deck.meaning").waitForExistence(timeout: 3)
+                snapshot("11-review-card-back")
+                element("deck.close").tap()
             }
         }
 

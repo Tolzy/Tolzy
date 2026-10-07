@@ -107,11 +107,38 @@ final class FrenchLensUITests: XCTestCase {
         app.navigationBars.buttons.element(boundBy: 0).tap()
         app.tabBars.buttons["Review"].tap()
 
-        element("review.start").tap()
+        element("review.quiz").tap()
         let option = element("review.option")
         XCTAssertTrue(option.waitForExistence(timeout: 3))
         option.tap()
         XCTAssertTrue(element("review.continue").waitForExistence(timeout: 3))
+    }
+
+    func testSwipeDeckFlipsAndFinishes() {
+        openFirstLesson()
+        element("saveLessonButton").tap()
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        app.tabBars.buttons["Review"].tap()
+
+        element("review.start").tap()
+        let card = element("deck.card")
+        XCTAssertTrue(card.waitForExistence(timeout: 3))
+
+        // Tap to flip and learn about it.
+        element("deck.front").tap()
+        XCTAssertTrue(element("deck.meaning").waitForExistence(timeout: 3))
+
+        // Swipe it away, then use the buttons for the rest.
+        card.swipeRight()
+        XCTAssertTrue(element("deck.undo").waitForExistence(timeout: 3))
+        for _ in 0..<40 where !element("deck.summary").exists {
+            let known = element("deck.known")
+            guard known.waitForExistence(timeout: 2) else { break }
+            known.tap()
+        }
+        XCTAssertTrue(element("deck.summary").waitForExistence(timeout: 5))
+        element("deck.done").tap()
+        XCTAssertTrue(element("review.start").waitForExistence(timeout: 3))
     }
 
     func testMotionLabOpensFromSettings() {
