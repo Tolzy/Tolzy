@@ -43,9 +43,15 @@ final class ConversationController {
         let text = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty, !isResponding else { return }
         tts.stop()
-        let heard = learnerName.map { ConversationFlow.correctingName(in: text, to: $0.written) } ?? text
+        let heard = repairingName(in: text)
         messages.append(ChatMessage(role: .learner, text: heard))
         respond(to: heard)
+    }
+
+    /// Puts the learner's saved name back where recognition misheard it.
+    /// Used for live captions too, so the wrong name never flashes up.
+    func repairingName(in text: String) -> String {
+        learnerName.map { ConversationFlow.correctingName(in: text, to: $0.written) } ?? text
     }
 
     func retry() {

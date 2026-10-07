@@ -221,6 +221,8 @@ final class ConversationControllerTests: XCTestCase {
         controller.send("Bonjour, moi c'est Ousseine, et toi ?")
         try await waitUntil { !controller.isResponding && controller.messages.count == 2 }
         XCTAssertEqual(controller.messages[0].text, "Bonjour, moi c'est Tosin, et toi ?")
+        // Live captions are repaired as the words arrive, too.
+        XCTAssertEqual(controller.repairingName(in: "Bonjour moi c'est Hussein"), "Bonjour moi c'est Tosin")
         XCTAssertTrue(controller.messages[1].text.contains("Tosin"), controller.messages[1].text)
         XCTAssertTrue(tts.spoken.last?.contains("Tossine") == true, tts.spoken.last ?? "")
     }

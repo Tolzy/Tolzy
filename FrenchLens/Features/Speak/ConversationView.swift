@@ -530,7 +530,7 @@ private struct Composer: View {
 
             VStack(alignment: .leading, spacing: 4) {
                 LevelMeter(level: input.level, isActive: input.state == .recording)
-                Text(input.transcript.isEmpty ? (input.state == .finishing ? "Finishing…" : "Listening… speak in French") : input.transcript)
+                Text(input.transcript.isEmpty ? (input.state == .finishing ? "Finishing…" : "Listening… speak in French") : controller.repairingName(in: input.transcript))
                     .font(.subheadline)
                     .foregroundStyle(input.transcript.isEmpty ? FLColor.textTertiary : FLColor.textPrimary)
                     .lineLimit(3)

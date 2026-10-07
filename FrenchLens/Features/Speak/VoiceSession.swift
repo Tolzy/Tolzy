@@ -57,7 +57,7 @@ final class VoiceSession {
     /// What's being said right now, for the captions.
     var caption: String {
         switch phase {
-        case .listening: listener.transcript
+        case .listening: controller.repairingName(in: listener.transcript)
         case .speaking: controller.messages.last(where: { $0.role == .tutor })?.text ?? ""
         case .thinking:
             // Camille's reply as it's written, or what the learner just said.
