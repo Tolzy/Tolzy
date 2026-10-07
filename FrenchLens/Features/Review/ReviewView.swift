@@ -26,6 +26,7 @@ struct ReviewView: View {
                 }
                 .padding(.horizontal, FLSpacing.gutter)
             }
+            .flTopBlur()
             .toolbar(.hidden, for: .navigationBar)
         }
         .flHaptic(trigger: session.phase) { _, new in

@@ -69,6 +69,7 @@ struct SpeakView: View {
             .scrollIndicators(.hidden)
             .flSoftTopEdge()
             .background(FLColor.background.ignoresSafeArea())
+            .flTopBlur()
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(for: PracticeScenario.self) { scenario in
                 ConversationView(scenario: scenario, engine: environment.makeTutor(for: scenario))

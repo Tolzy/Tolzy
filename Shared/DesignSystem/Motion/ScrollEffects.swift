@@ -101,11 +101,9 @@ struct CollapsingTopBar<Trailing: View>: View {
         .padding(.horizontal, FLSpacing.gutter)
         .frame(height: 44)
         .frame(maxWidth: .infinity)
-        .background(alignment: .bottom) {
-            Rectangle()
-                .fill(.bar)
-                .overlay(alignment: .bottom) { Hairline() }
-                .ignoresSafeArea(edges: .top)
+        .background(alignment: .top) {
+            // No hard bar or hairline: content melts away under the title.
+            SoftTopEdge(depth: 44 + 28)
                 .opacity(progress)
         }
         .allowsHitTesting(progress > 0.5)
@@ -121,6 +119,66 @@ extension CollapsingTopBar where Trailing == EmptyView {
 }
 
 // MARK: - Soft scroll edge
+
+/// Apple-style soft edge: content blurs and fades as it scrolls up under
+/// the status bar or a top bar, instead of being cut off by a hard line.
+/// A blur that dissolves downward, plus a gentle wash of the background
+/// colour so text above it stays legible.
+struct SoftTopEdge: View {
+    /// How far below the top safe-area edge the effect reaches.
+    var depth: CGFloat = 20
+    /// Extend up through the status bar (off when the view already starts
+    /// at the very top of the screen).
+    var coversStatusBar = true
+
+    var body: some View {
+        Color.clear
+            .frame(height: depth)
+            .frame(maxWidth: .infinity)
+            .background(alignment: .top) {
+                if coversStatusBar {
+                    edge.ignoresSafeArea(edges: .top)
+                } else {
+                    edge
+                }
+            }
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
+    }
+
+    private var edge: some View {
+        ZStack {
+            Rectangle()
+                .fill(.ultraThinMaterial)
+                .mask(
+                    LinearGradient(
+                        stops: [
+                            .init(color: .black, location: 0),
+                            .init(color: .black, location: 0.45),
+                            .init(color: .black.opacity(0.6), location: 0.7),
+                            .init(color: .clear, location: 1),
+                        ],
+                        startPoint: .top, endPoint: .bottom
+                    )
+                )
+            LinearGradient(
+                stops: [
+                    .init(color: FLColor.background.opacity(0.75), location: 0),
+                    .init(color: FLColor.background.opacity(0.35), location: 0.5),
+                    .init(color: FLColor.background.opacity(0), location: 1),
+                ],
+                startPoint: .top, endPoint: .bottom
+            )
+        }
+    }
+}
+
+extension View {
+    /// A soft, blurred top edge for screens with their own (or no) top bar.
+    func flTopBlur(depth: CGFloat = 20) -> some View {
+        overlay(alignment: .top) { SoftTopEdge(depth: depth) }
+    }
+}
 
 extension View {
     /// Content softly fades and blurs as it scrolls under the top bar

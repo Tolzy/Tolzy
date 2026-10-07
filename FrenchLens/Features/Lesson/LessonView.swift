@@ -129,6 +129,12 @@ struct LessonDetailView: View {
         .flSoftTopEdge()
         .ignoresSafeArea(edges: .top)
         .background(FLColor.background.ignoresSafeArea())
+        .overlay(alignment: .top) {
+            // The view already starts at the top of the screen (it ignores the
+            // safe area), so the edge spans status bar + navigation bar.
+            SoftTopEdge(depth: 128, coversStatusBar: false)
+                .opacity(titleProgress)
+        }
         .overlay(alignment: .bottom) { wordPanel }
         .flToast($toast, systemImage: "bookmark.fill")
         .toolbar {
@@ -142,8 +148,7 @@ struct LessonDetailView: View {
             }
             ToolbarItem(placement: .topBarTrailing) { saveButton }
         }
-        .toolbarBackground(titleProgress >= 1 ? .visible : .hidden, for: .navigationBar)
-        .flAnimation(.swap, value: titleProgress >= 1)
+        .toolbarBackground(.hidden, for: .navigationBar)
         .toolbar(.hidden, for: .tabBar)
         .navigationBarTitleDisplayMode(.inline)
         .flHaptic(trigger: lesson.isSaved) { _, isSaved in isSaved ? FLHaptic.saved : FLHaptic.unsaved }

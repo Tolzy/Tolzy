@@ -60,6 +60,7 @@ struct LibraryView: View {
             .scrollIndicators(.hidden)
             .flSoftTopEdge()
             .background(FLColor.background.ignoresSafeArea())
+            .flTopBlur()
             .overlay(alignment: .top) {
                 CollapsingTopBar(title: "Library", progress: barProgress)
             }
