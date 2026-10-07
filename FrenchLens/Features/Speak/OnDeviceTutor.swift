@@ -43,7 +43,7 @@ final class OnDeviceTutor: TutorEngine {
 
         var reply = try await generate(prompt, greets: greets, onPartial: onPartial)
         // Small models sometimes loop; ask once for something new.
-        if ConversationFlow.isRepeat(reply.french, of: history.map(\.tutor)) {
+        if ConversationFlow.isRepeat(reply.french, of: history.map { $0.tutor }) {
             reply = try await generate(TutorPrompt.avoidRepeat(prompt), greets: greets, onPartial: onPartial)
         }
 
