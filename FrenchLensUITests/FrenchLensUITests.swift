@@ -143,6 +143,23 @@ final class FrenchLensUITests: XCTestCase {
         XCTAssertEqual(app.descendants(matching: .any).matching(identifier: "chat.tutor").count, 2)
     }
 
+    func testVoiceModeOpensAndCloses() {
+        app.tabBars.buttons["Speak"].tap()
+        let hero = element("speak.voiceHero")
+        XCTAssertTrue(hero.waitForExistence(timeout: 5))
+        hero.tap()
+
+        XCTAssertTrue(element("voice.orb").waitForExistence(timeout: 5))
+        XCTAssertTrue(element("voice.mute").exists)
+        let status = element("voice.status")
+        XCTAssertTrue(status.waitForExistence(timeout: 3))
+
+        element("voice.close").tap()
+        // Camille's opening is in the chat underneath.
+        XCTAssertTrue(element("chat.tutor").waitForExistence(timeout: 5))
+        XCTAssertTrue(element("voice.open").exists)
+    }
+
     func testPractiseSpeakingFromLesson() {
         openFirstLesson()
         let practice = element("lesson.practiceSpeaking")

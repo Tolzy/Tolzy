@@ -156,3 +156,129 @@ private final class FlakyTutor: TutorEngine {
         return TutorReply(french: "Bonjour !", english: "Hello!", correction: "", tip: "")
     }
 }
+
+@MainActor
+final class VoiceSessionTests: XCTestCase {
+    func testPauseEndsTheLearnersTurn() async {
+        let now = Date()
+        XCTAssertTrue(VoiceSession.shouldEndTurn(transcript: "Bonjour", lastChange: now.addingTimeInterval(-2), now: now))
+        XCTAssertFalse(VoiceSession.shouldEndTurn(transcript: "Bonjour", lastChange: now.addingTimeInterval(-0.5), now: now))
+        XCTAssertFalse(VoiceSession.shouldEndTurn(transcript: "  ", lastChange: .distantPast, now: now), "Silence alone never sends")
+    }
+
+    func testHandsFreeTurnTaking() async throws {
+        let listener = FakeListener(turns: ["je suis faim"])
+        let controller = ConversationController(
+            scenario: .freeChat, engine: ScriptedTutor(scenario: .freeChat, delay: .zero), tts: RecordingTTS()
+        )
+        let session = VoiceSession(controller: controller, listener: listener)
+        session.pollInterval = .milliseconds(5)
+        session.start()
+
+        try await waitUntil { controller.messages.count == 3 && !controller.isResponding }
+        XCTAssertEqual(controller.messages.map(\.role), [.tutor, .learner, .tutor])
+        XCTAssertEqual(controller.messages[1].text, "je suis faim")
+        XCTAssertEqual(controller.messages[1].correction, "J'ai faim")
+        try await waitUntil { session.phase == .listening }
+        session.end()
+        XCTAssertTrue(controller.autoSpeak)
+    }
+
+    func testMicIsOffWhileCamilleSpeaksAndTapInterrupts() async throws {
+        let tts = SpeakingTTS()
+        let listener = FakeListener(turns: [])
+        let controller = ConversationController(
+            scenario: .cafe, engine: ScriptedTutor(scenario: .cafe, delay: .zero), tts: tts
+        )
+        let session = VoiceSession(controller: controller, listener: listener)
+        session.pollInterval = .milliseconds(5)
+        session.start()
+
+        try await waitUntil { session.phase == .speaking }
+        XCTAssertEqual(listener.starts, 0, "Never listens while speaking")
+        session.tap()
+        try await waitUntil { session.phase == .listening }
+        XCTAssertEqual(listener.starts, 1)
+        session.end()
+    }
+
+    func testMuteStopsListening() async throws {
+        let listener = FakeListener(turns: [])
+        let controller = ConversationController(
+            scenario: .cafe, engine: ScriptedTutor(scenario: .cafe, delay: .zero), tts: RecordingTTS()
+        )
+        let session = VoiceSession(controller: controller, listener: listener)
+        session.pollInterval = .milliseconds(5)
+        session.start()
+        try await waitUntil { session.phase == .listening }
+
+        session.toggleMute()
+        XCTAssertEqual(session.phase, .muted)
+        XCTAssertGreaterThan(listener.cancels, 0)
+        session.toggleMute()
+        try await waitUntil { session.phase == .listening }
+        session.end()
+    }
+
+    func testMicrophoneProblemIsShown() async throws {
+        let listener = FakeListener(turns: [])
+        listener.errorMessage = "No microphone"
+        let controller = ConversationController(
+            scenario: .cafe, engine: ScriptedTutor(scenario: .cafe, delay: .zero), tts: RecordingTTS()
+        )
+        let session = VoiceSession(controller: controller, listener: listener)
+        session.pollInterval = .milliseconds(5)
+        session.start()
+        try await waitUntil { session.phase == .failed("No microphone") }
+        session.end()
+    }
+
+    private func waitUntil(_ condition: @MainActor () -> Bool) async throws {
+        for _ in 0..<300 {
+            if condition() { return }
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        XCTFail("Timed out")
+    }
+}
+
+/// Hears one scripted sentence per turn, said "a while ago" so the pause
+/// has already happened.
+@MainActor
+private final class FakeListener: VoiceListening {
+    var turns: [String]
+    var transcript = ""
+    var level: Double = 0
+    var errorMessage: String?
+    var lastChange = Date.distantPast
+    var recognizerEnded = false
+    var starts = 0
+    var cancels = 0
+
+    init(turns: [String]) { self.turns = turns }
+
+    func start() async {
+        starts += 1
+        transcript = turns.isEmpty ? "" : turns.removeFirst()
+        lastChange = .distantPast
+    }
+
+    func finish() async -> String {
+        defer { transcript = "" }
+        return transcript
+    }
+
+    func cancel() {
+        cancels += 1
+        transcript = ""
+    }
+}
+
+/// Keeps "speaking" until stopped.
+private final class SpeakingTTS: TTSService {
+    var current: SpeechPlayback?
+    func speak(_ text: String, id: String, rate: SpeechRate) {
+        current = SpeechPlayback(utteranceID: id, rate: rate, range: nil)
+    }
+    func stop() { current = nil }
+}

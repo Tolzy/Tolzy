@@ -6,7 +6,10 @@ struct ConversationView: View {
     @State private var controller: ConversationController
     @State private var input = SpeakInput()
     @State private var draft = ""
+    @State private var isInVoiceMode = false
+    @State private var didOpenVoice = false
     @FocusState private var isTyping: Bool
+    @Environment(AppEnvironment.self) private var environment
 
     @Environment(\.tts) private var tts
 
@@ -15,7 +18,12 @@ struct ConversationView: View {
     }
 
     var body: some View {
-        ConversationContent(controller: controller, input: input, draft: $draft, isTyping: $isTyping)
+        ConversationContent(controller: controller, input: input, draft: $draft, isTyping: $isTyping) {
+            input.cancel()
+            isTyping = false
+            controller.tts.stop()
+            isInVoiceMode = true
+        }
             .background(FLColor.background.ignoresSafeArea())
             .navigationTitle(controller.scenario.title)
             .navigationBarTitleDisplayMode(.inline)
@@ -25,9 +33,19 @@ struct ConversationView: View {
             }
             .task {
                 controller.tts = tts
-                controller.start()
+                if controller.scenario.startsInVoice, !didOpenVoice {
+                    // Voice mode opens the conversation itself.
+                    didOpenVoice = true
+                    isInVoiceMode = true
+                } else if !isInVoiceMode {
+                    controller.start()
+                }
+            }
+            .fullScreenCover(isPresented: $isInVoiceMode) {
+                VoiceModeView(controller: controller, usesMicrophone: !environment.isUITesting)
             }
             .onDisappear {
+                guard !isInVoiceMode else { return }
                 controller.stop()
                 input.cancel()
             }
@@ -59,6 +77,7 @@ private struct ConversationContent: View {
     let input: SpeakInput
     @Binding var draft: String
     var isTyping: FocusState<Bool>.Binding
+    let onVoiceMode: () -> Void
 
     @Environment(\.motion) private var motion
 
@@ -94,7 +113,7 @@ private struct ConversationContent: View {
                 motion.perform(.swap) { proxy.scrollTo(ConversationContent.bottomID, anchor: .bottom) }
             }
             .safeAreaInset(edge: .bottom, spacing: 0) {
-                Composer(controller: controller, input: input, draft: $draft, isTyping: isTyping) {
+                Composer(controller: controller, input: input, draft: $draft, isTyping: isTyping, onVoiceMode: onVoiceMode) {
                     proxy.scrollTo(ConversationContent.bottomID, anchor: .bottom)
                 }
             }
@@ -357,6 +376,7 @@ private struct Composer: View {
     let input: SpeakInput
     @Binding var draft: String
     var isTyping: FocusState<Bool>.Binding
+    let onVoiceMode: () -> Void
     let onSend: () -> Void
 
     @Environment(\.motion) private var motion
@@ -454,12 +474,16 @@ private struct Composer: View {
                 .accessibilityIdentifier("conversation.input")
 
             if trimmedDraft.isEmpty {
-                RoundButton(systemImage: "mic.fill", label: "Speak", filled: true, isEnabled: !controller.isResponding) {
+                RoundButton(systemImage: "mic", label: "Dictate", filled: false, isEnabled: !controller.isResponding) {
                     isTyping.wrappedValue = false
                     Task { await input.start() }
                 }
                 .accessibilityIdentifier("conversation.mic")
                 .transition(.scale(scale: 0.6).combined(with: .opacity))
+
+                RoundButton(systemImage: "waveform", label: "Voice conversation", filled: true, isEnabled: true, action: onVoiceMode)
+                    .accessibilityIdentifier("voice.open")
+                    .transition(.scale(scale: 0.6).combined(with: .opacity))
             } else {
                 RoundButton(systemImage: "arrow.up", label: "Send", filled: true, isEnabled: canSend, action: send)
                     .accessibilityIdentifier("conversation.send")

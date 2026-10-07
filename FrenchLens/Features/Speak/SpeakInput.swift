@@ -21,22 +21,32 @@ final class SpeakInput {
     /// 0…1 microphone level, for the waveform.
     private(set) var level: Double = 0
     private(set) var errorMessage: String?
+    /// When the heard words last changed; voice mode ends a turn after a pause.
+    @ObservationIgnored private(set) var lastChange = Date()
 
     @ObservationIgnored private var transcriber: MicTranscriber?
 
     var isRecording: Bool { state == .recording || state == .starting }
+
+    /// The recognizer stopped by itself (time limit or error).
+    var recognizerEnded: Bool { transcriber?.hasEnded ?? false }
 
     func start() async {
         guard state == .idle else { return }
         errorMessage = nil
         transcript = ""
         level = 0
+        lastChange = Date()
         state = .starting
         do {
             try await Self.ensurePermissions()
             let transcriber = try MicTranscriber(languageCode: "fr-FR")
             transcriber.onUpdate = { [weak self] text in
-                Task { @MainActor in self?.transcript = text }
+                Task { @MainActor in
+                    guard let self, self.transcript != text else { return }
+                    self.transcript = text
+                    self.lastChange = Date()
+                }
             }
             transcriber.onLevel = { [weak self] value in
                 Task { @MainActor in
@@ -112,6 +122,8 @@ final class SpeakInput {
     }
 }
 
+extension SpeakInput: VoiceListening {}
+
 enum SpeakInputError: Error {
     case microphoneDenied
     case recognizerUnavailable
@@ -132,6 +144,8 @@ final class MicTranscriber: @unchecked Sendable {
     private var latest = ""
     private var finalContinuation: CheckedContinuation<String, Never>?
     private var isDone = false
+
+    var hasEnded: Bool { lock.withLock { isDone } }
 
     init(languageCode: String) throws {
         guard let recognizer = SFSpeechRecognizer(locale: Locale(identifier: languageCode)), recognizer.isAvailable else {

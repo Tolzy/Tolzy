@@ -10,6 +10,14 @@ struct PracticeScenario: Identifiable, Hashable, Codable {
     var goal: String
     /// Words the tutor should try to bring in.
     var vocabulary: [String] = []
+    /// Open straight into hands-free voice mode.
+    var startsInVoice = false
+
+    func inVoice() -> PracticeScenario {
+        var copy = self
+        copy.startsInVoice = true
+        return copy
+    }
 
     static let freeChat = PracticeScenario(
         id: "free", title: "Free conversation", subtitle: "Talk about anything",

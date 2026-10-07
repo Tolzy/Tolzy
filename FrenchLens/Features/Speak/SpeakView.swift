@@ -31,6 +31,13 @@ struct SpeakView: View {
                     .padding(.top, FLSpacing.xl)
                     .flAppear(0)
 
+                    NavigationLink(value: PracticeScenario.freeChat.inVoice()) {
+                        VoiceHeroCard()
+                    }
+                    .buttonStyle(FLPressableStyle(scale: 0.98, highlights: false))
+                    .accessibilityIdentifier("speak.voiceHero")
+                    .flAppear(1)
+
                     VStack(alignment: .leading, spacing: FLSpacing.s) {
                         SectionHeader("Situations")
                         ForEach(Array(PracticeScenario.builtIn.enumerated()), id: \.element.id) { index, scenario in
@@ -39,7 +46,7 @@ struct SpeakView: View {
                             }
                             .buttonStyle(FLPressableStyle(scale: 0.98, highlights: false))
                             .accessibilityIdentifier("speak.scenario.\(scenario.id)")
-                            .flAppear(index + 1)
+                            .flAppear(index + 2)
                         }
                     }
 
@@ -53,7 +60,7 @@ struct SpeakView: View {
                                 .buttonStyle(FLPressableStyle(scale: 0.98, highlights: false))
                             }
                         }
-                        .flAppear(PracticeScenario.builtIn.count + 1)
+                        .flAppear(PracticeScenario.builtIn.count + 2)
                     }
                 }
                 .padding(.horizontal, FLSpacing.gutter)
@@ -66,6 +73,35 @@ struct SpeakView: View {
                 ConversationView(scenario: scenario, engine: environment.makeTutor(for: scenario))
             }
         }
+    }
+}
+
+/// "Talk with Camille": a live orb that opens a hands-free conversation.
+private struct VoiceHeroCard: View {
+    var body: some View {
+        HStack(spacing: FLSpacing.m) {
+            VoiceOrb(mood: .resting, level: 0, diameter: 64)
+            VStack(alignment: .leading, spacing: 3) {
+                Text("Talk with Camille")
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(FLColor.textPrimary)
+                Text("A hands-free voice conversation in French, like a phone call.")
+                    .font(.footnote)
+                    .foregroundStyle(FLColor.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 0)
+            Image(systemName: "waveform")
+                .font(.system(size: 15, weight: .bold))
+                .foregroundStyle(FLColor.textOnAccent)
+                .frame(width: 36, height: 36)
+                .background(Circle().fill(FLColor.accent))
+        }
+        .padding(FLSpacing.m)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .flSurface(FLColor.surface, radius: FLRadius.large, elevation: .raised)
+        .contentShape(Rectangle())
+        .accessibilityElement(children: .combine)
     }
 }
 

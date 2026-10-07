@@ -62,6 +62,11 @@ final class ConversationController {
         tts.isSpeaking(Self.speechID(message))
     }
 
+    /// Waits for the reply being written (and its speech to start).
+    func waitForReply() async {
+        await responseTask?.value
+    }
+
     func stop() {
         responseTask?.cancel()
         responseTask = nil

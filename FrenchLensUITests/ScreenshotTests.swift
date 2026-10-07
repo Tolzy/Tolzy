@@ -91,6 +91,13 @@ final class ScreenshotTests: XCTestCase {
                 element("conversation.send").tap()
                 _ = element("chat.correction").waitForExistence(timeout: 5)
                 snapshot("15-speak-conversation")
+                let voice = element("voice.open")
+                if voice.waitForExistence(timeout: 3) {
+                    voice.tap()
+                    _ = element("voice.orb").waitForExistence(timeout: 3)
+                    snapshot("16-voice-mode")
+                    element("voice.close").tap()
+                }
             }
             app.navigationBars.buttons.element(boundBy: 0).tap()
         }
