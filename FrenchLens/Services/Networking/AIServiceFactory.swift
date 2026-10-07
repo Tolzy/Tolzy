@@ -41,7 +41,7 @@ struct AIServiceFactory {
             if #available(iOS 26.0, *) {
                 return PipelineAIService(
                     media: media,
-                    transcription: SpeechTranscriptionService(),
+                    transcription: OnDeviceTranscriptionService(),
                     analysis: OnDeviceLanguageAnalysisService(),
                     translation: nil,
                     origin: .onDevice

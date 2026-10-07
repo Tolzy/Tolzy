@@ -27,3 +27,9 @@ struct RemoteTranslationService: TranslationService {
         return response.translation
     }
 }
+
+/// Translates sentences one by one, keeping their order. Used for the
+/// per-sentence lines under the transcript and the overall meaning.
+protocol SentenceTranslating {
+    func translate(sentences: [String]) async throws -> [String]
+}

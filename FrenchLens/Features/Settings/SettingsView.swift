@@ -43,6 +43,10 @@ struct SettingsView: View {
                         }
                     }
                     .accessibilityIdentifier("analysisModePicker")
+
+                    if #available(iOS 26.0, *), environment.aiFactory.resolvedMode == .onDevice {
+                        TranslationDownloadRow()
+                    }
                 } header: {
                     Text("Analysis")
                 } footer: {
@@ -106,7 +110,7 @@ struct SettingsView: View {
         case .onDevice:
             let status = OnDeviceCapability.status
             return status == .available
-                ? "FrenchLens listens with Apple speech recognition and builds lessons with Apple Intelligence on this iPhone. Nothing is uploaded."
+                ? "FrenchLens listens with Apple speech recognition, translates with Apple Translate and builds lessons with Apple Intelligence, all on this iPhone. Download French translation for the most faithful meanings."
                 : OnDeviceCapability.message(for: status)
         case .backend:
             return "Videos are analysed by the FrenchLens server at \(environment.apiConfiguration.baseURL?.host ?? "")."

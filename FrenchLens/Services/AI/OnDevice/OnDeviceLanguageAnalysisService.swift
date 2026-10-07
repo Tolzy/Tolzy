@@ -12,6 +12,10 @@ struct OnDeviceLanguageAnalysisService: LanguageAnalysisService {
     static let maxWords = 320
     static let maxNumberedSentences = 24
 
+    /// Machine translation for the meaning lines. When it's unavailable the
+    /// language model's own translations are used instead.
+    var translator: SentenceTranslating? = AppleTranslationService()
+
     func analyze(_ transcript: TranscriptionResult, level: CEFRLevel) async throws -> LessonAnalysis {
         if case .unavailable(let reason) = SystemLanguageModel.default.availability {
             throw AIServiceError.modelUnavailable(OnDeviceCapability.message(for: OnDeviceCapability.status(for: reason)))
@@ -25,6 +29,9 @@ struct OnDeviceLanguageAnalysisService: LanguageAnalysisService {
             .map { "\($0.offset + 1). \($0.element.text)" }
             .joined(separator: "\n")
         let instructions = Self.instructions(for: level)
+
+        // Faithful sentence translations from Apple Translate, when installed.
+        let machineTranslations = try? await translator?.translate(sentences: segments.map(\.text))
 
         let overview = try await generate(GeneratedOverview.self, instructions: instructions, prompt: """
             French transcript, one numbered sentence per line:
@@ -58,11 +65,21 @@ struct OnDeviceLanguageAnalysisService: LanguageAnalysisService {
             the transcript, each with an exact quote from it.
             """)
 
+        let sentenceTranslations: [String]
+        let translation: String
+        if let machineTranslations, machineTranslations.count == segments.count {
+            sentenceTranslations = machineTranslations
+            translation = machineTranslations.joined(separator: " ")
+        } else {
+            sentenceTranslations = segments.count <= Self.maxNumberedSentences ? overview.sentenceTranslations : []
+            translation = overview.translation
+        }
+
         let draft = LessonDraft(
             title: overview.title,
             level: overview.level,
-            translation: overview.translation,
-            sentenceTranslations: segments.count <= Self.maxNumberedSentences ? overview.sentenceTranslations : [],
+            translation: translation,
+            sentenceTranslations: sentenceTranslations,
             vocabulary: words.vocabulary.map {
                 LessonDraft.Vocabulary(french: $0.french, english: $0.english, partOfSpeech: $0.partOfSpeech,
                       level: $0.level, example: $0.example, exampleTranslation: $0.exampleTranslation)
