@@ -145,7 +145,7 @@ final class AppEnvironment {
         #if canImport(FoundationModels)
         if #available(iOS 26.0, *), !isUITesting, settings.analysisMode == .onDevice,
            OnDeviceCapability.status == .available {
-            return OnDeviceTutor(level: settings.level, scenario: scenario)
+            return OnDeviceTutor(level: settings.level, scenario: scenario, learnerName: settings.learnerName)
         }
         #endif
         return ScriptedTutor(scenario: scenario, delay: isUITesting ? .milliseconds(40) : .milliseconds(450))

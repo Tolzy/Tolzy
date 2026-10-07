@@ -33,6 +33,8 @@ struct ConversationView: View {
             }
             .task {
                 controller.tts = tts
+                controller.learnerName = environment.settings.learnerVoiceName
+                input.hints = recognitionHints
                 if controller.scenario.startsInVoice, !didOpenVoice {
                     // Voice mode opens the conversation itself.
                     didOpenVoice = true
@@ -41,14 +43,27 @@ struct ConversationView: View {
                     controller.start()
                 }
             }
+            .overlay {
+                // Siri-style edge light while you're speaking.
+                if input.state == .recording {
+                    VoiceEdgeGlow(mood: .listening, level: input.level)
+                        .transition(.opacity)
+                }
+            }
+            .animation(.easeInOut(duration: 0.3), value: input.state == .recording)
             .fullScreenCover(isPresented: $isInVoiceMode) {
-                VoiceModeView(controller: controller, usesMicrophone: !environment.isUITesting)
+                VoiceModeView(controller: controller, hints: recognitionHints, usesMicrophone: !environment.isUITesting)
             }
             .onDisappear {
                 guard !isInVoiceMode else { return }
                 controller.stop()
                 input.cancel()
             }
+    }
+
+    /// Words speech recognition should expect in this conversation.
+    private var recognitionHints: [String] {
+        [environment.settings.learnerName, "Camille"] + controller.scenario.vocabulary
     }
 
     private var optionsMenu: some View {

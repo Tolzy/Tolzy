@@ -1,5 +1,11 @@
 import Foundation
 
+/// The learner's name as written, and as the French voice should say it.
+struct LearnerName: Equatable {
+    var written: String
+    var spoken: String
+}
+
 /// The small rules that make a conversation feel natural rather than
 /// scripted: remember the learner's name, greet once, never say the same
 /// thing twice, and don't cut someone off while they're searching for a word.
@@ -27,6 +33,62 @@ enum ConversationFlow {
             return word.prefix(1).uppercased() + word.dropFirst()
         }
         return nil
+    }
+
+    /// French reading rules mangle many names: a single "s" between vowels
+    /// becomes "z" (Tosin → "Tozin"), a final "-in"/"-an"/"-on" turns nasal,
+    /// "u" becomes the French "u". This respells a name so a French voice
+    /// says it as it's usually said in English and many African languages:
+    /// Tosin → Tossine, Tunde → Toundé, Bukola → Boukola, Ade → Adé.
+    static func frenchRespelling(of name: String) -> String {
+        let vowels = Set("aeiouyAEIOUYéèê")
+        let chars = Array(name)
+        var result = ""
+        for (i, c) in chars.enumerated() {
+            let prev = i > 0 ? chars[i - 1] : nil
+            let next = i + 1 < chars.count ? chars[i + 1] : nil
+            switch c {
+            case "s" where prev.map(vowels.contains) == true && next.map(vowels.contains) == true:
+                result += "ss"
+            case "u" where prev != "o" && prev != "O" && prev != "e" && prev != "a":
+                result += "ou"
+            case "U" where i == 0:
+                result += "Ou"
+            default:
+                result.append(c)
+            }
+        }
+        let lower = result.lowercased()
+        // A final vowel + n would be nasal: Tossin → Tossine.
+        if lower.count >= 3, lower.hasSuffix("n"), let v = lower.dropLast().last, vowels.contains(v) {
+            result += "e"
+        } else if lower.count >= 3, lower.hasSuffix("e"), let before = lower.dropLast().last, !vowels.contains(before) {
+            // A final silent e would be dropped: Ade → Adé.
+            result = String(result.dropLast()) + "é"
+        }
+        return result
+    }
+
+    /// Speech recognition often mishears an unfamiliar name. When the
+    /// learner introduces themselves ("moi c'est …", "je m'appelle …") and
+    /// the heard word isn't their saved name, put the name back.
+    static func correctingName(in text: String, to name: String) -> String {
+        guard !name.isEmpty, let heard = self.name(in: text),
+              heard.compare(name, options: [.caseInsensitive, .diacriticInsensitive]) != .orderedSame,
+              let range = text.range(of: heard, options: [.caseInsensitive])
+        else { return text }
+        return text.replacingCharacters(in: range, with: name)
+    }
+
+    /// Replaces the written name with its spoken respelling, for the voice.
+    static func spoken(_ text: String, name: LearnerName?) -> String {
+        guard let name, name.spoken != name.written, !name.written.isEmpty else { return text }
+        let pattern = "(?i)(?<![\\p{L}])" + NSRegularExpression.escapedPattern(for: name.written) + "(?![\\p{L}])"
+        guard let regex = try? NSRegularExpression(pattern: pattern) else { return text }
+        return regex.stringByReplacingMatches(
+            in: text, range: NSRange(text.startIndex..., in: text),
+            withTemplate: NSRegularExpression.escapedTemplate(for: name.spoken)
+        )
     }
 
     // MARK: Greeting once

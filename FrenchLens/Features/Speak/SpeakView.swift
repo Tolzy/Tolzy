@@ -6,6 +6,7 @@ struct SpeakView: View {
     @Environment(LessonStore.self) private var store
     @Environment(AppRouter.self) private var router
     @Environment(AppSettings.self) private var settings
+    @State private var isEditingName = false
 
     private var lessonScenarios: [Lesson] {
         Array(store.recent.prefix(3))
@@ -30,6 +31,9 @@ struct SpeakView: View {
                     }
                     .padding(.top, FLSpacing.xl)
                     .flAppear(0)
+
+                    NameRow(name: settings.learnerName) { isEditingName = true }
+                        .flAppear(1)
 
                     NavigationLink(value: PracticeScenario.freeChat.inVoice()) {
                         VoiceHeroCard()
@@ -71,10 +75,43 @@ struct SpeakView: View {
             .background(FLColor.background.ignoresSafeArea())
             .flTopBlur()
             .toolbar(.hidden, for: .navigationBar)
+            .sheet(isPresented: $isEditingName) { NameSheet() }
             .navigationDestination(for: PracticeScenario.self) { scenario in
                 ConversationView(scenario: scenario, engine: environment.makeTutor(for: scenario))
             }
         }
+    }
+}
+
+/// Who Camille is talking to.
+private struct NameRow: View {
+    let name: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: FLSpacing.s) {
+                Image(systemName: name.isEmpty ? "person.crop.circle.badge.plus" : "person.crop.circle")
+                    .font(.system(size: 20))
+                    .foregroundStyle(FLColor.accent)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(name.isEmpty ? "Tell Camille your name" : "Camille calls you \(name)")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(FLColor.textPrimary)
+                    Text(name.isEmpty ? "So she hears it and says it right" : "Change how she says it")
+                        .font(.footnote)
+                        .foregroundStyle(FLColor.textSecondary)
+                }
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.right")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(FLColor.textTertiary)
+            }
+            .padding(.vertical, FLSpacing.xs)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(FLPressableStyle(scale: 0.98, highlights: false))
+        .accessibilityIdentifier("speak.name")
     }
 }
 

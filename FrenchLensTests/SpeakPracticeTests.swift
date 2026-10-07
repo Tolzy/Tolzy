@@ -60,6 +60,28 @@ final class ConversationFlowTests: XCTestCase {
         XCTAssertNil(ConversationFlow.name(in: "je m'appelle euh"))
     }
 
+    func testNamesAreRespelledForTheFrenchVoice() {
+        XCTAssertEqual(ConversationFlow.frenchRespelling(of: "Tosin"), "Tossine")
+        XCTAssertEqual(ConversationFlow.frenchRespelling(of: "Tunde"), "Toundé")
+        XCTAssertEqual(ConversationFlow.frenchRespelling(of: "Bukola"), "Boukola")
+        XCTAssertEqual(ConversationFlow.frenchRespelling(of: "Ade"), "Adé")
+        XCTAssertEqual(ConversationFlow.frenchRespelling(of: "Femi"), "Femi")
+    }
+
+    func testMisheardNameIsRepaired() {
+        XCTAssertEqual(ConversationFlow.correctingName(in: "Bonjour, moi c'est Ousseine et toi ?", to: "Tosin"),
+                       "Bonjour, moi c'est Tosin et toi ?")
+        XCTAssertEqual(ConversationFlow.correctingName(in: "Je m'appelle tosin", to: "Tosin"), "Je m'appelle tosin")
+        XCTAssertEqual(ConversationFlow.correctingName(in: "J'aime le cinéma", to: "Tosin"), "J'aime le cinéma")
+    }
+
+    func testTheVoiceSaysTheNameRight() {
+        let name = LearnerName(written: "Tosin", spoken: "Tossine")
+        XCTAssertEqual(ConversationFlow.spoken("Enchantée, Tosin ! Et toi, Tosin ?", name: name), "Enchantée, Tossine ! Et toi, Tossine ?")
+        XCTAssertEqual(ConversationFlow.spoken("Tosine est là", name: name), "Tosine est là", "Only whole words")
+        XCTAssertEqual(ConversationFlow.spoken("Salut Tosin", name: nil), "Salut Tosin")
+    }
+
     func testGreetingIsDroppedAfterTheFirstExchange() {
         XCTAssertEqual(ConversationFlow.removingGreeting("Bonjour Tosin ! Ça va très bien, et toi ?"), "Ça va très bien, et toi ?")
         XCTAssertEqual(ConversationFlow.removingGreeting("Salut, tu fais quoi ce soir ?"), "Tu fais quoi ce soir ?")
@@ -188,6 +210,19 @@ final class ConversationControllerTests: XCTestCase {
         )
         controller.send("   ")
         XCTAssertTrue(controller.messages.isEmpty)
+    }
+
+    func testSavedNameRepairsWhatWasHeardAndIsSpokenRight() async throws {
+        let tts = RecordingTTS()
+        let controller = ConversationController(
+            scenario: .freeChat, engine: ScriptedTutor(scenario: .freeChat, delay: .zero), tts: tts
+        )
+        controller.learnerName = LearnerName(written: "Tosin", spoken: "Tossine")
+        controller.send("Bonjour, moi c'est Ousseine, et toi ?")
+        try await waitUntil { !controller.isResponding && controller.messages.count == 2 }
+        XCTAssertEqual(controller.messages[0].text, "Bonjour, moi c'est Tosin, et toi ?")
+        XCTAssertTrue(controller.messages[1].text.contains("Tosin"), controller.messages[1].text)
+        XCTAssertTrue(tts.spoken.last?.contains("Tossine") == true, tts.spoken.last ?? "")
     }
 
     func testFreeConversationWaitsForTheLearner() async throws {

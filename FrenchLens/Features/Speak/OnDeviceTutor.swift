@@ -17,9 +17,10 @@ final class OnDeviceTutor: TutorEngine {
 
     var isLive: Bool { true }
 
-    init(level: CEFRLevel, scenario: PracticeScenario) {
+    init(level: CEFRLevel, scenario: PracticeScenario, learnerName: String? = nil) {
         self.level = level
         self.scenario = scenario
+        self.learnerName = learnerName.flatMap { $0.isEmpty ? nil : $0 }
         session = LanguageModelSession(instructions: TutorPrompt.instructions(level: level, scenario: scenario))
         session.prewarm()
     }

@@ -168,6 +168,20 @@ final class FrenchLensUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts.containing(NSPredicate(format: "label CONTAINS 'Tosin'")).firstMatch.waitForExistence(timeout: 5))
     }
 
+    func testSaveYourNameForCamille() {
+        app.tabBars.buttons["Speak"].tap()
+        let row = element("speak.name")
+        XCTAssertTrue(row.waitForExistence(timeout: 5))
+        row.tap()
+        let field = element("name.field")
+        XCTAssertTrue(field.waitForExistence(timeout: 3))
+        field.tap()
+        field.typeText("Tosin")
+        XCTAssertTrue(app.textFields["Tossine"].waitForExistence(timeout: 3), "Suggests how the voice should say it")
+        element("name.save").tap()
+        XCTAssertTrue(app.staticTexts["Camille calls you Tosin"].waitForExistence(timeout: 3))
+    }
+
     func testPractiseSpeakingFromLesson() {
         openFirstLesson()
         let practice = element("lesson.practiceSpeaking")

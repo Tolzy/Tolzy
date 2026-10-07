@@ -14,6 +14,9 @@ final class ConversationController {
     @ObservationIgnored private var pendingLearnerText: String?
 
     var autoSpeak = true
+    /// The learner's saved name: repairs misheard introductions and tells
+    /// the voice how to say it.
+    @ObservationIgnored var learnerName: LearnerName?
     var showsEnglish = false
 
     @ObservationIgnored private let engine: TutorEngine
@@ -40,8 +43,9 @@ final class ConversationController {
         let text = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty, !isResponding else { return }
         tts.stop()
-        messages.append(ChatMessage(role: .learner, text: text))
-        respond(to: text)
+        let heard = learnerName.map { ConversationFlow.correctingName(in: text, to: $0.written) } ?? text
+        messages.append(ChatMessage(role: .learner, text: heard))
+        respond(to: heard)
     }
 
     func retry() {
@@ -54,7 +58,8 @@ final class ConversationController {
         if tts.isSpeaking(id) {
             tts.stop()
         } else {
-            tts.speak(message.role == .tutor ? message.text : (message.correction.isEmpty ? message.text : message.correction), id: id, rate: .normal)
+            let text = message.role == .tutor ? message.text : (message.correction.isEmpty ? message.text : message.correction)
+            tts.speak(ConversationFlow.spoken(text, name: learnerName), id: id, rate: .normal)
         }
     }
 
@@ -96,7 +101,7 @@ final class ConversationController {
                 self.isResponding = false
                 self.pendingLearnerText = nil
                 if self.autoSpeak, let message = self.messages.first(where: { $0.id == tutorID }) {
-                    self.tts.speak(message.text, id: Self.speechID(message), rate: .normal)
+                    self.tts.speak(ConversationFlow.spoken(message.text, name: self.learnerName), id: Self.speechID(message), rate: .normal)
                 }
             } catch {
                 guard let self, !Task.isCancelled else { return }

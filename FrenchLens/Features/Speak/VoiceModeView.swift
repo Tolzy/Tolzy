@@ -12,8 +12,8 @@ struct VoiceModeView: View {
     @Environment(\.tts) private var tts
     @Environment(\.motion) private var motion
 
-    init(controller: ConversationController, usesMicrophone: Bool) {
-        _session = State(initialValue: VoiceSession(controller: controller, listener: SpeakInput(), usesMicrophone: usesMicrophone))
+    init(controller: ConversationController, hints: [String] = [], usesMicrophone: Bool) {
+        _session = State(initialValue: VoiceSession(controller: controller, listener: SpeakInput(hints: hints), usesMicrophone: usesMicrophone))
     }
 
     private var mood: VoiceOrb.Mood {
@@ -23,6 +23,15 @@ struct VoiceModeView: View {
         case .thinking: .thinking
         case .speaking: .speaking
         case .muted: .muted
+        }
+    }
+
+    private var glowMood: VoiceEdgeGlow.Mood {
+        switch session.phase {
+        case .listening: .listening
+        case .thinking: .thinking
+        case .speaking: .speaking
+        case .connecting, .muted, .failed: .quiet
         }
     }
 
@@ -52,6 +61,9 @@ struct VoiceModeView: View {
         .padding(.bottom, FLSpacing.m)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(FLColor.background.ignoresSafeArea())
+        .overlay {
+            VoiceEdgeGlow(mood: glowMood, level: session.phase == .speaking ? speechPulse : session.inputLevel)
+        }
         .flHaptic(trigger: session.phase) { _, new in
             switch new {
             case .listening: FLHaptic.lookup

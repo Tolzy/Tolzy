@@ -25,6 +25,12 @@ final class SpeakInput {
     @ObservationIgnored private(set) var lastChange = Date()
 
     @ObservationIgnored private var transcriber: MicTranscriber?
+    /// Words recognition should expect: the learner's name, scenario words.
+    @ObservationIgnored var hints: [String]
+
+    init(hints: [String] = []) {
+        self.hints = hints
+    }
 
     var isRecording: Bool { state == .recording || state == .starting }
 
@@ -40,7 +46,7 @@ final class SpeakInput {
         state = .starting
         do {
             try await Self.ensurePermissions()
-            let transcriber = try MicTranscriber(languageCode: "fr-FR")
+            let transcriber = try MicTranscriber(languageCode: "fr-FR", hints: hints)
             transcriber.onUpdate = { [weak self] text in
                 Task { @MainActor in
                     guard let self, self.transcript != text else { return }
@@ -147,7 +153,7 @@ final class MicTranscriber: @unchecked Sendable {
 
     var hasEnded: Bool { lock.withLock { isDone } }
 
-    init(languageCode: String) throws {
+    init(languageCode: String, hints: [String] = []) throws {
         guard let recognizer = SFSpeechRecognizer(locale: Locale(identifier: languageCode)), recognizer.isAvailable else {
             throw SpeakInputError.recognizerUnavailable
         }
@@ -155,6 +161,9 @@ final class MicTranscriber: @unchecked Sendable {
         request.shouldReportPartialResults = true
         request.addsPunctuation = true
         request.taskHint = .dictation
+        // Names and unusual words are far more likely to be heard right
+        // when recognition is told to expect them.
+        request.contextualStrings = Array(hints.filter { !$0.isEmpty }.prefix(100))
         if recognizer.supportsOnDeviceRecognition {
             request.requiresOnDeviceRecognition = true
         }
