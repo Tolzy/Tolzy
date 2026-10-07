@@ -18,6 +18,7 @@ final class AppEnvironment {
     let inbox: ShareInbox?
     let ingest: IngestCoordinator
     let listen: ListenSession
+    let milestones: MilestoneStore
     let isUITesting: Bool
 
     init(
@@ -28,7 +29,8 @@ final class AppEnvironment {
         apiConfiguration: APIConfiguration,
         inbox: ShareInbox?,
         demoStepDelay: Duration,
-        isUITesting: Bool
+        isUITesting: Bool,
+        milestones: MilestoneStore
     ) {
         self.settings = settings
         self.store = store
@@ -39,6 +41,7 @@ final class AppEnvironment {
         self.apiConfiguration = apiConfiguration
         self.inbox = inbox
         self.isUITesting = isUITesting
+        self.milestones = milestones
 
         let factory = AIServiceFactory(
             settings: settings,
@@ -108,7 +111,12 @@ final class AppEnvironment {
             apiConfiguration: APIConfiguration.current(),
             inbox: isUITesting ? nil : ShareInbox.appGroup(),
             demoStepDelay: isUITesting ? .milliseconds(50) : .milliseconds(650),
-            isUITesting: isUITesting
+            isUITesting: isUITesting,
+            // Celebrations stay out of the way of UI tests unless asked for.
+            milestones: MilestoneStore(
+                defaults: defaults,
+                isEnabled: !isUITesting || processInfo.arguments.contains(LaunchArgument.milestones)
+            )
         )
     }
 
@@ -176,4 +184,6 @@ enum LaunchArgument {
     static let uiTesting = "-ui-testing"
     /// Skip seeding demo lessons (to see empty states).
     static let emptyLibrary = "-empty-library"
+    /// Show milestone celebrations during UI tests.
+    static let milestones = "-milestones"
 }

@@ -7,6 +7,7 @@ import SwiftUI
 struct ReviewView: View {
     @Environment(LessonStore.self) private var store
     @Environment(AppRouter.self) private var router
+    @Environment(MilestoneStore.self) private var milestones
     @Environment(\.motion) private var motion
     @State private var session = ReviewSession()
 
@@ -28,6 +29,11 @@ struct ReviewView: View {
             }
             .flTopBlur()
             .toolbar(.hidden, for: .navigationBar)
+        }
+        .onChange(of: session.phase) { _, phase in
+            if phase == .finished {
+                milestones.record(.reviewFinished(correct: session.correctCount, total: session.exercises.count))
+            }
         }
         .flHaptic(trigger: session.phase) { _, new in
             guard case .answered(let correct) = new else { return nil }

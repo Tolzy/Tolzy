@@ -44,6 +44,7 @@ final class AppRouter {
     var isShowingCaptureSheet = false
     var isShowingHowItWorks = false
     var isShowingListen = false
+    var isShowingMoments = false
 
     /// Work to run once the capture sheet has fully dismissed, so a new
     /// presentation (processing cover, another sheet) never collides with it.

@@ -160,7 +160,7 @@ final class VoiceSession {
                 continue
             }
             phase = .thinking
-            controller.send(heard)
+            controller.send(heard, viaVoice: true)
             await controller.waitForReply()
         }
     }

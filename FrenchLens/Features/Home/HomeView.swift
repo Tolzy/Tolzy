@@ -68,6 +68,10 @@ struct HomeView: View {
                         .padding(.top, FLSpacing.s)
                         .flAppear(4)
 
+                    MomentsRow { router.isShowingMoments = true }
+                        .padding(.top, FLSpacing.l)
+                        .flAppear(5)
+
                     recent
                         .padding(.top, FLSpacing.xxl)
                 }

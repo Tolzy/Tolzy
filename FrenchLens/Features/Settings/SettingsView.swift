@@ -5,6 +5,7 @@ struct SettingsView: View {
     @Environment(AppEnvironment.self) private var environment
     @Environment(AppSettings.self) private var settings
     @Environment(AppRouter.self) private var router
+    @Environment(MilestoneStore.self) private var milestones
 
     @State private var notificationStatus: UNAuthorizationStatus = .notDetermined
     @State private var isConfirmingReset = false
@@ -14,6 +15,12 @@ struct SettingsView: View {
 
         NavigationStack {
             Form {
+                Section {
+                    MomentsRow { router.isShowingMoments = true }
+                        .listRowInsets(EdgeInsets())
+                        .listRowBackground(Color.clear)
+                }
+
                 Section {
                     Picker("Level", selection: $settings.level) {
                         ForEach(CEFRLevel.allCases) { level in
@@ -96,6 +103,9 @@ struct SettingsView: View {
             }
             .scrollContentBackground(.hidden)
             .flSoftTopEdge()
+            .onChange(of: settings.level) { old, new in
+                milestones.record(.levelChanged(from: old, to: new))
+            }
             .background(FLColor.background.ignoresSafeArea())
             .navigationTitle("Settings")
             .task { await refreshNotificationStatus() }

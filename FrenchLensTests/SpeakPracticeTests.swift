@@ -227,6 +227,20 @@ final class ConversationControllerTests: XCTestCase {
         XCTAssertTrue(tts.spoken.last?.contains("Tossine") == true, tts.spoken.last ?? "")
     }
 
+    func testConversationReportsWhatItEarned() async throws {
+        let controller = ConversationController(
+            scenario: .cafe, engine: ScriptedTutor(scenario: .cafe, delay: .zero), tts: RecordingTTS()
+        )
+        controller.start()
+        try await waitUntil { !controller.isResponding }
+        controller.send("je suis faim", viaVoice: true)
+        try await waitUntil { !controller.isResponding && controller.messages.count == 3 }
+        XCTAssertEqual(controller.milestoneEvents, [
+            .conversationEnded(exchanges: 1, voiceTurns: 1, firstLine: "je suis faim", scenario: "At the café"),
+            .correctionReceived(original: "je suis faim", corrected: "J'ai faim"),
+        ])
+    }
+
     func testFreeConversationWaitsForTheLearner() async throws {
         let controller = ConversationController(
             scenario: .freeChat, engine: ScriptedTutor(scenario: .freeChat, delay: .zero), tts: RecordingTTS()

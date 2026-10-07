@@ -10,6 +10,7 @@ struct ConversationView: View {
     @State private var didOpenVoice = false
     @FocusState private var isTyping: Bool
     @Environment(AppEnvironment.self) private var environment
+    @Environment(MilestoneStore.self) private var milestones
 
     @Environment(\.tts) private var tts
 
@@ -54,10 +55,13 @@ struct ConversationView: View {
             .fullScreenCover(isPresented: $isInVoiceMode) {
                 VoiceModeView(controller: controller, hints: recognitionHints, usesMicrophone: !environment.isUITesting)
             }
+            .onAppear { milestones.hold("conversation") }
             .onDisappear {
                 guard !isInVoiceMode else { return }
                 controller.stop()
                 input.cancel()
+                for event in controller.milestoneEvents { milestones.record(event) }
+                milestones.release("conversation")
             }
     }
 

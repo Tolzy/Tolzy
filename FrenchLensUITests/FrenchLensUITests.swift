@@ -182,6 +182,14 @@ final class FrenchLensUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Camille calls you Tosin"].waitForExistence(timeout: 3))
     }
 
+    func testMomentsGalleryOpensFromHome() {
+        let row = element("homeMoments")
+        XCTAssertTrue(row.waitForExistence(timeout: 5))
+        row.tap()
+        XCTAssertTrue(element("moments.gallery").waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["Your first voice conversation"].exists)
+    }
+
     func testPractiseSpeakingFromLesson() {
         openFirstLesson()
         let practice = element("lesson.practiceSpeaking")
@@ -196,5 +204,43 @@ final class FrenchLensUITests: XCTestCase {
         entry.tap()
         XCTAssertTrue(element("startListening").waitForExistence(timeout: 3))
         XCTAssertTrue(app.staticTexts["Listen while\nyou watch"].exists || app.staticTexts.containing(NSPredicate(format: "label CONTAINS 'Listen while'")).firstMatch.exists)
+    }
+}
+
+/// Celebrations are off in the other UI tests; this suite turns them on.
+final class MomentsUITests: XCTestCase {
+    private let app = XCUIApplication()
+
+    override func setUp() {
+        continueAfterFailure = false
+        app.launchArguments = ["-ui-testing", "-milestones"]
+        app.launch()
+    }
+
+    private func element(_ identifier: String) -> XCUIElement {
+        app.descendants(matching: .any).matching(identifier: identifier).firstMatch
+    }
+
+    func testFirstChatIsCelebratedAfterLeavingTheConversation() {
+        app.tabBars.buttons["Speak"].tap()
+        let cafe = element("speak.scenario.cafe")
+        XCTAssertTrue(cafe.waitForExistence(timeout: 5))
+        cafe.tap()
+        XCTAssertTrue(element("chat.tutor").waitForExistence(timeout: 5))
+
+        let input = element("conversation.input")
+        input.tap()
+        input.typeText("Je voudrais un café")
+        element("conversation.send").tap()
+        XCTAssertTrue(element("chat.learner").waitForExistence(timeout: 5))
+        XCTAssertFalse(element("moment.celebration").exists, "Never mid-conversation")
+
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        XCTAssertTrue(element("moment.celebration").waitForExistence(timeout: 6))
+        XCTAssertTrue(app.staticTexts["Your first chat with Camille"].exists)
+        XCTAssertTrue(element("moment.share").waitForExistence(timeout: 3))
+
+        element("moment.continue").tap()
+        XCTAssertTrue(element("moment.celebration").waitForNonExistence(timeout: 3))
     }
 }

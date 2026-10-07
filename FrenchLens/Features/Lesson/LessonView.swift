@@ -203,6 +203,7 @@ struct LessonDetailView: View {
             let willSave = !lesson.isSaved
             motion.perform(.emphasis) { store.toggleSaved(lessonID: lesson.id) }
             toast = willSave ? "Saved to Library" : nil
+            if willSave { environment.milestones.record(.savedWords(count: store.savedVocabulary.count)) }
         } label: {
             Image(systemName: lesson.isSaved ? "bookmark.fill" : "bookmark")
                 .font(.system(size: 15, weight: .semibold))

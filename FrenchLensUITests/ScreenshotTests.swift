@@ -113,4 +113,28 @@ final class ScreenshotTests: XCTestCase {
             snapshot("13-listen-while-you-watch")
         }
     }
+
+    func testCaptureMomentCelebration() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-ui-testing", "-milestones"]
+        app.launch()
+        app.tabBars.buttons["Speak"].tap()
+        let cafe = app.descendants(matching: .any).matching(identifier: "speak.scenario.cafe").firstMatch
+        guard cafe.waitForExistence(timeout: 5) else { return }
+        cafe.tap()
+        let input = app.descendants(matching: .any).matching(identifier: "conversation.input").firstMatch
+        guard input.waitForExistence(timeout: 5) else { return }
+        input.tap()
+        input.typeText("Je suis faim")
+        app.descendants(matching: .any).matching(identifier: "conversation.send").firstMatch.tap()
+        _ = app.descendants(matching: .any).matching(identifier: "chat.correction").firstMatch.waitForExistence(timeout: 5)
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        if app.descendants(matching: .any).matching(identifier: "moment.celebration").firstMatch.waitForExistence(timeout: 6) {
+            sleep(2)
+            let attachment = XCTAttachment(screenshot: app.screenshot())
+            attachment.name = "17-moment"
+            attachment.lifetime = .keepAlways
+            add(attachment)
+        }
+    }
 }

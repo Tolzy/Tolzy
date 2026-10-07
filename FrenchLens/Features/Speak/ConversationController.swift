@@ -17,6 +17,9 @@ final class ConversationController {
     /// The learner's saved name: repairs misheard introductions and tells
     /// the voice how to say it.
     @ObservationIgnored var learnerName: LearnerName?
+    /// For milestones: turns spoken in voice mode, and the first correction.
+    @ObservationIgnored private(set) var voiceTurns = 0
+    @ObservationIgnored private(set) var firstCorrection: (original: String, corrected: String)?
     var showsEnglish = false
 
     @ObservationIgnored private let engine: TutorEngine
@@ -39,9 +42,10 @@ final class ConversationController {
         respond(to: nil)
     }
 
-    func send(_ text: String) {
+    func send(_ text: String, viaVoice: Bool = false) {
         let text = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty, !isResponding else { return }
+        if viaVoice { voiceTurns += 1 }
         tts.stop()
         let heard = repairingName(in: text)
         messages.append(ChatMessage(role: .learner, text: heard))
@@ -82,6 +86,18 @@ final class ConversationController {
         responseTask?.cancel()
         responseTask = nil
         tts.stop()
+    }
+
+    /// What this conversation earned, reported when the learner leaves it.
+    var milestoneEvents: [MilestoneEvent] {
+        let learner = messages.filter { $0.role == .learner }
+        var events: [MilestoneEvent] = [
+            .conversationEnded(exchanges: learner.count, voiceTurns: voiceTurns, firstLine: learner.first?.text, scenario: scenario.title),
+        ]
+        if let firstCorrection {
+            events.append(.correctionReceived(original: firstCorrection.original, corrected: firstCorrection.corrected))
+        }
+        return events
     }
 
     static func speechID(_ message: ChatMessage) -> String { "chat.\(message.id.uuidString)" }
@@ -129,6 +145,9 @@ final class ConversationController {
            TutorReply.isMeaningfulCorrection(reply.correction, of: messages[index].text) {
             messages[index].correction = reply.correction
             messages[index].tip = reply.tip
+            if firstCorrection == nil {
+                firstCorrection = (messages[index].text, reply.correction)
+            }
         }
     }
 
