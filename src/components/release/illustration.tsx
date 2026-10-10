@@ -1,7 +1,7 @@
 "use client";
 
 import { ImageOff } from "lucide-react";
-import { useState } from "react";
+import { createContext, useContext, useState } from "react";
 import type { MediaAsset, MediaPreset } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -21,7 +21,7 @@ interface Palette {
 }
 
 const LIGHT: Palette = { bg: "#FAFAF8", panel: "#FFFFFF", side: "#F3F2EE", line: "#E7E5E0", ink: "#1C1C1A", muted: "#8A8984", faint: "#E9E7E2" };
-const DARK: Palette = { bg: "#121211", panel: "#191918", side: "#0E0E0D", line: "#2A2A28", ink: "#ECECE8", muted: "#7E7D78", faint: "#262624" };
+const DARK: Palette = { bg: "#111111", panel: "#171717", side: "#0C0C0C", line: "#282828", ink: "#EDEDED", muted: "#7E7E7E", faint: "#242424" };
 
 function Bar({ w, c, h = 1.1, className }: { w: string; c: string; h?: number; className?: string }) {
   return <span className={cn("block rounded-full", className)} style={{ width: w, height: `${h}cqw`, background: c }} />;
@@ -254,18 +254,23 @@ function Generic({ p, accent, title }: { p: Palette; accent: string; title: stri
   );
 }
 
-const PRESETS: Record<MediaPreset, (accent: string) => { p: Palette; body: React.ReactNode }> = {
+// Fixed presets always render in their own palette (they illustrate a theme);
+// the rest follow the surrounding page theme.
+const PRESETS: Record<MediaPreset, (accent: string, p: Palette) => { p: Palette; body: React.ReactNode }> = {
   "dashboard-light": (a) => ({ p: LIGHT, body: <Dashboard p={LIGHT} accent={a} /> }),
   "dashboard-dark": (a) => ({ p: DARK, body: <Dashboard p={DARK} accent={a} /> }),
-  "dashboard-loading": (a) => ({ p: LIGHT, body: <Dashboard p={LIGHT} accent={a} loading timer={{ label: "2.4s", tone: "slow" }} /> }),
-  "dashboard-fast": (a) => ({ p: LIGHT, body: <Dashboard p={LIGHT} accent={a} timer={{ label: "0.6s", tone: "fast" }} /> }),
-  workspaces: (a) => ({ p: LIGHT, body: <Workspaces p={LIGHT} accent={a} /> }),
-  invites: (a) => ({ p: LIGHT, body: <Invites p={LIGHT} accent={a} /> }),
-  billing: (a) => ({ p: LIGHT, body: <Billing p={LIGHT} accent={a} /> }),
-  audit: (a) => ({ p: LIGHT, body: <Generic p={LIGHT} accent={a} title="Audit log" /> }),
+  "dashboard-loading": (a, p) => ({ p, body: <Dashboard p={p} accent={a} loading timer={{ label: "2.4s", tone: "slow" }} /> }),
+  "dashboard-fast": (a, p) => ({ p, body: <Dashboard p={p} accent={a} timer={{ label: "0.6s", tone: "fast" }} /> }),
+  workspaces: (a, p) => ({ p, body: <Workspaces p={p} accent={a} /> }),
+  invites: (a, p) => ({ p, body: <Invites p={p} accent={a} /> }),
+  billing: (a, p) => ({ p, body: <Billing p={p} accent={a} /> }),
+  audit: (a, p) => ({ p, body: <Generic p={p} accent={a} title="Audit log" /> }),
   command: (a) => ({ p: DARK, body: <Generic p={DARK} accent={a} title="Command menu" /> }),
-  "mobile-nav": (a) => ({ p: LIGHT, body: <Generic p={LIGHT} accent={a} title="Navigation" /> }),
+  "mobile-nav": (a, p) => ({ p, body: <Generic p={p} accent={a} title="Navigation" /> }),
 };
+
+/** Page theme that adaptive illustrations follow (set by the changelog frame). */
+export const IllustrationTheme = createContext<"light" | "dark">("light");
 
 export const PRESET_LABELS: Record<MediaPreset, string> = {
   "dashboard-light": "Dashboard · light",
@@ -281,7 +286,8 @@ export const PRESET_LABELS: Record<MediaPreset, string> = {
 };
 
 export function Illustration({ preset, accent = "#2856C5", label }: { preset: MediaPreset; accent?: string; label: string }) {
-  const { body, p } = PRESETS[preset](accent);
+  const theme = useContext(IllustrationTheme);
+  const { body, p } = PRESETS[preset](accent, theme === "dark" ? DARK : LIGHT);
   return (
     <div role="img" aria-label={label} className="@container relative aspect-[16/10] w-full select-none" style={{ background: p.bg }}>
       <Window p={p} accent={accent}>{body}</Window>

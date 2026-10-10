@@ -342,7 +342,7 @@ export const DEFAULT_APPEARANCE: Record<string, Appearance> = {
     logo: null,
     description: "New features, improvements, and fixes — written by the team that builds Orbit.",
     accent: "#2856C5",
-    theme: "light",
+    theme: "dark",
     layout: "timeline",
     density: "comfortable",
     showFeatured: true,

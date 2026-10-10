@@ -14,7 +14,7 @@ import { CategoryPicker, PublishDialog, ReleasePreview, SourcesPanel, StoryHeade
 import { CategoryBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/form";
-import { EmptyState } from "@/components/ui/misc";
+import { EmptyState, SectionHeader } from "@/components/ui/misc";
 import { useToast } from "@/components/ui/toast";
 import { publishingService, releaseService } from "@/lib/services/mock";
 import { generateStory, suggestGroups } from "@/lib/story";
@@ -180,6 +180,7 @@ export function NewReleaseView() {
     return new Set(ids.filter((id) => activityIndex.has(id)));
   });
   const [step, setStep] = useState(() => (params.get("items") ? 1 : 0));
+  const [dir, setDir] = useState<1 | -1>(1);
   const [maxStep, setMaxStep] = useState(step);
   const [variant, setVariant] = useState(0);
   const [draft, setDraft] = useState<ReleaseDraft | null>(null);
@@ -238,6 +239,7 @@ export function NewReleaseView() {
       toast.error("Select at least one change", "Pick the commits and pull requests this release is about.");
       return;
     }
+    setDir(i >= step ? 1 : -1);
     setStep(i);
     setMaxStep((m) => Math.max(m, i));
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -292,8 +294,16 @@ export function NewReleaseView() {
       </div>
 
       <div className="mx-auto max-w-[1240px] px-4 pb-32 pt-8 sm:px-6 lg:px-10">
-        <AnimatePresence mode="wait" initial={false}>
-          <motion.div key={step} initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} transition={{ duration: 0.2, ease: [0.25, 1, 0.5, 1] }}>
+        <AnimatePresence mode="wait" initial={false} custom={dir}>
+          <motion.div
+            key={step}
+            custom={dir}
+            variants={{ enter: (d: number) => ({ opacity: 0, x: 16 * d }), center: { opacity: 1, x: 0, pointerEvents: "auto" }, exit: (d: number) => ({ opacity: 0, x: -16 * d, pointerEvents: "none" }) }}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            transition={{ duration: 0.2, ease: [0.25, 1, 0.5, 1] }}
+          >
             {step === 0 && (
               <div className="mx-auto max-w-[860px]">
                 <header className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
@@ -309,7 +319,7 @@ export function NewReleaseView() {
 
             {step === 1 && (
               <div className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1fr)_300px]">
-                <div className="mx-auto w-full max-w-[720px]">
+                <div className="mx-auto w-full max-w-[720px] md:pl-14">
                   <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
                     <p className="flex items-center gap-2 text-xs text-fg-subtle">
                       <Sparkles className="size-3.5 text-accent" aria-hidden />
@@ -345,12 +355,12 @@ export function NewReleaseView() {
                         <CategoryPicker value={draft.category} onChange={(category) => patch({ category })} />
                       </div>
                       <div className="my-8 h-px bg-line" />
-                      <p className="mb-3 text-2xs font-medium uppercase tracking-[0.06em] text-fg-faint">Body — edit freely, or add media in the next step</p>
+                      <SectionHeader title="Body" description="Edit freely, or add media in the next step." className="mb-5" />
                       <BlockEditor blocks={draft.blocks} onChange={(blocks) => patch({ blocks })} accent={appearance.accent} sources={sources} />
                     </motion.div>
                   )}
                 </div>
-                <aside className="lg:sticky lg:top-24 lg:self-start">
+                <aside className="scrollbar-thin lg:sticky lg:top-24 lg:-mr-2 lg:max-h-[calc(100dvh-7.5rem)] lg:self-start lg:overflow-y-auto lg:pr-2 lg:pb-6">
                   <SourcesPanel
                     sources={sources}
                     candidates={pool}
@@ -375,14 +385,14 @@ export function NewReleaseView() {
 
             {step === 2 && draft && (
               <div className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1fr)_300px]">
-                <div className="mx-auto w-full max-w-[720px] lg:pl-10">
+                <div className="mx-auto w-full max-w-[720px] md:pl-14">
                   <StoryHeader draft={draft} onChange={patch} />
                   <div className="my-8 h-px bg-line" />
                   <BlockEditor blocks={draft.blocks} onChange={(blocks) => patch({ blocks })} accent={appearance.accent} sources={sources} />
                 </div>
-                <aside className="space-y-6 lg:sticky lg:top-24 lg:self-start">
+                <aside className="space-y-6 scrollbar-thin lg:sticky lg:top-24 lg:-mr-2 lg:max-h-[calc(100dvh-7.5rem)] lg:self-start lg:overflow-y-auto lg:pr-2 lg:pb-6">
                   <section>
-                    <h3 className="mb-2 text-xs font-semibold">Cover image</h3>
+                    <SectionHeader title="Cover image" className="mb-3" />
                     <MediaPicker compact label="Cover" value={draft.cover} onChange={(cover) => patch({ cover })} accent={appearance.accent} />
                   </section>
                   <section className="rounded-lg border border-line bg-surface p-3.5 text-xs text-fg-subtle">
@@ -404,7 +414,7 @@ export function NewReleaseView() {
                     <CategoryBadge category={draft.category} />
                     <span className="text-xs text-fg-subtle">{pluralize(sources.length, "source")} · {pluralize(draft.blocks.length, "block")}</span>
                   </div>
-                  <p className="mt-3 font-serif text-2xl leading-tight">{draft.title || "Untitled release"}</p>
+                  <p className="mt-3 text-[20px] font-semibold leading-snug tracking-[-0.02em]">{draft.title || "Untitled release"}</p>
                   {draft.summary && <p className="mt-1.5 text-sm text-fg-muted">{draft.summary}</p>}
                   <p className="mt-4 font-mono text-2xs text-fg-faint">/changelog/{workspace.slug}/{previewRelease?.slug}</p>
                 </div>

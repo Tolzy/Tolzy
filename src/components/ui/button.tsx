@@ -18,10 +18,10 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 
 const variants: Record<Variant, string> = {
   primary:
-    "bg-invert text-invert-fg hover:bg-[color-mix(in_srgb,var(--invert)_86%,var(--canvas))] shadow-raised",
-  accent: "bg-accent text-accent-fg hover:bg-accent-hover shadow-raised",
+    "bg-invert text-invert-fg hover:bg-[color-mix(in_srgb,var(--invert)_86%,var(--canvas))]",
+  accent: "bg-accent text-accent-fg hover:bg-accent-hover",
   secondary:
-    "bg-surface text-fg border border-line hover:border-line-strong hover:bg-surface-2 shadow-raised",
+    "bg-surface text-fg border border-line hover:border-line-strong hover:bg-surface-2",
   ghost: "text-fg-muted hover:text-fg hover:bg-surface-2",
   danger: "bg-surface text-danger border border-line hover:border-danger/40 hover:bg-danger-soft",
 };

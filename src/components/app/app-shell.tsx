@@ -5,6 +5,7 @@ import { Menu, X } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useAppTheme, useHydrated, useWorkspace } from "@/lib/store";
+import { IllustrationTheme } from "../release/illustration";
 import { useFocusTrap } from "../ui/dialog";
 import { Skeleton, ShiplogMark } from "../ui/misc";
 import { CommandPalette } from "./command-palette";
@@ -156,6 +157,15 @@ function ShellSkeleton() {
   );
 }
 
+function ThemedShell({ children }: { children: React.ReactNode }) {
+  const [theme] = useAppTheme();
+  return (
+    <IllustrationTheme.Provider value={theme}>
+      <ShellInner>{children}</ShellInner>
+    </IllustrationTheme.Provider>
+  );
+}
+
 export function AppShell({ children }: { children: React.ReactNode }) {
   const hydrated = useHydrated();
   return (
@@ -166,7 +176,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {hydrated ? (
         <>
           <ThemeSync />
-          <ShellInner>{children}</ShellInner>
+          <ThemedShell>{children}</ThemedShell>
         </>
       ) : (
         <ShellSkeleton />

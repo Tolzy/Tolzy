@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog, Dialog } from "@/components/ui/dialog";
 import { Checkbox, Input, Select, Switch } from "@/components/ui/form";
-import { GitHubMark, Skeleton } from "@/components/ui/misc";
+import { GitHubMark, SectionHeader, Skeleton } from "@/components/ui/misc";
 import { useToast } from "@/components/ui/toast";
 import type { RemoteRepository } from "@/lib/services/contracts";
 import { db } from "@/lib/services/db";
@@ -313,9 +313,9 @@ export function IntegrationsView() {
         )}
       </section>
 
-      <section aria-labelledby="demo-heading" className="mt-8">
-        <h2 id="demo-heading" className="text-sm font-semibold">Demo controls</h2>
-        <p className="mt-0.5 text-xs text-fg-subtle">Explore loading and error states without a real GitHub connection.</p>
+      <section aria-labelledby="demo-heading" className="mt-12">
+        <SectionHeader id="demo-heading" title="Demo controls" />
+        <p className="mt-1.5 text-xs text-fg-subtle">Explore loading and error states without a real GitHub connection.</p>
         <div className="mt-4 space-y-4 rounded-xl border border-line bg-surface p-5">
           <Switch checked={state.demo.failNextSync} onChange={(failNextSync) => setDemo({ failNextSync })} label="Fail the next sync" description="The next “Sync now” returns a simulated 502 error." />
           <Switch checked={state.demo.activityError} onChange={(activityError) => setDemo({ activityError })} label="Fail activity loading" description="The Activity page shows its error state until this is turned off." />
@@ -335,8 +335,8 @@ export function IntegrationsView() {
         </div>
       </section>
 
-      <section aria-labelledby="more-heading" className="mt-8">
-        <h2 id="more-heading" className="text-sm font-semibold">More sources</h2>
+      <section aria-labelledby="more-heading" className="mt-12">
+        <SectionHeader id="more-heading" title="More sources" />
         <ul className="mt-3 grid gap-3 sm:grid-cols-3">
           {[
             { name: "GitLab", desc: "Merge requests and commits" },

@@ -21,7 +21,7 @@ import {
   demoReleases,
 } from "../demo-data";
 
-export const SCHEMA_VERSION = 3;
+export const SCHEMA_VERSION = 4;
 
 export interface DbState {
   version: number;
@@ -95,7 +95,7 @@ export function createSeedState(now = Date.now()): DbState {
     seededAt: now,
     activeWorkspaceId: "ws_orbit",
     activeRepoId: { ws_orbit: "repo_orbit", ws_sandbox: null },
-    appTheme: "light",
+    appTheme: "dark",
     users: USERS,
     workspaces: WORKSPACES,
     repositories: REPOSITORIES,

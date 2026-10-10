@@ -110,14 +110,14 @@ export function Sidebar({ onNavigate, onOpenCommand }: { onNavigate?: () => void
 
       <button
         onClick={onOpenCommand}
-        className="mt-2 flex h-8 items-center gap-2 rounded-md border border-line bg-surface px-2.5 text-sm text-fg-faint shadow-raised transition-colors hover:border-line-strong hover:text-fg-subtle"
+        className="mt-2 flex h-8 items-center gap-2 rounded-md bg-surface-2/70 px-2.5 text-sm text-fg-faint transition-colors hover:bg-surface-2 hover:text-fg-subtle"
       >
         <Search className="size-3.5" />
         <span className="flex-1 text-left">Search or jump to…</span>
         <Kbd>⌘K</Kbd>
       </button>
 
-      <ul className="mt-3 flex flex-col gap-px">
+      <ul className="mt-4 flex flex-col gap-px">
         {NAV.map((item) => {
           const active = pathname === item.href || pathname.startsWith(item.href + "/");
           const Icon = item.icon;
@@ -129,13 +129,13 @@ export function Sidebar({ onNavigate, onOpenCommand }: { onNavigate?: () => void
                 aria-current={active ? "page" : undefined}
                 className={cn(
                   "relative flex h-8 items-center gap-2.5 rounded-md px-2 text-sm font-medium transition-colors",
-                  active ? "text-fg" : "text-fg-subtle hover:bg-surface-2/70 hover:text-fg",
+                  active ? "text-fg" : "text-fg-subtle hover:bg-surface-2/60 hover:text-fg",
                 )}
               >
                 {active && (
                   <motion.span
                     layoutId="nav-active"
-                    className="absolute inset-0 rounded-md border border-line bg-surface shadow-raised"
+                    className="absolute inset-0 rounded-md bg-surface-2"
                     transition={{ type: "spring", stiffness: 550, damping: 42 }}
                   />
                 )}
@@ -152,7 +152,7 @@ export function Sidebar({ onNavigate, onOpenCommand }: { onNavigate?: () => void
         })}
       </ul>
 
-      <div className="mt-5 px-2 text-2xs font-medium uppercase tracking-[0.06em] text-fg-faint">Public</div>
+      <div className="mt-6 px-2 text-xs text-fg-faint">Public</div>
       <a
         href={`/changelog/${workspace.slug}`}
         target="_blank"
@@ -163,11 +163,11 @@ export function Sidebar({ onNavigate, onOpenCommand }: { onNavigate?: () => void
           <span className="size-1.5 rounded-full bg-success" aria-hidden />
         </span>
         <span className="flex-1 truncate">View changelog</span>
+        <span className="sr-only">(opens /changelog/{workspace.slug} in a new tab)</span>
         <ArrowUpRight className="size-3.5 text-fg-faint transition-transform group-hover:-translate-y-px group-hover:translate-x-px" />
       </a>
-      <p className="truncate px-2 pl-[34px] font-mono text-2xs text-fg-faint">/changelog/{workspace.slug}</p>
 
-      <div className="mt-auto flex items-center gap-2 border-t border-line px-1 pt-3">
+      <div className="mt-auto flex items-center gap-2 px-1 pt-3">
         <Popover className="min-w-0 flex-1">
           <PopoverTrigger className="flex w-full min-w-0 items-center gap-2 rounded-md p-1 text-left transition-colors hover:bg-surface-2" aria-label="Account menu">
             <Avatar user={me} size={22} />

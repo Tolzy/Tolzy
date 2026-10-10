@@ -105,7 +105,7 @@ export function ActivityRow({
           {item.type === "pull_request" ? `#${item.number}` : shortSha(item.sha)}
         </span>
         <Avatar user={author} size={18} />
-        <time dateTime={item.createdAt} className="w-12 text-right text-xs tabular text-fg-faint" title={new Date(item.createdAt).toLocaleString()}>
+        <time dateTime={item.createdAt} className="w-14 whitespace-nowrap text-right text-xs tabular text-fg-faint" title={new Date(item.createdAt).toLocaleString()}>
           {relativeTime(item.createdAt, now)}
         </time>
         <Tooltip content="Open on GitHub">

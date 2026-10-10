@@ -95,7 +95,7 @@ export function ReleasesView() {
                   {r.cover ? (
                     <div className="pointer-events-none"><MediaView media={r.cover} accent={appearance.accent} /></div>
                   ) : (
-                    <div className="flex aspect-[16/10] items-center justify-center font-serif text-xl text-fg-faint">{r.title.charAt(0) || "·"}</div>
+                    <div className="flex aspect-[16/10] items-center justify-center text-lg font-semibold text-fg-faint">{r.title.charAt(0) || "·"}</div>
                   )}
                 </div>
                 <div className="min-w-0 flex-1">

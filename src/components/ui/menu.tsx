@@ -2,7 +2,7 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { Check } from "lucide-react";
-import { createContext, useCallback, useContext, useEffect, useId, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 
 interface PopoverCtx {
@@ -103,6 +103,19 @@ export function PopoverContent({
 }) {
   const { open, id, setOpen, triggerRef } = usePopover();
   const ref = useRef<HTMLDivElement>(null);
+  const [placement, setPlacement] = useState(side);
+
+  // Flip upwards when there isn't room below (e.g. above a fixed footer bar).
+  useLayoutEffect(() => {
+    if (!open) return;
+    const trigger = triggerRef.current?.getBoundingClientRect();
+    const h = ref.current?.offsetHeight ?? 0;
+    if (!trigger) return;
+    const below = window.innerHeight - trigger.bottom;
+    if (side === "bottom" && below < h + 80 && trigger.top > h + 16) setPlacement("top");
+    else if (side === "top" && trigger.top < h + 16 && below > h + 16) setPlacement("bottom");
+    else setPlacement(side);
+  }, [open, side, triggerRef]);
 
   useEffect(() => {
     if (!open) return;
@@ -146,14 +159,14 @@ export function PopoverContent({
           aria-label={label}
           aria-labelledby={label ? undefined : triggerRef.current?.id || undefined}
           onKeyDown={onKeyDown}
-          initial={{ opacity: 0, y: side === "bottom" ? -4 : 4, scale: 0.98 }}
+          initial={{ opacity: 0, y: placement === "bottom" ? -4 : 4, scale: 0.98 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, scale: 0.98, transition: { duration: 0.1 } }}
           transition={{ duration: 0.16, ease: [0.25, 1, 0.5, 1] }}
-          style={{ transformOrigin: `${align === "start" ? "left" : "right"} ${side === "bottom" ? "top" : "bottom"}` }}
+          style={{ transformOrigin: `${align === "start" ? "left" : "right"} ${placement === "bottom" ? "top" : "bottom"}` }}
           className={cn(
             "absolute z-[70] min-w-[200px] rounded-lg border border-line bg-surface p-1 shadow-pop",
-            side === "bottom" ? "top-full mt-1.5" : "bottom-full mb-1.5",
+            placement === "bottom" ? "top-full mt-1.5" : "bottom-full mb-1.5",
             align === "start" ? "left-0" : "right-0",
             className,
           )}

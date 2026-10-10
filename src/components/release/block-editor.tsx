@@ -5,24 +5,25 @@ import {
   ArrowDown,
   ArrowUp,
   Columns2,
+  Copy,
   GitPullRequest,
   GripVertical,
   Heading2,
   Image as ImageIcon,
   Link2,
   List,
+  MoreHorizontal,
   Pilcrow,
   Plus,
   Trash2,
   Video,
 } from "lucide-react";
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { parseVideo } from "../changelog/blocks";
 import type { ActivityItem, BlockType, ReleaseContentBlock } from "@/lib/types";
 import { cn, isSafeUrl, uid } from "@/lib/utils";
-import { IconButton } from "../ui/button";
 import { Checkbox, Input, Textarea } from "../ui/form";
-import { MenuItem, MenuLabel, Popover, PopoverContent, PopoverTrigger } from "../ui/menu";
+import { MenuItem, MenuLabel, MenuSeparator, Popover, PopoverContent, PopoverTrigger } from "../ui/menu";
 import { MediaPicker } from "./media-picker";
 
 /**
@@ -114,7 +115,7 @@ function BlockBody({
           onChange={(e) => onChange({ ...block, text: e.target.value })}
           placeholder="Section heading"
           aria-label="Heading text"
-          className="w-full bg-transparent font-serif text-[22px] font-medium tracking-[-0.01em] text-fg placeholder:text-fg-faint focus:outline-none"
+          className="w-full bg-transparent pt-4 text-[16px] font-semibold tracking-[-0.011em] text-fg placeholder:text-fg-faint focus:outline-none"
         />
       );
     case "paragraph":
@@ -125,7 +126,7 @@ function BlockBody({
           onChange={(e) => onChange({ ...block, text: e.target.value })}
           placeholder="Write something your customers will care about…"
           aria-label="Paragraph text"
-          className="text-[15px] leading-[1.7] text-fg"
+          className="text-[15px] leading-[1.8] text-fg-muted"
         />
       );
     case "list":
@@ -133,7 +134,7 @@ function BlockBody({
         <ul className="space-y-1.5">
           {block.items.map((item, i) => (
             <li key={i} className="flex items-center gap-3">
-              <span className="h-px w-3 shrink-0 bg-accent" aria-hidden />
+              <span className="size-[5px] shrink-0 rounded-full bg-fg-faint" aria-hidden />
               <input
                 ref={(el) => {
                   listRefs.current[i] = el;
@@ -253,8 +254,10 @@ function BlockItem({
   onRemove,
   onMove,
   onInsertAfter,
+  onDuplicate,
   accent,
   sources,
+  autoFocus,
 }: {
   block: ReleaseContentBlock;
   index: number;
@@ -263,12 +266,33 @@ function BlockItem({
   onRemove: () => void;
   onMove: (dir: -1 | 1) => void;
   onInsertAfter: (t: BlockType) => void;
+  onDuplicate: () => void;
   accent?: string;
   sources: ActivityItem[];
+  autoFocus?: boolean;
 }) {
   const controls = useDragControls();
+  const ref = useRef<HTMLDivElement>(null);
   const meta = TYPE_LABEL[block.type];
   const isText = block.type === "paragraph" || block.type === "heading" || block.type === "list";
+
+  // Newly inserted blocks take focus so typing can start immediately.
+  useEffect(() => {
+    if (!autoFocus) return;
+    const raf = requestAnimationFrame(() => ref.current?.querySelector<HTMLElement>("input, textarea, button[data-media-option]")?.focus());
+    return () => cancelAnimationFrame(raf);
+  }, [autoFocus]);
+
+  const actions = (
+    <>
+      <MenuItem icon={<ArrowUp />} disabled={index === 0} onSelect={() => onMove(-1)}>Move up</MenuItem>
+      <MenuItem icon={<ArrowDown />} disabled={index === count - 1} onSelect={() => onMove(1)}>Move down</MenuItem>
+      <MenuItem icon={<Copy />} onSelect={onDuplicate}>Duplicate</MenuItem>
+      <MenuSeparator />
+      <MenuItem icon={<Trash2 />} tone="danger" onSelect={onRemove}>Delete</MenuItem>
+    </>
+  );
+
   return (
     <Reorder.Item
       as="div"
@@ -280,40 +304,44 @@ function BlockItem({
       exit={{ opacity: 0, height: 0, transition: { duration: 0.16 } }}
       transition={{ duration: 0.2, ease: [0.25, 1, 0.5, 1] }}
       className="group/block relative"
-      whileDrag={{ scale: 1.01, boxShadow: "0 12px 32px -8px rgb(0 0 0 / 0.18)", zIndex: 10 }}
+      whileDrag={{ scale: 1.01, boxShadow: "0 12px 32px -8px rgb(0 0 0 / 0.25)", zIndex: 10 }}
     >
-      <div className={cn("relative -mx-3 rounded-lg px-3 transition-colors focus-within:bg-surface-2/40 hover:bg-surface-2/40", isText ? "py-1.5" : "py-3")}>
+      <div ref={ref} className={cn("relative -mx-3 rounded-lg px-3 transition-colors focus-within:bg-surface-2/40 hover:bg-surface-2/30", isText ? "py-1" : "py-3")}>
         {!isText && (
-          <div className="mb-2 flex items-center gap-1.5 text-2xs font-medium uppercase tracking-[0.06em] text-fg-faint [&>svg]:size-3">
+          <div className="mb-2.5 flex items-center gap-1.5 text-xs text-fg-faint [&>svg]:size-3.5">
             {meta.icon}
             {meta.label}
           </div>
         )}
         <BlockBody block={block} onChange={onChange} accent={accent} sources={sources} />
-        {/* Block controls */}
-        <div
-          className="absolute -left-10 top-1.5 hidden flex-col items-center opacity-0 transition-opacity focus-within:opacity-100 group-hover/block:opacity-100 md:flex"
-        >
-          <button
-            onPointerDown={(e) => controls.start(e)}
-            aria-label="Drag to reorder"
-            className="flex size-6 cursor-grab touch-none items-center justify-center rounded text-fg-faint hover:bg-surface-2 hover:text-fg active:cursor-grabbing"
-            tabIndex={-1}
-          >
-            <GripVertical className="size-4" />
-          </button>
-        </div>
-        <div className="absolute -top-3 right-2 flex items-center gap-0.5 rounded-md border border-line bg-surface p-0.5 opacity-0 shadow-raised transition-opacity focus-within:opacity-100 group-hover/block:opacity-100">
-          <IconButton size="sm" label="Move up" disabled={index === 0} onClick={() => onMove(-1)}>
-            <ArrowUp className="size-3.5" />
-          </IconButton>
-          <IconButton size="sm" label="Move down" disabled={index === count - 1} onClick={() => onMove(1)}>
-            <ArrowDown className="size-3.5" />
-          </IconButton>
+
+        {/* Gutter controls (desktop): insert below, and a grip that drags or opens actions. */}
+        <div className="absolute -left-[52px] top-1 hidden items-center gap-0.5 opacity-0 transition-opacity focus-within:opacity-100 group-hover/block:opacity-100 md:flex">
           <InsertAfter onInsert={onInsertAfter} />
-          <IconButton size="sm" label="Delete block" onClick={onRemove} className="hover:!text-danger">
-            <Trash2 className="size-3.5" />
-          </IconButton>
+          <Popover>
+            <PopoverTrigger
+              onPointerDown={(e) => controls.start(e)}
+              aria-label={`${meta.label} block actions. Drag to reorder.`}
+              className="flex size-6 cursor-grab touch-none items-center justify-center rounded-md text-fg-faint transition-colors hover:bg-surface-2 hover:text-fg active:cursor-grabbing"
+            >
+              <GripVertical className="size-4" />
+            </PopoverTrigger>
+            <PopoverContent role="menu" label="Block actions" className="w-48">
+              {actions}
+            </PopoverContent>
+          </Popover>
+        </div>
+
+        {/* Compact actions (touch / narrow screens). */}
+        <div className="absolute right-1 top-1 opacity-0 transition-opacity focus-within:opacity-100 group-focus-within/block:opacity-100 md:hidden">
+          <Popover>
+            <PopoverTrigger aria-label={`${meta.label} block actions`} className="flex size-7 items-center justify-center rounded-md text-fg-subtle hover:bg-surface-2">
+              <MoreHorizontal className="size-4" />
+            </PopoverTrigger>
+            <PopoverContent role="menu" label="Block actions" align="end" className="w-48">
+              {actions}
+            </PopoverContent>
+          </Popover>
         </div>
       </div>
     </Reorder.Item>
@@ -323,10 +351,10 @@ function BlockItem({
 function InsertAfter({ onInsert }: { onInsert: (t: BlockType) => void }) {
   return (
     <Popover>
-      <PopoverTrigger aria-label="Insert block below" className="inline-flex size-6 items-center justify-center rounded-md text-fg-subtle transition-colors hover:bg-surface-2 hover:text-fg">
-        <Plus className="size-3.5" />
+      <PopoverTrigger aria-label="Insert block below" className="inline-flex size-6 items-center justify-center rounded-md text-fg-faint transition-colors hover:bg-surface-2 hover:text-fg">
+        <Plus className="size-4" />
       </PopoverTrigger>
-      <PopoverContent role="menu" label="Insert block below" align="end" className="w-56">
+      <PopoverContent role="menu" label="Insert block below" className="w-56">
         <MenuLabel>Insert below</MenuLabel>
         {BLOCK_TYPES.map((b) => (
           <MenuItem key={b.type} icon={b.icon} onSelect={() => onInsert(b.type)}>
@@ -352,10 +380,20 @@ export function BlockEditor({
   onRemoveBlock?: (block: ReleaseContentBlock, index: number) => void;
 }) {
   const sourceIds = sources.filter((s) => s.type === "pull_request").map((s) => s.id);
+  const [focusId, setFocusId] = useState<string | null>(null);
   const update = (i: number, b: ReleaseContentBlock) => onChange(blocks.map((x, j) => (j === i ? b : x)));
   const insertAt = (i: number, t: BlockType) => {
     const next = [...blocks];
-    next.splice(i, 0, createBlock(t, sourceIds));
+    const block = createBlock(t, sourceIds);
+    next.splice(i, 0, block);
+    setFocusId(block.id);
+    onChange(next);
+  };
+  const duplicate = (i: number) => {
+    const next = [...blocks];
+    const copy = { ...structuredClone(blocks[i]), id: uid("blk") };
+    next.splice(i + 1, 0, copy);
+    setFocusId(copy.id);
     onChange(next);
   };
   const move = (i: number, dir: -1 | 1) => {
@@ -383,8 +421,10 @@ export function BlockEditor({
               }}
               onMove={(d) => move(i, d)}
               onInsertAfter={(t) => insertAt(i + 1, t)}
+              onDuplicate={() => duplicate(i)}
               accent={accent}
               sources={sources}
+              autoFocus={b.id === focusId}
             />
           ))}
         </AnimatePresence>
@@ -396,7 +436,7 @@ export function BlockEditor({
       )}
       <div className="mt-4 flex flex-wrap items-center gap-1">
         <InsertBlockMenu variant="button" onInsert={(t) => insertAt(blocks.length, t)} />
-        <span className="ml-1 hidden text-2xs text-fg-faint sm:inline">or quick add:</span>
+        <span className="ml-1 hidden text-xs text-fg-faint sm:inline">or</span>
         {(["paragraph", "heading", "image", "video"] as BlockType[]).map((t) => (
           <button
             key={t}

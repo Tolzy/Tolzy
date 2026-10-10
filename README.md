@@ -53,4 +53,15 @@ src/
 - **Real AI generation:** replace `generateStory` in `lib/story.ts`. Its output is already a normal editable `ReleaseDraft`.
 - **Adding a block type:** add it to the `ReleaseContentBlock` union, then add an editor case in `block-editor.tsx` and a renderer case in `changelog/blocks.tsx`.
 
-Stack: Next.js 15, React 19, TypeScript, Tailwind CSS 4, Framer Motion, Lucide, Geist + Newsreader.
+Stack: Next.js 15, React 19, TypeScript, Tailwind CSS 4, Framer Motion, Lucide, Inter (bundled via `@fontsource-variable/inter`, no network needed) + Geist Mono for technical identifiers.
+
+## Design notes
+
+- **Type:** Inter everywhere, with weight and colour (not size jumps) carrying hierarchy. Section titles are paired with a hairline rule that runs to the column edge.
+- **Theme:** dark by default for both the workspace and the public changelog; light themes are one toggle away (workspace: ⇧⌘L, public: Changelog appearance).
+- **Public changelog:** a narrow reading column, framed media with centred captions, a before/after block with a visible reveal slider and a side-by-side mode, `inline code` in release text, and product illustrations that follow the page theme.
+- **Motion:** short (150–250 ms) transitions for state changes only — step direction in the release flow, block insertion/removal, grouping, status changes, filter changes. `prefers-reduced-motion` is respected.
+
+## What is simulated
+
+The GitHub integration, sync, repository list and "Subscribe" form are simulated and labelled as such in the UI. Nothing is sent to GitHub or any email service. Story generation is deterministic (rule-based), not an AI model.

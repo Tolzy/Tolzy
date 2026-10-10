@@ -93,6 +93,7 @@ export function MediaPicker({
               <button
                 key={p}
                 type="button"
+                data-media-option
                 onClick={() => onChange({ kind: "illustration", preset: p, alt: PRESET_LABELS[p] })}
                 className="group/p overflow-hidden rounded-md border border-line bg-surface text-left transition-[border-color,transform] hover:border-accent active:scale-[0.98]"
               >

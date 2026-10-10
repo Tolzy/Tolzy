@@ -1,15 +1,16 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { ArrowRight, ArrowUpRight, FileText, GitPullRequest, Plus, RefreshCw, Sparkles } from "lucide-react";
+import { ArrowRight, ArrowUpRight, GitPullRequest, Plus, RefreshCw, Sparkles } from "lucide-react";
 import { useMemo } from "react";
-import { ActivityRow } from "@/components/app/activity-row";
+import { ActivityIcon, ConventionalTag } from "@/components/app/activity-row";
+import { Avatar, AvatarStack } from "@/components/ui/avatar";
 import { useNow, useSync } from "@/components/app/hooks";
 import { GuardedLink, useNavGuard } from "@/components/app/nav-guard";
 import { DemoTag, Page, PageHeader, RepoSelector } from "@/components/app/page";
 import { Button } from "@/components/ui/button";
 import { CategoryBadge, StatusBadge } from "@/components/ui/badge";
-import { EmptyState } from "@/components/ui/misc";
+import { AnimatedNumber, EmptyState, SectionHeader } from "@/components/ui/misc";
 import { CURRENT_USER_ID } from "@/lib/demo-data";
 import { suggestGroups } from "@/lib/story";
 import {
@@ -66,7 +67,7 @@ function CadenceChart({ releases, now }: { releases: Release[]; now: number }) {
       <div
         role="img"
         aria-label={`${total} changes and ${shipped} published releases over the last ${weeks} weeks.`}
-        className="flex h-24 items-end gap-1.5"
+        className="flex h-20 items-end gap-1"
       >
         {data.map((d) => {
           const shippedWeek = d.releases.length > 0;
@@ -77,7 +78,7 @@ function CadenceChart({ releases, now }: { releases: Release[]; now: number }) {
                 initial={{ height: 0 }}
                 animate={{ height: `${Math.max(4, (d.count / max) * 100)}%` }}
                 transition={{ duration: 0.5, delay: d.i * 0.03, ease: [0.25, 1, 0.5, 1] }}
-                className={cn("w-full rounded-[3px] transition-colors", d.i === weeks - 1 ? "bg-fg" : "bg-surface-3 group-hover:bg-line-strong")}
+                className={cn("w-full rounded-[3px] transition-colors", d.i === weeks - 1 ? "bg-fg-subtle" : "bg-surface-3 group-hover:bg-line-strong")}
               />
             </div>
           );
@@ -100,10 +101,10 @@ function ReleaseLine({ release, now }: { release: Release; now: number }) {
     <li>
       <GuardedLink
         href={`/app/releases/${release.id}`}
-        className="group flex items-center gap-3 rounded-md px-3 py-2.5 transition-colors hover:bg-surface-2/70"
+        className="group flex items-center gap-4 rounded-md px-3 py-2.5 transition-colors hover:bg-surface-2/60"
       >
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-sm font-medium text-fg">{release.title || "Untitled release"}</span>
+          <span className="block truncate text-[13.5px] font-medium tracking-[-0.006em] text-fg">{release.title || "Untitled release"}</span>
           <span className="mt-0.5 block truncate text-xs text-fg-subtle">
             {status === "published"
               ? `Published ${formatDay(release.releaseDate, "short")}`
@@ -114,7 +115,6 @@ function ReleaseLine({ release, now }: { release: Release; now: number }) {
             {pluralize(release.activityIds.length, "source")}
           </span>
         </span>
-        <CategoryBadge category={release.category} className="hidden sm:inline-flex" />
         <StatusBadge status={status} />
         <ArrowRight className="hidden size-3.5 text-fg-faint opacity-0 transition-all group-hover:translate-x-0.5 group-hover:opacity-100 sm:block" aria-hidden />
       </GuardedLink>
@@ -176,117 +176,115 @@ export function OverviewView() {
         }
       />
 
-      <div className="grid grid-cols-1 gap-x-10 gap-y-10 lg:grid-cols-[minmax(0,1fr)_300px]">
-        {/* ── What to publish next ─────────────────────────────── */}
-        <section aria-labelledby="next-heading" className="min-w-0">
-          <div className="flex items-end justify-between gap-4 border-b border-line pb-3">
-            <div>
-              <h2 id="next-heading" className="flex items-center gap-2 text-sm font-semibold">
-                <Sparkles className="size-3.5 text-accent" aria-hidden /> Ready to become stories
-              </h2>
-              <p className="mt-0.5 text-xs text-fg-subtle">Unreleased work in {repository?.fullName ?? "your repositories"}, grouped by feature.</p>
-            </div>
-            <GuardedLink href="/app/activity" className="text-xs font-medium text-fg-subtle transition-colors hover:text-fg">
-              All activity →
-            </GuardedLink>
-          </div>
-          {disconnected ? (
-            <EmptyState
-              icon={<GitPullRequest />}
-              title="No repository connected"
-              description="Shiplog reads commits and pull requests to suggest release stories. Connect GitHub (demo mode works without credentials)."
-              action={<Button variant="primary" onClick={() => navigate("/app/integrations")}>Connect GitHub</Button>}
+      <div className="grid grid-cols-1 gap-x-14 gap-y-14 lg:grid-cols-[minmax(0,1fr)_280px]">
+        <div className="min-w-0 space-y-14">
+          {/* ── What to publish next ─────────────────────────────── */}
+          <section aria-labelledby="next-heading">
+            <SectionHeader
+              id="next-heading"
+              title="Ready to become stories"
+              count={groups.length || undefined}
+              action={<GuardedLink href="/app/activity" className="font-medium text-fg-subtle transition-colors hover:text-fg">All activity</GuardedLink>}
             />
-          ) : groups.length === 0 ? (
-            <EmptyState icon={<Sparkles />} title="You're all caught up" description="New pull requests will be grouped into suggested stories after the next sync." action={<Button onClick={sync} loading={syncing} disabled={disabled}>Sync now</Button>} />
-          ) : (
-            <ol className="divide-y divide-line">
-              {groups.map((g, i) => {
-                const items = g.activityIds.map((id) => activity.find((a) => a.id === id)!).filter(Boolean);
-                const authors = [...new Set(items.map((a) => a.authorId))].map((id) => users.get(id));
-                return (
-                  <motion.li
-                    key={g.id}
-                    initial={{ opacity: 0, y: 6 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.25, delay: i * 0.05 }}
-                    className="group flex flex-col gap-3 py-5 sm:flex-row sm:items-center"
-                  >
-                    <span className="hidden w-6 font-mono text-xs text-fg-faint sm:block">{String(i + 1).padStart(2, "0")}</span>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <h3 className="text-[15px] font-semibold tracking-[-0.01em]">{g.title}</h3>
-                        <CategoryBadge category={g.category} />
-                      </div>
-                      <p className="mt-1 text-xs text-fg-subtle">{g.rationale}</p>
-                      <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1">
-                        {items.slice(0, 3).map((a) => (
-                          <span key={a.id} className="max-w-full truncate font-mono text-[11px] text-fg-faint">
-                            {a.type === "pull_request" ? `#${a.number}` : a.sha.slice(0, 7)} {a.title.replace(/^\w+(\([^)]*\))?:\s*/, "")}
+            <p className="mt-1.5 text-xs text-fg-subtle">Unreleased work in {repository?.fullName ?? "your repositories"}, grouped by feature.</p>
+            {disconnected ? (
+              <EmptyState
+                icon={<GitPullRequest />}
+                title="No repository connected"
+                description="Shiplog reads commits and pull requests to suggest release stories. Demo mode uses simulated GitHub data — no credentials needed."
+                action={<Button variant="primary" onClick={() => navigate("/app/integrations")}>Connect GitHub</Button>}
+              />
+            ) : groups.length === 0 ? (
+              <EmptyState icon={<Sparkles />} title="You're all caught up" description="New pull requests will be grouped into suggested stories after the next sync." action={<Button onClick={sync} loading={syncing} disabled={disabled}>Sync now</Button>} />
+            ) : (
+              <ol className="mt-3">
+                {groups.map((g, i) => {
+                  const items = g.activityIds.map((id) => activity.find((a) => a.id === id)!).filter(Boolean);
+                  const authors = [...new Set(items.map((a) => a.authorId))].map((id) => users.get(id));
+                  return (
+                    <motion.li
+                      key={g.id}
+                      layout
+                      initial={{ opacity: 0, y: 4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.22, delay: i * 0.04 }}
+                      className="group -mx-3 flex flex-col gap-3 rounded-lg px-3 py-4 transition-colors hover:bg-surface-2/50 sm:flex-row sm:items-center"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                          <h3 className="text-[14.5px] font-medium tracking-[-0.011em] text-fg">{g.title}</h3>
+                          <CategoryBadge category={g.category} />
+                        </div>
+                        <p className="mt-1 truncate text-xs text-fg-subtle">
+                          {g.rationale}
+                          <span className="text-fg-faint"> · </span>
+                          <span className="font-mono text-[11px] text-fg-faint">
+                            {items.slice(0, 3).map((a) => (a.type === "pull_request" ? `#${a.number}` : a.sha.slice(0, 7))).join("  ")}
                           </span>
-                        ))}
+                        </p>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-3 sm:pl-4">
-                      <span className="flex -space-x-1.5" aria-label={`${authors.length} contributors`}>
-                        {authors.map((u) => u && (
-                          <span key={u.id} className="inline-flex size-5 items-center justify-center rounded-full text-[8px] font-semibold ring-2 ring-canvas" style={{ background: `oklch(0.9 0.05 ${u.hue})`, color: `oklch(0.38 0.09 ${u.hue})` }} title={u.name}>
-                            {u.name.split(" ").map((x) => x[0]).join("")}
-                          </span>
-                        ))}
-                      </span>
-                      <Button size="sm" variant={i === 0 ? "accent" : "secondary"} onClick={() => navigate(`/app/releases/new?items=${g.activityIds.join(",")}`)}>
-                        Draft story
-                      </Button>
-                    </div>
-                  </motion.li>
-                );
-              })}
-            </ol>
-          )}
+                      <div className="flex items-center gap-3">
+                        <AvatarStack users={authors} size={20} />
+                        <Button size="sm" onClick={() => navigate(`/app/releases/new?items=${g.activityIds.join(",")}`)}>
+                          Draft story
+                        </Button>
+                      </div>
+                    </motion.li>
+                  );
+                })}
+              </ol>
+            )}
+          </section>
 
           {/* ── Drafts & published ──────────────────────────────── */}
-          <div className="mt-10 grid gap-10 xl:grid-cols-2">
+          <div className="grid gap-14 xl:grid-cols-2 xl:gap-10">
             <section aria-labelledby="drafts-heading">
-              <div className="flex items-center justify-between border-b border-line pb-2.5">
-                <h2 id="drafts-heading" className="text-sm font-semibold">Drafts <span className="ml-1 tabular font-normal text-fg-faint">{drafts.length}</span></h2>
-                <GuardedLink href="/app/releases" className="text-xs font-medium text-fg-subtle hover:text-fg">View all</GuardedLink>
-              </div>
+              <SectionHeader
+                id="drafts-heading"
+                title="Drafts"
+                count={drafts.length}
+                action={<GuardedLink href="/app/releases" className="font-medium text-fg-subtle hover:text-fg">View all</GuardedLink>}
+              />
               {drafts.length ? (
-                <ul className="-mx-3 mt-1">{drafts.slice(0, 4).map((r) => <ReleaseLine key={r.id} release={r} now={now} />)}</ul>
+                <ul className="-mx-3 mt-3">{drafts.slice(0, 4).map((r) => <ReleaseLine key={r.id} release={r} now={now} />)}</ul>
               ) : (
                 <p className="py-6 text-sm text-fg-subtle">No drafts. Pick a suggested story above to start one.</p>
               )}
             </section>
             <section aria-labelledby="published-heading">
-              <div className="flex items-center justify-between border-b border-line pb-2.5">
-                <h2 id="published-heading" className="text-sm font-semibold">Recently published</h2>
-                <a href={`/changelog/${workspace.slug}`} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-xs font-medium text-fg-subtle hover:text-fg">
-                  Changelog <ArrowUpRight className="size-3" aria-hidden />
-                </a>
-              </div>
+              <SectionHeader
+                id="published-heading"
+                title="Recently published"
+                action={
+                  <a href={`/changelog/${workspace.slug}`} target="_blank" rel="noreferrer" className="flex items-center gap-1 font-medium text-fg-subtle hover:text-fg">
+                    Changelog <ArrowUpRight className="size-3" aria-hidden />
+                  </a>
+                }
+              />
               {published.length ? (
-                <ul className="-mx-3 mt-1">{published.slice(0, 4).map((r) => <ReleaseLine key={r.id} release={r} now={now} />)}</ul>
+                <ul className="-mx-3 mt-3">{published.slice(0, 4).map((r) => <ReleaseLine key={r.id} release={r} now={now} />)}</ul>
               ) : (
                 <p className="py-6 text-sm text-fg-subtle">Nothing published yet. Your first release will appear on the public changelog.</p>
               )}
             </section>
           </div>
-        </section>
+        </div>
 
         {/* ── Right rail ─────────────────────────────────────── */}
-        <aside className="flex flex-col gap-10">
+        <aside className="flex flex-col gap-12">
           <section aria-labelledby="pulse-heading">
-            <h2 id="pulse-heading" className="text-sm font-semibold">Shipping rhythm</h2>
-            <dl className="mb-5 mt-3 grid grid-cols-3 gap-3">
+            <SectionHeader id="pulse-heading" title="Shipping rhythm" />
+            <dl className="mb-6 mt-4 grid grid-cols-3 gap-3">
               {[
                 { label: "Unreleased", value: pending.length },
                 { label: "Drafts", value: drafts.length },
                 { label: "Published", value: published.length },
-              ].map((s) => (
-                <div key={s.label}>
-                  <dt className="text-2xs text-fg-subtle">{s.label}</dt>
-                  <dd className="mt-0.5 text-xl font-semibold tabular tracking-tight">{s.value}</dd>
+              ].map((st) => (
+                <div key={st.label}>
+                  <dt className="text-xs text-fg-subtle">{st.label}</dt>
+                  <dd className="mt-1 text-[22px] font-semibold tabular leading-none tracking-[-0.02em]">
+                    <AnimatedNumber value={st.value} />
+                  </dd>
                 </div>
               ))}
             </dl>
@@ -294,30 +292,40 @@ export function OverviewView() {
           </section>
 
           <section aria-labelledby="recent-heading">
-            <div className="flex items-center justify-between">
-              <h2 id="recent-heading" className="text-sm font-semibold">Recent activity</h2>
-              <span className="font-mono text-2xs text-fg-faint">{repository?.defaultBranch}</span>
-            </div>
+            <SectionHeader id="recent-heading" title="Recent activity" action={<span className="font-mono text-[11px] text-fg-faint">{repository?.defaultBranch}</span>} />
             {activity.length ? (
-              <div className="-mx-4 mt-2">
+              <ul className="mt-3 space-y-0.5">
                 {activity.slice(0, 6).map((a) => (
-                  <ActivityRow key={a.id} item={a} author={users.get(a.authorId)} compact now={now} />
+                  <li key={a.id}>
+                    <a href={a.url} target="_blank" rel="noreferrer noopener" className="-mx-2 flex items-start gap-2.5 rounded-md px-2 py-2 transition-colors hover:bg-surface-2/60">
+                      <ActivityIcon item={a} className="mt-0.5 size-3.5 shrink-0" />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-[13px] text-fg">{a.title.replace(/^\w+(\([^)]*\))?!?:\s*/, "").replace(/^./, (c) => c.toUpperCase())}</span>
+                        <span className="mt-0.5 flex items-center gap-1.5 text-[11.5px] text-fg-faint">
+                          <ConventionalTag title={a.title} className="text-[10.5px]" />
+                          <span>·</span>
+                          <span>{relativeTime(a.createdAt, now)}</span>
+                        </span>
+                      </span>
+                      <Avatar user={users.get(a.authorId)} size={16} className="mt-0.5" />
+                    </a>
+                  </li>
                 ))}
-              </div>
+              </ul>
             ) : (
               <p className="mt-3 text-sm text-fg-subtle">No activity yet.</p>
             )}
           </section>
 
           {last && (
-            <section className="rounded-lg border border-line bg-surface p-4">
-              <p className="flex items-center gap-1.5 text-2xs font-medium uppercase tracking-[0.06em] text-fg-faint">
-                <FileText className="size-3" aria-hidden /> Live on your changelog
-              </p>
-              <p className="mt-2 font-serif text-lg leading-snug">{last.title}</p>
-              <p className="mt-1 text-xs text-fg-subtle">{formatDay(last.releaseDate)}</p>
-              <a href={`/changelog/${workspace.slug}/${last.slug}`} target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-accent hover:underline">
-                View public page <ArrowUpRight className="size-3" aria-hidden />
+            <section aria-labelledby="live-heading">
+              <SectionHeader id="live-heading" title="Live on your changelog" />
+              <a href={`/changelog/${workspace.slug}/${last.slug}`} target="_blank" rel="noreferrer" className="group -mx-2 mt-3 block rounded-md px-2 py-2 transition-colors hover:bg-surface-2/60">
+                <span className="block text-[14px] font-medium leading-snug tracking-[-0.011em]">{last.title}</span>
+                <span className="mt-1 flex items-center gap-1 text-xs text-fg-subtle">
+                  {formatDay(last.releaseDate)}
+                  <ArrowUpRight className="size-3 transition-transform group-hover:-translate-y-px group-hover:translate-x-px" aria-hidden />
+                </span>
               </a>
             </section>
           )}

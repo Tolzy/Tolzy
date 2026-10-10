@@ -9,11 +9,10 @@ import { ChangelogIndex, ReleaseArticle } from "./release-view";
 
 function PublicSkeleton() {
   return (
-    <div className="changelog min-h-dvh" aria-busy="true" aria-label="Loading changelog">
-      <div className="mx-auto max-w-[1080px] px-8 pt-28">
-        <div className="h-3 w-24 rounded bg-[var(--cl-line)]" />
-        <div className="mt-6 h-14 w-[min(560px,90%)] rounded bg-[var(--cl-line)]" />
-        <div className="mt-5 h-4 w-[min(420px,80%)] rounded bg-[var(--cl-line)]" />
+    <div className="min-h-dvh bg-canvas" aria-busy="true" aria-label="Loading changelog">
+      <div className="mx-auto max-w-[880px] px-8 pt-36">
+        <div className="skeleton h-9 w-[min(420px,90%)] rounded" />
+        <div className="skeleton mt-5 h-4 w-[min(380px,80%)] rounded" />
       </div>
     </div>
   );
@@ -21,8 +20,8 @@ function PublicSkeleton() {
 
 function NotFound({ message }: { message: string }) {
   return (
-    <div className="changelog flex min-h-dvh flex-col items-center justify-center px-6 text-center">
-      <p className="font-serif text-4xl">Not found</p>
+    <div data-public-theme="dark" className="changelog flex min-h-dvh flex-col items-center justify-center px-6 text-center">
+      <p className="text-[22px] font-semibold tracking-[-0.02em]">Not found</p>
       <p className="mt-2 max-w-sm text-[15px] text-[var(--cl-muted)]">{message}</p>
       <Link href="/app/overview" className="mt-6 text-sm font-medium underline underline-offset-4">
         Go to Shiplog

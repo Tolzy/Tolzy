@@ -4,6 +4,7 @@ import Link from "next/link";
 import { createContext, useContext } from "react";
 import type { ActivityItem, Appearance, User } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { IllustrationTheme } from "../release/illustration";
 
 export interface ChangelogContextValue {
   appearance: Appearance;
@@ -53,7 +54,7 @@ export function ChangelogFrame({ appearance, children, className }: { appearance
       className={cn("changelog @container font-sans", className)}
       style={{ ["--cl-accent" as string]: appearance.accent }}
     >
-      {children}
+      <IllustrationTheme.Provider value={appearance.theme}>{children}</IllustrationTheme.Provider>
     </div>
   );
 }

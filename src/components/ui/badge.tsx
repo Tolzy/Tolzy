@@ -36,8 +36,8 @@ export const CATEGORIES = Object.keys(CATEGORY_META) as Category[];
 export function CategoryBadge({ category, className }: { category: Category; className?: string }) {
   const meta = CATEGORY_META[category];
   return (
-    <span className={cn("inline-flex h-5 items-center gap-1.5 whitespace-nowrap rounded border border-line px-1.5 text-2xs font-medium text-fg-muted", className)}>
-      <span className="size-1.5 rounded-[2px]" style={{ background: meta.color }} aria-hidden />
+    <span className={cn("inline-flex h-5 items-center gap-1.5 whitespace-nowrap text-xs text-fg-subtle", className)}>
+      <span className="size-1.5 rounded-full" style={{ background: meta.color }} aria-hidden />
       {meta.label}
     </span>
   );
@@ -49,11 +49,19 @@ const STATUS: Record<ReleaseStatus, { label: string; tone: Tone }> = {
   published: { label: "Published", tone: "success" },
 };
 
+const STATUS_DOT: Record<ReleaseStatus, string> = {
+  draft: "border border-fg-faint bg-transparent",
+  scheduled: "bg-warning",
+  published: "bg-success",
+};
+
+/** Release status: a small state dot plus label. Animates when the status changes. */
 export function StatusBadge({ status, className }: { status: ReleaseStatus; className?: string }) {
   const s = STATUS[status];
   return (
-    <Badge tone={s.tone} dot className={className}>
+    <span className={cn("inline-flex h-5 items-center gap-1.5 whitespace-nowrap text-xs", status === "draft" ? "text-fg-subtle" : status === "scheduled" ? "text-warning" : "text-success", className)}>
+      <span key={status} className={cn("size-[7px] shrink-0 rounded-full animate-[pop_240ms_cubic-bezier(0.25,1,0.5,1)]", STATUS_DOT[status])} aria-hidden />
       {s.label}
-    </Badge>
+    </span>
   );
 }

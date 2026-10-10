@@ -9,9 +9,13 @@ import { GitHubMark } from "../ui/misc";
 import { useNavGuard } from "./nav-guard";
 
 export function Page({ children, className, wide }: { children: React.ReactNode; className?: string; wide?: boolean }) {
-  return <div className={cn("mx-auto w-full px-4 pb-24 pt-6 sm:px-6 lg:px-10 lg:pt-8", wide ? "max-w-[1400px]" : "max-w-[1180px]", className)}>{children}</div>;
+  return <div className={cn("mx-auto w-full px-4 pb-24 pt-7 sm:px-6 lg:px-12 lg:pt-12", wide ? "max-w-[1360px]" : "max-w-[1160px]", className)}>{children}</div>;
 }
 
+/**
+ * Page title row (title + primary actions on one line), an optional
+ * description, then a quiet context row (repository, sync state).
+ */
 export function PageHeader({
   eyebrow,
   title,
@@ -26,13 +30,13 @@ export function PageHeader({
   className?: string;
 }) {
   return (
-    <header className={cn("flex flex-col gap-4 pb-6 sm:flex-row sm:items-end sm:justify-between", className)}>
-      <div className="min-w-0">
-        {eyebrow && <div className="mb-2 flex flex-wrap items-center gap-2 text-xs text-fg-subtle">{eyebrow}</div>}
-        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-fg text-balance">{title}</h1>
-        {description && <p className="mt-1.5 max-w-2xl text-sm text-fg-subtle text-pretty">{description}</p>}
+    <header className={cn("pb-10", className)}>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <h1 className="text-[20px] font-semibold leading-tight tracking-[-0.022em] text-fg text-balance">{title}</h1>
+        {actions && <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>}
       </div>
-      {actions && <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>}
+      {description && <p className="mt-2 max-w-[62ch] text-sm leading-relaxed text-fg-subtle text-pretty">{description}</p>}
+      {eyebrow && <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-fg-subtle">{eyebrow}</div>}
     </header>
   );
 }
@@ -56,7 +60,7 @@ export function RepoSelector({ compact }: { compact?: boolean }) {
     <Popover>
       <PopoverTrigger
         aria-label={`Repository: ${repository.fullName}. Change repository`}
-        className="group inline-flex h-7 max-w-full items-center gap-2 rounded-md border border-line bg-surface px-2 text-xs shadow-raised transition-colors hover:border-line-strong"
+        className="group inline-flex h-7 max-w-full items-center gap-2 rounded-md border border-line bg-surface px-2 text-xs transition-colors hover:border-line-strong"
       >
         <GitHubMark className="size-3.5 shrink-0 text-fg" />
         <span className="truncate font-mono text-fg">{repository.fullName}</span>

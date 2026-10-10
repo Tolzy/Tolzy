@@ -8,7 +8,7 @@ import { ChangelogIndex } from "@/components/changelog/release-view";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/dialog";
 import { Field, Input, Switch, Textarea } from "@/components/ui/form";
-import { Segmented } from "@/components/ui/misc";
+import { SectionHeader, Segmented } from "@/components/ui/misc";
 import { useToast } from "@/components/ui/toast";
 import { appearanceService } from "@/lib/services/mock";
 import { usePublicReleases, useWorkspace } from "@/lib/store";
@@ -33,9 +33,9 @@ function contrastWithWhite(hex: string) {
 
 function Group({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="border-t border-line py-6 first:border-t-0 first:pt-0">
-      <h2 className="mb-4 text-xs font-semibold uppercase tracking-[0.06em] text-fg-subtle">{title}</h2>
-      <div className="space-y-4">{children}</div>
+    <section className="pb-10">
+      <SectionHeader title={title} className="mb-5" />
+      <div className="space-y-5">{children}</div>
     </section>
   );
 }

@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/dialog";
 import { Field, Input } from "@/components/ui/form";
 import { Kbd } from "@/components/ui/kbd";
-import { Segmented } from "@/components/ui/misc";
+import { SectionHeader, Segmented } from "@/components/ui/misc";
 import { useToast } from "@/components/ui/toast";
 import { db } from "@/lib/services/db";
 import { publishingService } from "@/lib/services/mock";
@@ -17,7 +17,7 @@ import { useAppTheme, useWorkspace } from "@/lib/store";
 
 function Row({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) {
   return (
-    <div className="flex flex-col gap-3 border-t border-line py-5 sm:flex-row sm:items-center sm:justify-between">
+    <div className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
       <div className="max-w-md">
         <p className="text-sm font-medium">{title}</p>
         {description && <p className="mt-0.5 text-xs text-fg-subtle">{description}</p>}
@@ -48,7 +48,7 @@ export function SettingsView() {
       <PageHeader title="Settings" description="Workspace preferences and prototype data." />
 
       <section aria-labelledby="ws-heading">
-        <h2 id="ws-heading" className="pb-3 text-xs font-semibold uppercase tracking-[0.06em] text-fg-subtle">Workspace</h2>
+        <SectionHeader id="ws-heading" title="Workspace" className="mb-2" />
         <Row title="Workspace name" description="Shown in the sidebar and workspace switcher.">
           <form
             className="flex gap-2"
@@ -60,8 +60,8 @@ export function SettingsView() {
               toast.success("Workspace renamed");
             }}
           >
-            <Field label="Workspace name" className="[&>label]:sr-only">
-              <Input value={name} onChange={(e) => setName(e.target.value)} className="w-56" />
+            <Field label="Workspace name" htmlFor="ws-name" className="[&>label]:sr-only">
+              <Input id="ws-name" value={name} onChange={(e) => setName(e.target.value)} className="w-56" />
             </Field>
             <Button type="submit" disabled={name.trim() === workspace.name}>Save</Button>
           </form>
@@ -84,9 +84,9 @@ export function SettingsView() {
         </Row>
       </section>
 
-      <section aria-labelledby="kb-heading" className="mt-10">
-        <h2 id="kb-heading" className="pb-3 text-xs font-semibold uppercase tracking-[0.06em] text-fg-subtle">Keyboard shortcuts</h2>
-        <dl className="grid gap-x-10 border-t border-line pt-4 sm:grid-cols-2">
+      <section aria-labelledby="kb-heading" className="mt-12">
+        <SectionHeader id="kb-heading" title="Keyboard shortcuts" className="mb-2" />
+        <dl className="grid gap-x-10 pt-3 sm:grid-cols-2">
           {SHORTCUTS.map(([k, label]) => (
             <div key={label} className="flex items-center justify-between py-1.5">
               <dt className="text-sm text-fg-muted">{label}</dt>
@@ -98,8 +98,8 @@ export function SettingsView() {
         </dl>
       </section>
 
-      <section aria-labelledby="data-heading" className="mt-10">
-        <h2 id="data-heading" className="pb-3 text-xs font-semibold uppercase tracking-[0.06em] text-fg-subtle">Prototype data</h2>
+      <section aria-labelledby="data-heading" className="mt-12">
+        <SectionHeader id="data-heading" title="Prototype data" className="mb-2" />
         <Row title="Export data" description="Download every workspace, release and setting stored in this browser as JSON.">
           <Button
             icon={<Download className="size-3.5" />}

@@ -11,7 +11,6 @@ import {
   Plus,
   RefreshCw,
   Search,
-  Sparkles,
   Users,
   X,
 } from "lucide-react";
@@ -25,7 +24,7 @@ import { CategoryBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox, Input, Select } from "@/components/ui/form";
 import { MenuItem, MenuLabel, MenuSeparator, Popover, PopoverContent, PopoverTrigger } from "@/components/ui/menu";
-import { EmptyState, Segmented, Skeleton } from "@/components/ui/misc";
+import { AnimatedNumber, EmptyState, SectionHeader, Segmented, Skeleton } from "@/components/ui/misc";
 import { activityService } from "@/lib/services/mock";
 import { generateStory, suggestGroups } from "@/lib/story";
 import { unreleased, useActivity, useActivityReleaseMap, useDb, useUsers, useWorkspace } from "@/lib/store";
@@ -207,11 +206,11 @@ export function ActivityView() {
           />
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-8 xl:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="grid grid-cols-1 gap-10 xl:grid-cols-[minmax(0,1fr)_300px]">
           <div className="min-w-0">
             {/* Toolbar */}
-            <div className="flex flex-wrap items-center gap-2 pb-3">
-              <div className="w-full sm:w-64">
+            <div className="flex flex-wrap items-center gap-2 pb-4">
+              <div className="w-full sm:w-72">
                 <Input
                   leading={<Search />}
                   placeholder="Search titles, #PR, SHA, author…"
@@ -274,27 +273,11 @@ export function ActivityView() {
                   Clear
                 </Button>
               )}
-              <div className="ml-auto flex items-center gap-2">
-                <label className="flex cursor-pointer items-center gap-2 text-xs text-fg-subtle">
-                  <Checkbox checked={showReleased} onChange={setShowReleased} label="Show released activity" />
-                  Show released
-                </label>
-                <Segmented
-                  size="sm"
-                  label="View mode"
-                  value={view}
-                  onChange={setView}
-                  options={[
-                    { value: "timeline", label: "Timeline", icon: <List />, title: "Chronological feed" },
-                    { value: "grouped", label: "Grouped", icon: <Layers />, title: "Group by suggested release" },
-                  ]}
-                />
-              </div>
             </div>
 
             {/* Feed */}
             <div className="rounded-xl border border-line bg-surface">
-              <div className="flex h-10 items-center gap-3 rounded-t-xl border-b border-line bg-surface-2/40 px-4 text-xs text-fg-subtle">
+              <div className="flex min-h-11 flex-wrap items-center gap-x-3 gap-y-2 rounded-t-xl border-b border-line px-4 py-2 text-xs text-fg-subtle">
                 <Checkbox
                   checked={allVisibleSelected}
                   indeterminate={!allVisibleSelected && someVisibleSelected}
@@ -305,7 +288,29 @@ export function ActivityView() {
                 <span>
                   {load.status === "ready" ? `${pluralize(filtered.length, "item")}${filtersActive ? " match" : ""}` : "Loading…"}
                 </span>
-                {selected.size > 0 && <span className="text-accent">· {selected.size} selected</span>}
+                <AnimatePresence initial={false}>
+                  {selected.size > 0 && (
+                    <motion.span initial={{ opacity: 0, x: -4 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -4 }} transition={{ duration: 0.15 }} className="flex items-center gap-1 text-fg">
+                      · <AnimatedNumber value={selected.size} /> selected
+                    </motion.span>
+                  )}
+                </AnimatePresence>
+                <div className="ml-auto flex items-center gap-3">
+                  <label className="flex cursor-pointer items-center gap-2">
+                    <Checkbox checked={showReleased} onChange={setShowReleased} label="Show released activity" />
+                    Show released
+                  </label>
+                  <Segmented
+                    size="sm"
+                    label="View mode"
+                    value={view}
+                    onChange={setView}
+                    options={[
+                      { value: "timeline", label: "Timeline", icon: <List />, title: "Chronological feed" },
+                      { value: "grouped", label: "Grouped", icon: <Layers />, title: "Group by suggested release" },
+                    ]}
+                  />
+                </div>
               </div>
 
               {load.status === "loading" ? (
@@ -409,10 +414,8 @@ export function ActivityView() {
 
           {/* Suggestions rail */}
           <aside aria-labelledby="sugg-heading" className="xl:sticky xl:top-8 xl:self-start">
-            <h2 id="sugg-heading" className="flex items-center gap-2 text-sm font-semibold">
-              <Sparkles className="size-3.5 text-accent" aria-hidden /> Suggested groups
-            </h2>
-            <p className="mt-0.5 text-xs text-fg-subtle">Based on commit scopes and shared areas of the codebase.</p>
+            <SectionHeader id="sugg-heading" title="Suggested groups" count={load.status === "ready" ? groups.length : undefined} />
+            <p className="mt-1.5 text-xs text-fg-subtle">Based on commit scopes and shared areas of the codebase.</p>
             {load.status !== "ready" ? (
               <div className="mt-4 space-y-3">
                 {[0, 1].map((i) => <Skeleton key={i} className="h-24 w-full rounded-lg" />)}
@@ -431,7 +434,7 @@ export function ActivityView() {
                         initial={{ opacity: 0, scale: 0.98 }}
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.98 }}
-                        className={cn("rounded-lg border bg-surface p-3.5 transition-colors", isSel ? "border-accent/50 ring-2 ring-accent/10" : "border-line")}
+                        className={cn("rounded-xl border bg-surface p-4 transition-colors", isSel ? "border-accent/50 ring-2 ring-accent/10" : "border-line")}
                       >
                         <div className="flex items-start justify-between gap-2">
                           <p className="text-sm font-semibold leading-snug">{g.title}</p>
@@ -468,7 +471,7 @@ export function ActivityView() {
             transition={{ type: "spring", stiffness: 500, damping: 38 }}
             className="fixed inset-x-4 bottom-4 z-40 mx-auto flex max-w-[640px] items-center gap-3 rounded-xl border border-line bg-invert py-2 pl-4 pr-2 text-invert-fg shadow-pop lg:left-[248px]"
           >
-            <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-white/15 text-xs font-semibold tabular">{selected.size}</span>
+            <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-canvas/15 text-xs font-semibold"><AnimatedNumber value={selected.size} /></span>
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium">{preview?.title}</p>
               <p className="truncate text-2xs opacity-60">Suggested headline · {pluralize(selectedItems.filter((s) => s.type === "pull_request").length, "PR")}, {pluralize(selectedItems.filter((s) => s.type === "commit").length, "commit")}</p>

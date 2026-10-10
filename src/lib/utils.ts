@@ -40,7 +40,8 @@ export function relativeTime(iso: string, now = Date.now()) {
   const abs = Math.abs(diff);
   const future = diff < 0;
   let out: string;
-  if (abs < 45_000) return future ? "in a moment" : "just now";
+  // Small negative gaps are clock skew between "now" ticks, not the future.
+  if (abs < 45_000 || (future && abs < 60_000)) return "just now";
   if (abs < HOUR) out = `${Math.round(abs / MINUTE)}m`;
   else if (abs < DAY) out = `${Math.round(abs / HOUR)}h`;
   else if (abs < 30 * DAY) out = `${Math.round(abs / DAY)}d`;
@@ -54,7 +55,7 @@ export function relativeTimeLong(iso: string, now = Date.now()) {
   const future = now - t < 0;
   const fmt = (n: number, unit: string) => `${n} ${unit}${n === 1 ? "" : "s"}`;
   let out: string;
-  if (abs < 45_000) return future ? "in a moment" : "just now";
+  if (abs < 45_000 || (future && abs < 60_000)) return "just now";
   if (abs < HOUR) out = fmt(Math.round(abs / MINUTE), "minute");
   else if (abs < DAY) out = fmt(Math.round(abs / HOUR), "hour");
   else if (abs < 30 * DAY) out = fmt(Math.round(abs / DAY), "day");

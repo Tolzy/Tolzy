@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from "next";
-import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
 import { Providers } from "@/components/providers";
 import "./globals.css";
@@ -12,16 +11,16 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#F6F5F1" },
-    { media: "(prefers-color-scheme: dark)", color: "#0e0e0d" },
+    { media: "(prefers-color-scheme: dark)", color: "#0a0a0a" },
   ],
 };
 
 // Apply the saved workspace theme before first paint to avoid a flash.
-const themeScript = `try{var s=JSON.parse(localStorage.getItem("shiplog:v1")||"null");if(s&&s.appTheme)document.documentElement.dataset.theme=s.appTheme;}catch(e){}`;
+const themeScript = `try{var s=JSON.parse(localStorage.getItem("shiplog:v1")||"null");if(s&&s.version===4&&s.appTheme)document.documentElement.dataset.theme=s.appTheme;}catch(e){}`;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" data-theme="light" className={`${GeistSans.variable} ${GeistMono.variable}`} suppressHydrationWarning>
+    <html lang="en" data-theme="dark" className={GeistMono.variable} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>

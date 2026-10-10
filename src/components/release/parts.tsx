@@ -5,6 +5,7 @@ import {
   ArrowUpRight,
   CalendarClock,
   Check,
+  ChevronDown,
   Copy,
   ExternalLink,
   Monitor,
@@ -24,11 +25,32 @@ import { CATEGORIES, CATEGORY_META } from "../ui/badge";
 import { Button, IconButton } from "../ui/button";
 import { Dialog } from "../ui/dialog";
 import { Input, Textarea } from "../ui/form";
-import { Popover, PopoverContent, PopoverTrigger } from "../ui/menu";
-import { Segmented } from "../ui/misc";
+import { MenuItem, Popover, PopoverContent, PopoverTrigger } from "../ui/menu";
+import { SectionHeader, Segmented } from "../ui/misc";
 import { useWorkspace } from "@/lib/store";
 
-export function CategoryPicker({ value, onChange }: { value: Category; onChange: (c: Category) => void }) {
+export function CategoryPicker({ value, onChange, variant = "chips" }: { value: Category; onChange: (c: Category) => void; variant?: "chips" | "menu" }) {
+  if (variant === "menu") {
+    return (
+      <Popover>
+        <PopoverTrigger
+          aria-label={`Category: ${CATEGORY_META[value].label}. Change category`}
+          className="flex h-8 w-full items-center gap-2 rounded-md border border-line bg-surface px-2.5 text-sm text-fg transition-colors hover:border-line-strong"
+        >
+          <span className="size-2 rounded-full" style={{ background: CATEGORY_META[value].color }} aria-hidden />
+          <span className="flex-1 text-left">{CATEGORY_META[value].label}</span>
+          <ChevronDown className="size-3.5 text-fg-faint" aria-hidden />
+        </PopoverTrigger>
+        <PopoverContent role="menu" label="Category" className="w-full min-w-0">
+          {CATEGORIES.map((c) => (
+            <MenuItem key={c} checked={c === value} icon={<span className="size-2 rounded-full" style={{ background: CATEGORY_META[c].color }} />} onSelect={() => onChange(c)}>
+              {CATEGORY_META[c].label}
+            </MenuItem>
+          ))}
+        </PopoverContent>
+      </Popover>
+    );
+  }
   return (
     <div role="radiogroup" aria-label="Category" className="flex flex-wrap gap-1.5">
       {CATEGORIES.map((c) => {
@@ -40,12 +62,13 @@ export function CategoryPicker({ value, onChange }: { value: Category; onChange:
             aria-checked={active}
             onClick={() => onChange(c)}
             className={cn(
-              "inline-flex h-7 items-center gap-1.5 rounded-md border px-2.5 text-xs font-medium transition-[background-color,border-color,color] active:scale-[0.97]",
-              active ? "border-fg bg-invert text-invert-fg" : "border-line bg-surface text-fg-muted hover:border-line-strong hover:text-fg",
+              "relative inline-flex h-7 items-center gap-1.5 rounded-full px-3 text-xs font-medium transition-colors active:scale-[0.97]",
+              active ? "text-fg" : "text-fg-subtle hover:text-fg",
             )}
           >
-            <span className="size-1.5 rounded-[2px]" style={{ background: CATEGORY_META[c].color }} aria-hidden />
-            {CATEGORY_META[c].label}
+            {active && <motion.span layoutId="category-chip" className="absolute inset-0 rounded-full border border-line-strong bg-surface-2" transition={{ type: "spring", stiffness: 600, damping: 42 }} />}
+            <span className="relative size-1.5 rounded-full" style={{ background: CATEGORY_META[c].color }} aria-hidden />
+            <span className="relative">{CATEGORY_META[c].label}</span>
           </button>
         );
       })}
@@ -66,7 +89,7 @@ export function StoryHeader({ draft, onChange, autoFocus }: { draft: Pick<Releas
         onChange={(e) => onChange({ title: e.target.value.replace(/\n/g, "") })}
         placeholder="Release title"
         aria-invalid={!draft.title.trim()}
-        className="font-serif text-[34px] font-medium leading-[1.1] tracking-[-0.02em] text-fg placeholder:text-fg-faint focus:outline-none sm:text-[40px]"
+        className="text-[28px] font-semibold leading-[1.2] tracking-[-0.026em] text-fg placeholder:text-fg-faint focus:outline-none sm:text-[32px]"
       />
       <label htmlFor="release-summary" className="sr-only">Summary</label>
       <Textarea
@@ -75,7 +98,7 @@ export function StoryHeader({ draft, onChange, autoFocus }: { draft: Pick<Releas
         value={draft.summary}
         onChange={(e) => onChange({ summary: e.target.value })}
         placeholder="A one-sentence summary for the changelog list"
-        className="mt-2 text-[17px] leading-relaxed text-fg-muted placeholder:text-fg-faint focus:outline-none"
+        className="mt-3 text-[16px] leading-relaxed text-fg-muted placeholder:text-fg-faint focus:outline-none"
       />
     </div>
   );
@@ -103,34 +126,36 @@ export function SourcesPanel({
   const prs = sources.filter((s) => s.type === "pull_request").length;
   return (
     <section aria-labelledby="sources-heading">
-      <div className="flex items-center justify-between">
-        <h3 id="sources-heading" className="text-xs font-semibold text-fg">
-          Source activity
-          <span className="ml-1.5 font-normal text-fg-faint">
-            {pluralize(prs, "PR")} · {pluralize(sources.length - prs, "commit")}
-          </span>
-        </h3>
-        <Popover>
-          <PopoverTrigger aria-label="Add source activity" className="inline-flex size-6 items-center justify-center rounded-md text-fg-subtle transition-colors hover:bg-surface-2 hover:text-fg">
-            <Plus className="size-3.5" />
-          </PopoverTrigger>
-          <PopoverContent label="Add activity" align="end" className="w-[320px] p-2">
-            <Input data-autofocus placeholder="Search unreleased activity…" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search activity to add" />
-            <ul className="scrollbar-thin mt-2 max-h-64 overflow-y-auto">
-              {filtered.length === 0 && <li className="px-2 py-4 text-center text-xs text-fg-subtle">No unreleased activity to add.</li>}
-              {filtered.map((c) => (
-                <li key={c.id}>
-                  <button onClick={() => onAdd(c.id)} className="flex w-full items-start gap-2 rounded-md px-2 py-1.5 text-left text-xs transition-colors hover:bg-surface-2">
-                    <ActivityIcon item={c} className="mt-px size-3.5" />
-                    <span className="min-w-0 flex-1 truncate text-fg">{c.title}</span>
-                    <Plus className="size-3 shrink-0 text-fg-faint" aria-hidden />
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </PopoverContent>
-        </Popover>
-      </div>
+      <SectionHeader
+        id="sources-heading"
+        title="Sources"
+        count={sources.length}
+        action={
+          <Popover>
+            <PopoverTrigger aria-label="Add source activity" className="inline-flex size-6 items-center justify-center rounded-md text-fg-subtle transition-colors hover:bg-surface-2 hover:text-fg">
+              <Plus className="size-3.5" />
+            </PopoverTrigger>
+            <PopoverContent label="Add activity" align="end" className="w-[300px] p-2">
+              <Input data-autofocus placeholder="Search unreleased activity…" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search activity to add" />
+              <ul className="scrollbar-thin mt-2 max-h-64 overflow-y-auto">
+                {filtered.length === 0 && <li className="px-2 py-4 text-center text-xs text-fg-subtle">No unreleased activity to add.</li>}
+                {filtered.map((c) => (
+                  <li key={c.id}>
+                    <button onClick={() => onAdd(c.id)} className="flex w-full items-start gap-2 rounded-md px-2 py-1.5 text-left text-xs transition-colors hover:bg-surface-2">
+                      <ActivityIcon item={c} className="mt-px size-3.5" />
+                      <span className="min-w-0 flex-1 truncate text-fg">{c.title}</span>
+                      <Plus className="size-3 shrink-0 text-fg-faint" aria-hidden />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </PopoverContent>
+          </Popover>
+        }
+      />
+      <p className="mt-1 text-xs text-fg-faint">
+        {pluralize(prs, "pull request")} · {pluralize(sources.length - prs, "commit")}
+      </p>
       <ul className="mt-2 space-y-px">
         <AnimatePresence initial={false}>
           {sources.map((s) => (

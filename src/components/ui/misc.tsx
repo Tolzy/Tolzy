@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { useId } from "react";
 import { cn } from "@/lib/utils";
 
@@ -90,7 +90,7 @@ export function Segmented<T extends string>({
             {active && (
               <motion.span
                 layoutId={`seg-${id}`}
-                className="absolute inset-0 rounded-[5px] border border-line bg-surface shadow-raised"
+                className="absolute inset-0 rounded-[5px] border border-line bg-surface"
                 transition={{ type: "spring", stiffness: 600, damping: 40 }}
               />
             )}
@@ -175,14 +175,67 @@ export function ShiplogMark({ className }: { className?: string }) {
   );
 }
 
-export function SectionHeader({ title, description, action, className, id }: { title: React.ReactNode; description?: React.ReactNode; action?: React.ReactNode; className?: string; id?: string }) {
+/**
+ * Section title with a hairline running to the action (or the edge).
+ * The one heading pattern used for sections across the app.
+ */
+export function SectionHeader({
+  title,
+  description,
+  action,
+  count,
+  icon,
+  className,
+  id,
+}: {
+  title: React.ReactNode;
+  description?: React.ReactNode;
+  action?: React.ReactNode;
+  count?: number;
+  icon?: React.ReactNode;
+  className?: string;
+  id?: string;
+}) {
   return (
-    <div className={cn("flex items-end justify-between gap-4", className)}>
-      <div className="min-w-0">
-        <h2 id={id} className="text-sm font-semibold text-fg">{title}</h2>
-        {description && <p className="mt-0.5 text-xs text-fg-subtle">{description}</p>}
+    <div className={className}>
+      <div className="flex items-center gap-3">
+        <h2 id={id} className="flex shrink-0 items-center gap-2 text-[13.5px] font-semibold tracking-[-0.006em] text-fg [&>svg]:size-3.5">
+          {icon}
+          {title}
+          {count !== undefined && <span className="tabular font-normal text-fg-faint">{count}</span>}
+        </h2>
+        <span aria-hidden className="h-px min-w-4 flex-1 bg-line" />
+        {action && <div className="flex shrink-0 items-center gap-2 text-xs">{action}</div>}
       </div>
-      {action}
+      {description && <p className="mt-1 text-xs text-fg-subtle">{description}</p>}
     </div>
+  );
+}
+
+/** Quiet text link used for section actions ("View all"). */
+export function TextAction({ children, className, ...props }: React.AnchorHTMLAttributes<HTMLAnchorElement>) {
+  return (
+    <a className={cn("text-xs font-medium text-fg-subtle transition-colors hover:text-fg", className)} {...props}>
+      {children}
+    </a>
+  );
+}
+
+/** A number that slides when it changes, so updates are noticed without shouting. */
+export function AnimatedNumber({ value, className }: { value: number; className?: string }) {
+  return (
+    <span className={cn("relative inline-flex overflow-hidden tabular", className)}>
+      <AnimatePresence mode="popLayout" initial={false}>
+        <motion.span
+          key={value}
+          initial={{ y: "60%", opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          exit={{ y: "-60%", opacity: 0 }}
+          transition={{ duration: 0.22, ease: [0.25, 1, 0.5, 1] }}
+        >
+          {value}
+        </motion.span>
+      </AnimatePresence>
+    </span>
   );
 }

@@ -29,7 +29,7 @@ import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/dialog";
 import { Field, Input } from "@/components/ui/form";
 import { MenuItem, MenuSeparator, Popover, PopoverContent, PopoverTrigger } from "@/components/ui/menu";
-import { EmptyState, Segmented } from "@/components/ui/misc";
+import { EmptyState, SectionHeader, Segmented } from "@/components/ui/misc";
 import { useToast } from "@/components/ui/toast";
 import { publishingService, releaseService } from "@/lib/services/mock";
 import { generateStory } from "@/lib/story";
@@ -214,7 +214,7 @@ function Editor({ release }: { release: Release }) {
             </Popover>
             {(dirty || !isPublished) && (
               <Button onClick={save} loading={saving} disabled={!dirty}>
-                {isPublished ? "Update" : <>Save<span className="max-sm:hidden"> draft</span></>}
+                {isPublished ? "Update" : <span>Save<span className="max-sm:hidden"> draft</span></span>}
               </Button>
             )}
             {!isPublished && (
@@ -234,13 +234,13 @@ function Editor({ release }: { release: Release }) {
       <div className="mx-auto max-w-[1400px] px-4 pb-24 pt-8 sm:px-6 lg:px-10">
         <AnimatePresence mode="wait" initial={false}>
           {mode === "preview" ? (
-            <motion.div key="preview" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }}>
+            <motion.div key="preview" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, pointerEvents: "none" }} transition={{ duration: 0.18 }}>
               <ReleasePreview release={previewRelease} activity={activityIndex} users={users} />
             </motion.div>
           ) : (
-            <motion.div key="write" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }} className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1fr)_300px]">
+            <motion.div key="write" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, pointerEvents: "none" }} transition={{ duration: 0.18 }} className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1fr)_300px]">
               {/* Canvas */}
-              <article className="mx-auto w-full max-w-[720px] lg:pl-10">
+              <article className="mx-auto w-full max-w-[720px] md:pl-14">
                 {status === "scheduled" && release.scheduledFor && (
                   <p className="mb-6 rounded-md border border-warning/30 bg-warning-soft px-3 py-2 text-xs text-warning">Scheduled to go live {formatDateTime(release.scheduledFor)}.</p>
                 )}
@@ -265,12 +265,12 @@ function Editor({ release }: { release: Release }) {
               </article>
 
               {/* Inspector */}
-              <aside className="flex flex-col gap-7 lg:sticky lg:top-24 lg:self-start" aria-label="Release details">
+              <aside className="flex flex-col gap-7 scrollbar-thin lg:sticky lg:top-24 lg:-mr-2 lg:max-h-[calc(100dvh-7.5rem)] lg:self-start lg:overflow-y-auto lg:pr-2 lg:pb-6" aria-label="Release details">
                 <section className="space-y-4">
-                  <h3 className="text-xs font-semibold text-fg">Details</h3>
+                  <SectionHeader title="Details" />
                   <div>
                     <p className="mb-1.5 text-xs font-medium text-fg-muted">Category</p>
-                    <CategoryPicker value={draft.category} onChange={(category) => patch({ category })} />
+                    <CategoryPicker variant="menu" value={draft.category} onChange={(category) => patch({ category })} />
                   </div>
                   <Field label="Release date" htmlFor="rel-date" hint="Shown on the public changelog.">
                     <Input id="rel-date" type="date" value={draft.releaseDate} onChange={(e) => e.target.value && patch({ releaseDate: e.target.value })} />
@@ -294,7 +294,7 @@ function Editor({ release }: { release: Release }) {
                   </AnimatePresence>
                 </section>
                 <section>
-                  <h3 className="mb-2 text-xs font-semibold text-fg">Cover image</h3>
+                  <SectionHeader title="Cover image" className="mb-3" />
                   <MediaPicker compact label="Cover" value={draft.cover} onChange={(cover) => patch({ cover })} accent={appearance.accent} />
                 </section>
                 <SourcesPanel
