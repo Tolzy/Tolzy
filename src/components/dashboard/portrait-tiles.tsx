@@ -52,7 +52,17 @@ export function SamplePortraitTile() {
   return (
     <Link href="/studio/sample" className={tileBase}>
       <span className={cn(thumbBase, "bg-[radial-gradient(110%_80%_at_50%_30%,#26262b_0%,#0d0d0f_100%)]")}>
-        <BustSilhouette className="absolute inset-x-[14%] bottom-0 w-[72%] opacity-90 transition-transform duration-[240ms] ease-out group-hover:scale-[1.02]" />
+        {/* Rendered from the studio by scripts/sample-head/thumbnail.mjs */}
+        {/* eslint-disable-next-line @next/next/no-img-element -- static 14 KB WebP, sized by CSS */}
+        <img
+          src="/models/sample-head/thumbnail.webp"
+          alt=""
+          width={640}
+          height={800}
+          loading="lazy"
+          decoding="async"
+          className="absolute inset-0 size-full object-cover transition-transform duration-[240ms] ease-out group-hover:scale-[1.02]"
+        />
         <Badge tone="viewport" className="absolute top-3 left-3">
           Sample
         </Badge>

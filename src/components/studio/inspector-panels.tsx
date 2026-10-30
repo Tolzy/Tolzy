@@ -28,12 +28,25 @@ function PanelNote({ children }: { children: ReactNode }) {
 
 /* ───────────────────────── Material ───────────────────────── */
 
+/** Quiet banner for settings that the renderer does not apply yet. */
+function PreviewNote({ children }: { children: ReactNode }) {
+  return (
+    <div className="border-line bg-sunken/60 text-2xs text-muted flex gap-2 border-b px-4 py-3 leading-4">
+      <Info className="mt-px size-3 shrink-0" aria-hidden="true" />
+      <p>{children}</p>
+    </div>
+  );
+}
+
 export function MaterialPanel() {
   const { value, set, drag, commit } = useSection("material");
   const active = MATERIAL_PRESETS.find((p) => p.id === value.preset)!;
 
   return (
     <>
+      <PreviewNote>
+        Material presets aren’t applied to the model yet. The viewport shows the original textures.
+      </PreviewNote>
       <Section title="Preset">
         <PresetGroup
           label="Material preset"
@@ -87,6 +100,9 @@ export function LightPanel() {
 
   return (
     <>
+      <PreviewNote>
+        Lighting presets aren’t applied yet. Shadow, intensity and rotation update the viewport.
+      </PreviewNote>
       <Section title="Preset">
         <PresetGroup label="Lighting preset" value={value.preset} onChange={(preset) => set({ preset })}>
           {LIGHTING_PRESETS.map((p) => (
@@ -214,6 +230,7 @@ export function MotionPanel() {
 
   return (
     <>
+      <PreviewNote>Cursor tracking and drag-to-rotate aren’t active yet. These settings will drive them.</PreviewNote>
       <Section title="Cursor tracking">
         <SwitchRow
           label="Follow cursor"
@@ -334,10 +351,7 @@ export function ExportPanel() {
 
   return (
     <>
-      <div className="border-line bg-sunken/60 text-2xs text-muted flex gap-2 border-b px-4 py-3 leading-4">
-        <Info className="mt-px size-3 shrink-0" aria-hidden="true" />
-        Exports become available once a model is loaded.
-      </div>
+      <PreviewNote>GLB and PNG exports aren’t enabled in this preview yet.</PreviewNote>
 
       <Section title="3D model">
         <ExportRow title="GLB · Original" description="Reconstructed geometry and textures" />

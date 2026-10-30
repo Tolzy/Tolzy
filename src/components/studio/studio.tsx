@@ -26,7 +26,8 @@ import { useStudioStore, type InspectorContext, ZOOM_MAX, ZOOM_MIN } from "@/sto
 import { Badge } from "@/components/ui/display";
 import { Button } from "@/components/ui/button";
 import { Tooltip } from "@/components/ui/tooltip";
-import { BustSilhouette } from "@/components/dashboard/portrait-tiles";
+import { LazyViewer } from "@/components/viewer/lazy-viewer";
+import { SAMPLE_MODEL, type ModelFraming } from "@/lib/studio/sample-model";
 import { ExportPanel, LightPanel, MaterialPanel, MotionPanel, ScenePanel } from "./inspector-panels";
 import { ShareDialog } from "./share-dialog";
 
@@ -77,10 +78,13 @@ const CONTEXTS: {
 interface StudioProps {
   portraitName: string;
   projectName: string;
+  /** GLB to render and how to place it. */
+  modelUrl: string;
+  framing: ModelFraming;
   isSample?: boolean;
 }
 
-export function Studio({ portraitName, projectName, isSample }: StudioProps) {
+export function Studio({ portraitName, projectName, modelUrl, framing, isSample }: StudioProps) {
   const inspectorOpen = useStudioStore((s) => s.inspectorOpen);
   useStudioShortcuts();
   useInitialSettings();
@@ -89,7 +93,7 @@ export function Studio({ portraitName, projectName, isSample }: StudioProps) {
     <div className="bg-bg flex h-dvh flex-col">
       <TopBar portraitName={portraitName} projectName={projectName} isSample={isSample} />
       <div className="flex min-h-0 flex-1 flex-col md:flex-row">
-        <Viewport isSample={isSample} />
+        <Viewport isSample={isSample} modelUrl={modelUrl} framing={framing} />
         <div className="bg-surface flex min-h-0 flex-1 flex-col md:flex-none md:flex-row-reverse">
           <ContextRail />
           <Inspector className={cn(!inspectorOpen && "md:hidden")} />
@@ -101,7 +105,11 @@ export function Studio({ portraitName, projectName, isSample }: StudioProps) {
 
 /* ───────────────────────── Top bar ───────────────────────── */
 
-function TopBar({ portraitName, projectName, isSample }: StudioProps) {
+function TopBar({
+  portraitName,
+  projectName,
+  isSample,
+}: Pick<StudioProps, "portraitName" | "projectName" | "isSample">) {
   const undo = useStudioStore((s) => s.undo);
   const redo = useStudioStore((s) => s.redo);
   const canUndo = useStudioStore((s) => s.past.length > 0 || s.pending !== null);
@@ -165,9 +173,11 @@ function subscribeFullscreen(cb: () => void) {
   return () => document.removeEventListener("fullscreenchange", cb);
 }
 
-function Viewport({ isSample }: { isSample?: boolean }) {
+function Viewport({ isSample, modelUrl, framing }: { isSample?: boolean; modelUrl: string; framing: ModelFraming }) {
   const ref = useRef<HTMLDivElement>(null);
   const background = useStudioStore((s) => s.settings.background);
+  const lighting = useStudioStore((s) => s.settings.lighting);
+  const zoom = useStudioStore((s) => s.zoom);
   const css = backgroundToCss(background);
   const fullscreen = useSyncExternalStore(
     subscribeFullscreen,
@@ -185,18 +195,24 @@ function Viewport({ isSample }: { isSample?: boolean }) {
       )}
       style={css ? { background: css } : undefined}
     >
+      <LazyViewer url={modelUrl} framing={framing} lighting={lighting} zoom={zoom} />
+
       {isSample && (
         <div className="absolute top-3 left-3">
-          <Badge tone="viewport">Sample model</Badge>
+          <Tooltip
+            side="bottom"
+            content={
+              <span className="block max-w-[240px] leading-4">
+                {SAMPLE_MODEL.credit}. A demonstration model — not an AI-generated portrait of a real person.
+              </span>
+            }
+          >
+            <button type="button" className="rounded-[5px]">
+              <Badge tone="viewport">Sample model · {SAMPLE_MODEL.licence}</Badge>
+            </button>
+          </Tooltip>
         </div>
       )}
-
-      <div className="absolute inset-0 flex flex-col items-center justify-end">
-        <BustSilhouette className="w-[min(46%,300px)] opacity-[0.22]" />
-      </div>
-      <p className="text-vp-muted absolute inset-x-0 top-[42%] text-center text-xs">
-        The 3D renderer is added in the next milestone.
-      </p>
 
       <ViewportToolbar fullscreen={fullscreen} onFullscreen={() => toggleFullscreen(ref.current)} />
     </section>

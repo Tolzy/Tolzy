@@ -69,7 +69,8 @@ src/
     shell/                  * sidebar, search (⌘K), mobile drawer, page header, settings rows
     dashboard/              * portrait tiles and cards
     studio/                 * studio layout, inspector panels, viewport toolbar, share dialog
-    viewer/                 R3F: Viewer, PortraitModel, InteractionRig, Lighting, Backdrop (M2+)
+    viewer/                 * R3F: LazyViewer, Viewer, PortraitModel, StudioLighting, framing maths
+                              (InteractionRig arrives in M3)
   lib/
     studio/                 * settings types/defaults, preset metadata
     reconstruction/         provider interface + adapters (server-only)
@@ -94,7 +95,7 @@ defaults). Pages that read runtime data (`params`, cookies) do so inside a
 ### Scene graph
 
 ```
-<Canvas>                                   camera: perspective, fov 28°, fixed position
+<Canvas>                                   camera: perspective, fov 26°, fixed position (as built in M2)
   <Lighting preset />                      environment (self-hosted HDRI or Lightformers) + key/rim lights
   <Backdrop />                             colour / gradient / transparent
   <InteractionRig>                         ← cursor tracking + drag rotate THIS group only
@@ -106,6 +107,9 @@ defaults). Pages that read runtime data (`params`, cookies) do so inside a
 </Canvas>
 ```
 
+- **As built (M2):** see ADR 0003 — PBR Neutral tone mapping, Lightformer
+  environment, transparent canvas over the CSS Scene background, framing that
+  reserves space for the floating toolbar.
 - **Camera:** a long-ish lens (fov ≈ 25–30°) avoids wide-angle facial
   distortion, which matters for likeness. The camera stays still; zoom changes
   distance within clamped limits. "Reset" restores both camera and rig.

@@ -1,0 +1,10 @@
+Sample head (sample-head.glb, thumbnail.webp)
+
+License: CC0 1.0 Universal — https://creativecommons.org/publicdomain/zero/1.0/
+
+Built from CC0 assets of the MakeHuman project (https://www.makehumancommunity.org/):
+base mesh hm08 and macro targets (MakeHuman team), skin "Male African middle-age"
+(Mindfront, skins02 pack), eyes, eyebrows, eyelashes and hair (MakeHuman system assets).
+
+This is a synthetic demonstration model. It is not an AI-generated portrait and does
+not depict a real person. Build details: scripts/sample-head/README.md

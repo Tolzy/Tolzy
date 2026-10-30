@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { Studio } from "@/components/studio/studio";
 import { StudioSkeleton } from "@/components/studio/studio-skeleton";
+import { SAMPLE_FRAMING, SAMPLE_MODEL } from "@/lib/studio/sample-model";
 
 export const metadata: Metadata = { title: "Studio" };
 
@@ -22,5 +23,13 @@ export default function StudioPage({ params }: PageProps<"/studio/[portraitId]">
 async function StudioForPortrait({ params }: Pick<PageProps<"/studio/[portraitId]">, "params">) {
   const { portraitId } = await params;
   if (portraitId !== "sample") notFound();
-  return <Studio portraitName="Sample head" projectName="Samples" isSample />;
+  return (
+    <Studio
+      portraitName={SAMPLE_MODEL.name}
+      projectName="Samples"
+      modelUrl={SAMPLE_MODEL.url}
+      framing={SAMPLE_FRAMING}
+      isSample
+    />
+  );
 }

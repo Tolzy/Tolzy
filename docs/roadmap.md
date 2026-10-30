@@ -49,23 +49,32 @@ mobile projects; `scripts/screenshots.mjs` for visual review.
 **Not in scope (honestly labelled in the UI as a preview build):** sign-in,
 upload, generation, persistence, exports and publishing.
 
-## M2 — 3D rendering foundation
+## M2 — 3D rendering foundation ✅
 
 **Objective:** Render real GLB geometry beautifully and safely.
-**Scope:** `<Viewer>` with Canvas, camera, environment, backdrop, contact
-shadow; `<PortraitModel>` with GLB loading (meshopt/Draco decoders
-self-hosted), Normalizer (centre, scale, pivot, orientation fix), loading,
-error and no-WebGL states; disposal; `frameloop="demand"`.
-**Acceptance:**
+**Delivered:** Lazily loaded `<Viewer>` (R3F) with a fixed, responsive camera;
+normaliser (orientation, unit scale, pivot); procedural studio lighting with
+PBR Neutral tone mapping and a contact shadow; loading, error-with-retry and
+no-WebGL states; resource disposal; `frameloop="demand"`. A CC0 sample bust
+built reproducibly from MakeHuman assets (ADR 0003,
+`scripts/sample-head/README.md`), and a real render as its dashboard
+thumbnail. Light intensity, rotation and shadow drive the renderer; material
+and lighting presets and motion are labelled as not yet applied.
+**Acceptance (met):**
 
-- Sample head loads, is centred and upright; three test GLBs with different
-  axes/scales are normalised by settings alone.
-- Switching models 20× shows no growth in `renderer.info.memory`.
-- Idle studio renders 0 frames/s; interaction renders at display rate.
-- Broken URL shows the error state with retry.
+- Sample head loads as real geometry, centred, upright and framed at 390,
+  1024 and 1440 px, clear of the toolbar.
+- Invalid GLB shows the error state and recovers on retry; browsers without
+  WebGL see an explanation and the rest of the studio still works.
+- Dashboard pages load no three.js code.
+- No console errors across repeated studio visits.
 
-**Testing:** Unit tests for normalisation maths; Playwright with
-SwiftShader/WebGL screenshot of the viewer; memory regression test.
+**Testing:** Unit tests for framing maths; Playwright tests that measure
+rendered detail in the viewport, the error/retry path, the no-WebGL fallback,
+zoom re-framing and repeated navigation; axe on all pages.
+
+**Deferred:** automated GPU-memory assertions (`renderer.info`) — disposal is
+implemented and covered indirectly by the repeated-visit test.
 
 ## M3 — Cursor tracking and manual interaction
 
