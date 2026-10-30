@@ -1,7 +1,8 @@
 # Design system and product design
 
-Status: Implemented in Milestone 1 (ADR 0002: light-first application, dark
-studio viewport). Tokens live in `src/app/globals.css`, primitives in
+Status: Implemented in Milestone 1; **dark-first since Milestone 3** (ADR 0004)
+with a persisted Light/System choice in Settings → Appearance. The studio
+viewport is dark in every theme. Tokens live in `src/app/globals.css`, primitives in
 `src/components/ui`, and every component and state is shown at
 `/dev/components` in development. Research basis:
 `research/design-references.md`.
@@ -21,7 +22,7 @@ Working name for the language: **Studio Neutral**.
 Neutral greys with a very slight warm bias (photographic, not clinical), one
 accent. Defined as CSS variables, exposed to Tailwind v4 via `@theme`.
 
-Application chrome (light-first):
+Application chrome — light values (the dark defaults live in `:root` in `globals.css`):
 
 | Token              | Value   | Use                                                          |
 | ------------------ | ------- | ------------------------------------------------------------ |

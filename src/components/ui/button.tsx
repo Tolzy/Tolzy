@@ -21,11 +21,11 @@ const base =
   "[&_svg]:size-4 [&_svg]:shrink-0";
 
 const variants: Record<ButtonVariant, string> = {
-  primary: "bg-fg text-inverse hover:bg-[#2c2c30] active:bg-[#3a3a3f]",
+  primary: "bg-primary text-primary-fg hover:bg-primary-hover active:bg-primary-active",
   secondary:
-    "border border-line bg-surface text-fg shadow-[0_1px_0_rgb(16_16_18/0.03)] hover:border-line-strong hover:bg-hover active:bg-active",
+    "border border-line bg-surface text-fg shadow-soft hover:border-line-strong hover:bg-hover active:bg-active",
   ghost: "text-muted hover:bg-hover hover:text-fg active:bg-active",
-  danger: "bg-danger text-white hover:bg-[#b23126]",
+  danger: "bg-danger text-primary-fg hover:bg-danger-hover",
   viewport:
     "text-vp-muted hover:bg-vp-chrome-hover hover:text-vp-fg aria-pressed:bg-vp-chrome-hover aria-pressed:text-vp-fg",
 };

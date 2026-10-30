@@ -21,7 +21,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <MobileBar />
         <main
           id="main"
-          className="bg-surface md:border-line min-h-0 flex-1 overflow-y-auto md:rounded-xl md:border md:shadow-[0_1px_2px_rgb(16_16_18/0.03)]"
+          className="bg-surface md:border-line md:shadow-soft min-h-0 flex-1 overflow-y-auto md:rounded-xl md:border"
         >
           {children}
         </main>
@@ -59,7 +59,7 @@ function MobileBar() {
           </Button>
         </D.Trigger>
         <D.Portal>
-          <D.Overlay className="fixed inset-0 z-40 bg-[rgb(16_16_18/0.28)]" />
+          <D.Overlay className="bg-overlay fixed inset-0 z-40" />
           <D.Content className="bg-bg shadow-dialog fixed inset-y-0 left-0 z-50 w-[280px] max-w-[85vw] outline-none">
             <D.Title className="sr-only">Navigation</D.Title>
             <D.Description className="sr-only">Main navigation</D.Description>

@@ -76,23 +76,26 @@ zoom re-framing and repeated navigation; axe on all pages.
 **Deferred:** automated GPU-memory assertions (`renderer.info`) — disposal is
 implemented and covered indirectly by the repeated-visit test.
 
-## M3 — Cursor tracking and manual interaction
+## M3 — Cursor tracking and manual interaction ✅
 
-**Objective:** The head follows the pointer naturally and can be inspected.
-**Scope:** InteractionRig (additive track + manual model), pointer
-normalisation, limits, sensitivity, damping, idle return, drag (mouse/touch/
-pen), keyboard rotation, reduced-motion handling, settings store.
-**Acceptance:**
-
-- Defaults: yaw ±25°, pitch ±12°, sensitivity 0.65, idle return 0.6 s.
-- No jump when a drag starts or ends; tracking resumes smoothly.
-- Same behaviour at 30, 60 and 120 Hz (frame-rate independent).
-- Reduced-motion users get no automatic tracking; drag still works.
-- On touch, vertical page scroll still works in embed mode.
-
-**Testing:** Unit tests for the rotation maths (pure functions); Playwright
-pointer simulations asserting rig rotation; manual test matrix on iOS
-Safari, Android Chrome, desktop Safari/Chrome/Firefox.
+**Delivered:** Independent tracking and manual offsets combined by springs
+(ADR 0004); pointer tracking over the whole viewport with soft limits and
+idle return; drag with pointer capture, cancellation handling, flick and
+Return/Hold; touch; keyboard arrows; Reset view eases to neutral; reduced
+motion. Motion panel wired to real settings (tracking, range, horizontal and
+vertical sensitivity, manual rotation on/off, release behaviour, smoothness,
+return delay). Dark-first theme with a persisted Light/System preference in
+Settings → Appearance.
+**Acceptance (met):** defaults ±25° / ±12°, 65 % sensitivity, 0.6 s return;
+no jump when a drag starts or ends; same motion at 8–120 fps; reduced-motion
+users get no automatic tracking; repeated visits show no heap growth.
+**Testing:** 25 unit tests for the controller; Playwright tests for all four
+directions and diagonal, leaving the viewport, limits from the panel,
+tracking toggle, horizontal/vertical drag, tracking + drag combination,
+reset, drag disabled, arrow keys, touch swipe (CDP touch events), reduced
+motion, theme default/persistence, axe in both themes, and a heap-growth
+test over repeated visits.
+**Deferred:** `touch-action: pan-y` for embeds (Milestone 9).
 
 ## M4 — Materials, lighting and customisation
 

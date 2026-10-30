@@ -70,7 +70,7 @@ src/
     dashboard/              * portrait tiles and cards
     studio/                 * studio layout, inspector panels, viewport toolbar, share dialog
     viewer/                 * R3F: LazyViewer, Viewer, PortraitModel, StudioLighting, framing maths
-                              (InteractionRig arrives in M3)
+                              interaction controller + rig (M3)
   lib/
     studio/                 * settings types/defaults, preset metadata
     reconstruction/         provider interface + adapters (server-only)
@@ -130,6 +130,11 @@ defaults). Pages that read runtime data (`params`, cookies) do so inside a
   `useProgress`), error boundary with retry, and a WebGL-unavailable notice.
 
 ### Interaction rig (cursor tracking + drag)
+
+As built in Milestone 3: see ADR 0004 and `src/components/viewer/interaction.ts`
+(pure, unit-tested controller) and `interaction-rig.tsx` (applies it each frame).
+The design below was the plan; the shipped version adds springs with inertia,
+separate horizontal/vertical sensitivity and a manual-rotation toggle.
 
 Rotation is the sum of two independent components, each damped per frame
 with frame-rate-independent damping (`MathUtils.damp`):

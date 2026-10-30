@@ -224,13 +224,19 @@ export function ScenePanel() {
 
 /* ───────────────────────── Motion ───────────────────────── */
 
+function SubHeading({ children }: { children: ReactNode }) {
+  return <p className="text-2xs text-muted pt-2.5 pb-0.5 font-medium">{children}</p>;
+}
+
+const pct = (v: number) => `${Math.round(v * 100)}%`;
+const degrees = (v: number) => `±${v}°`;
+
 export function MotionPanel() {
   const { value, set, drag, commit } = useSection("motion");
   const reducedMotion = usePrefersReducedMotion();
 
   return (
     <>
-      <PreviewNote>Cursor tracking and drag-to-rotate aren’t active yet. These settings will drive them.</PreviewNote>
       <Section title="Cursor tracking">
         <SwitchRow
           label="Follow cursor"
@@ -238,75 +244,92 @@ export function MotionPanel() {
           checked={value.tracking}
           onChange={(tracking) => set({ tracking })}
         />
-        <div className="space-y-1.5 pt-1">
-          <SliderField
-            label="Horizontal"
-            value={value.yawLimit}
-            min={0}
-            max={60}
-            format={(v) => `±${v}°`}
-            onChange={(yawLimit) => drag({ yawLimit })}
-            onCommit={commit}
-            disabled={!value.tracking}
-          />
-          <SliderField
-            label="Vertical"
-            value={value.pitchLimit}
-            min={0}
-            max={30}
-            format={(v) => `±${v}°`}
-            onChange={(pitchLimit) => drag({ pitchLimit })}
-            onCommit={commit}
-            disabled={!value.tracking}
-          />
-          <SliderField
-            label="Sensitivity"
-            value={value.sensitivity}
-            min={0}
-            max={1}
-            step={0.05}
-            format={(v) => `${Math.round(v * 100)}%`}
-            onChange={(sensitivity) => drag({ sensitivity })}
-            onCommit={commit}
-            disabled={!value.tracking}
-          />
-        </div>
+        <SubHeading>Range</SubHeading>
+        <SliderField
+          label="Horizontal"
+          value={value.yawLimit}
+          min={0}
+          max={60}
+          format={degrees}
+          onChange={(yawLimit) => drag({ yawLimit })}
+          onCommit={commit}
+          disabled={!value.tracking}
+        />
+        <SliderField
+          label="Vertical"
+          value={value.pitchLimit}
+          min={0}
+          max={30}
+          format={degrees}
+          onChange={(pitchLimit) => drag({ pitchLimit })}
+          onCommit={commit}
+          disabled={!value.tracking}
+        />
+        <SubHeading>Sensitivity</SubHeading>
+        <SliderField
+          label="Horizontal"
+          value={value.sensitivityX}
+          min={0}
+          max={1}
+          step={0.05}
+          format={pct}
+          onChange={(sensitivityX) => drag({ sensitivityX })}
+          onCommit={commit}
+          disabled={!value.tracking}
+        />
+        <SliderField
+          label="Vertical"
+          value={value.sensitivityY}
+          min={0}
+          max={1}
+          step={0.05}
+          format={pct}
+          onChange={(sensitivityY) => drag({ sensitivityY })}
+          onCommit={commit}
+          disabled={!value.tracking}
+        />
         {reducedMotion && (
           <p className="text-2xs text-muted flex gap-1.5 pt-1 leading-4">
             <Info className="mt-px size-3 shrink-0" aria-hidden="true" />
-            Reduced motion is on for this device, so visitors with the same setting won’t see cursor tracking.
+            Reduced motion is on for this device, so cursor tracking starts off and movement is calmer.
           </p>
         )}
       </Section>
 
-      <Section title="Drag to rotate">
+      <Section title="Manual rotation">
+        <SwitchRow
+          label="Drag to rotate"
+          description="Click and drag, or swipe on touch screens."
+          checked={value.dragEnabled}
+          onChange={(dragEnabled) => set({ dragEnabled })}
+        />
         <Field label="On release" labelId="drag-release-label">
           <Segmented
             ariaLabelledBy="drag-release-label"
             value={value.dragRelease}
             onChange={(dragRelease) => set({ dragRelease })}
             options={[
-              { value: "return", label: "Return" },
-              { value: "hold", label: "Hold" },
+              { value: "return", label: "Return", disabled: !value.dragEnabled },
+              { value: "hold", label: "Hold", disabled: !value.dragEnabled },
             ]}
           />
         </Field>
         <PanelNote>
           {value.dragRelease === "return"
-            ? "The head eases back to face forward after you let go."
+            ? "The head eases back to face forward after a short pause."
             : "The head stays where you leave it."}
         </PanelNote>
       </Section>
 
-      <DisclosureSection title="Advanced">
+      <DisclosureSection title="Feel">
         <SliderField
-          label="Smoothing"
-          value={value.damping}
-          min={1}
-          max={20}
-          step={0.5}
-          format={(v) => v.toFixed(1)}
-          onChange={(damping) => drag({ damping })}
+          label="Smoothness"
+          value={value.smoothness}
+          min={0}
+          max={1}
+          step={0.05}
+          format={pct}
+          onChange={(smoothness) => drag({ smoothness })}
           onCommit={commit}
         />
         <SliderField

@@ -4,8 +4,8 @@ An AI-powered web application that turns photographs of real people into
 recognisable, interactive 3D portraits — customisable with studio materials and
 lighting, exportable as GLB and PNG, and publishable as an embeddable viewer.
 
-**Status:** Milestone 2 — real-time 3D rendering of a CC0 sample head in the
-studio. This is a preview build: sign-in, photo upload, generation and exports
+**Status:** Milestone 3 — the sample head follows the cursor and can be
+rotated by drag, touch or keyboard; dark-first theme with a light option. This is a preview build: sign-in, photo upload, generation and exports
 are not enabled yet and are labelled as such in the interface. See the [roadmap](docs/roadmap.md).
 
 ## Development

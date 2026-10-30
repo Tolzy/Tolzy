@@ -30,6 +30,7 @@ import { LazyViewer } from "@/components/viewer/lazy-viewer";
 import { SAMPLE_MODEL, type ModelFraming } from "@/lib/studio/sample-model";
 import { ExportPanel, LightPanel, MaterialPanel, MotionPanel, ScenePanel } from "./inspector-panels";
 import { ShareDialog } from "./share-dialog";
+import { usePrefersReducedMotion } from "./use-studio";
 
 const CONTEXTS: {
   id: InspectorContext;
@@ -93,7 +94,7 @@ export function Studio({ portraitName, projectName, modelUrl, framing, isSample 
     <div className="bg-bg flex h-dvh flex-col">
       <TopBar portraitName={portraitName} projectName={projectName} isSample={isSample} />
       <div className="flex min-h-0 flex-1 flex-col md:flex-row">
-        <Viewport isSample={isSample} modelUrl={modelUrl} framing={framing} />
+        <Viewport isSample={isSample} modelUrl={modelUrl} framing={framing} modelLabel={portraitName} />
         <div className="bg-surface flex min-h-0 flex-1 flex-col md:flex-none md:flex-row-reverse">
           <ContextRail />
           <Inspector className={cn(!inspectorOpen && "md:hidden")} />
@@ -173,11 +174,24 @@ function subscribeFullscreen(cb: () => void) {
   return () => document.removeEventListener("fullscreenchange", cb);
 }
 
-function Viewport({ isSample, modelUrl, framing }: { isSample?: boolean; modelUrl: string; framing: ModelFraming }) {
+function Viewport({
+  isSample,
+  modelUrl,
+  framing,
+  modelLabel,
+}: {
+  isSample?: boolean;
+  modelUrl: string;
+  framing: ModelFraming;
+  modelLabel: string;
+}) {
   const ref = useRef<HTMLDivElement>(null);
   const background = useStudioStore((s) => s.settings.background);
   const lighting = useStudioStore((s) => s.settings.lighting);
+  const motion = useStudioStore((s) => s.settings.motion);
   const zoom = useStudioStore((s) => s.zoom);
+  const resetKey = useStudioStore((s) => s.viewResetKey);
+  const reducedMotion = usePrefersReducedMotion();
   const css = backgroundToCss(background);
   const fullscreen = useSyncExternalStore(
     subscribeFullscreen,
@@ -189,13 +203,23 @@ function Viewport({ isSample, modelUrl, framing }: { isSample?: boolean; modelUr
     <section
       ref={ref}
       aria-label="3D viewport"
+      data-viewport
       className={cn(
         "bg-vp relative h-[46dvh] shrink-0 overflow-hidden md:h-auto md:min-w-0 md:flex-1",
         background.type === "transparent" && "checkerboard",
       )}
       style={css ? { background: css } : undefined}
     >
-      <LazyViewer url={modelUrl} framing={framing} lighting={lighting} zoom={zoom} />
+      <LazyViewer
+        url={modelUrl}
+        framing={framing}
+        lighting={lighting}
+        motion={motion}
+        reducedMotion={reducedMotion}
+        zoom={zoom}
+        resetKey={resetKey}
+        label={modelLabel}
+      />
 
       {isSample && (
         <div className="absolute top-3 left-3">
@@ -231,6 +255,7 @@ function ToolbarDivider() {
 
 function ViewportToolbar({ fullscreen, onFullscreen }: { fullscreen: boolean; onFullscreen: () => void }) {
   const zoom = useStudioStore((s) => s.zoom);
+  const resetView = useStudioStore((s) => s.resetView);
   const setZoom = useStudioStore((s) => s.setZoom);
   const tracking = useStudioStore((s) => s.settings.motion.tracking);
   const apply = useStudioStore((s) => s.apply);
@@ -244,7 +269,7 @@ function ViewportToolbar({ fullscreen, onFullscreen }: { fullscreen: boolean; on
       className="border-vp-line bg-vp-chrome absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-0.5 rounded-[10px] border p-1 shadow-[0_8px_24px_-8px_rgb(0_0_0/0.6)]"
     >
       <Tooltip content="Reset view" shortcut={["0"]} side="top">
-        <Button variant="viewport" size="sm" iconOnly aria-label="Reset view" onClick={() => setZoom(100)}>
+        <Button variant="viewport" size="sm" iconOnly aria-label="Reset view" onClick={resetView}>
           <RotateCcw />
         </Button>
       </Tooltip>
@@ -414,7 +439,7 @@ function useStudioShortcuts() {
       }
       if (mod || e.altKey || isTyping(e.target)) return;
       if (e.key === "\\") s.toggleInspector();
-      else if (e.key === "0") s.setZoom(100);
+      else if (e.key === "0") s.resetView();
       else if (e.key === "+" || e.key === "=") s.setZoom(s.zoom + 10);
       else if (e.key === "-") s.setZoom(s.zoom - 10);
     };

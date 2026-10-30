@@ -39,7 +39,7 @@ export function Dialog({
     <D.Root open={open} onOpenChange={onOpenChange}>
       {trigger && <D.Trigger asChild>{trigger}</D.Trigger>}
       <D.Portal>
-        <D.Overlay className="fixed inset-0 z-40 bg-[rgb(16_16_18/0.28)]" />
+        <D.Overlay className="bg-overlay fixed inset-0 z-40" />
         <D.Content
           className={cn(
             "fixed top-1/2 left-1/2 z-50 w-[calc(100vw-32px)] -translate-x-1/2 -translate-y-1/2",

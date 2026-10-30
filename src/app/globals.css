@@ -2,38 +2,57 @@
 
 /*
  * Studio Neutral — design tokens.
- * Light-first application chrome; the 3D viewport has its own dark tokens.
+ * Dark-first: :root is the dark theme; [data-theme="light"] overrides it.
+ * The 3D viewport keeps its own dark tokens in both themes.
  * Every colour used in components must come from these variables.
  */
 
 :root {
+  color-scheme: dark;
+
   /* Application surfaces */
-  --bg: #f7f7f5;
-  --surface: #ffffff;
-  --surface-sunken: #f3f3f1;
-  --surface-hover: #efefec;
-  --surface-active: #e9e9e5;
-  --border: #e7e6e2;
-  --border-strong: #d6d5d0;
+  --bg: #0e0e10;
+  --surface: #151517;
+  --surface-sunken: #1b1b1e;
+  --surface-hover: #202024;
+  --surface-active: #28282c;
+  --border: #26262a;
+  --border-strong: #36363b;
 
   /* Text */
-  --text: #19191b;
-  --text-muted: #67665f;
+  --text: #ededec;
+  --text-muted: #9b9a97;
   /* Icons, placeholders and disabled text only — fails 4.5:1 for body text. */
-  --text-subtle: #9d9c96;
-  --text-inverse: #fafaf9;
+  --text-subtle: #6b6b70;
+  --text-inverse: #0e0e10;
+
+  /* Primary action (inverted neutral) */
+  --primary: #ededec;
+  --primary-hover: #ffffff;
+  --primary-active: #d4d4d2;
+  --primary-fg: #0e0e10;
 
   /* Single accent: selection, focus, active state only */
-  --accent: #3b5bfd;
-  --accent-soft: #eef1ff;
+  --accent: #7c8fff;
+  --accent-soft: #1d2242;
 
   /* Status */
-  --danger: #c93a2f;
-  --danger-soft: #fdf0ee;
-  --success: #2c8a53;
-  --warning: #a86a12;
+  --danger: #f0675e;
+  --danger-hover: #f4837b;
+  --danger-soft: #2b1614;
+  --success: #4cc07d;
+  --success-soft: #10261a;
+  --warning: #e0a54b;
+  --warning-soft: #2a2010;
 
-  /* Viewport (dark by default) */
+  /* Controls */
+  --segment-active: #2a2a2f;
+  --slider-thumb: #ededec;
+  --tooltip-bg: #2c2c31;
+  --tooltip-fg: #f2f2f1;
+  --overlay: rgb(0 0 0 / 0.55);
+
+  /* Viewport (dark in both themes) */
   --viewport-bg: #111113;
   --viewport-inner: #1d1d21;
   --viewport-outer: #0b0b0c;
@@ -43,10 +62,54 @@
   --viewport-text: #ededec;
   --viewport-text-muted: #8c8c93;
 
-  --shadow-float: 0 1px 2px rgb(16 16 18 / 0.06), 0 8px 24px -6px rgb(16 16 18 / 0.14);
-  --shadow-dialog: 0 2px 4px rgb(16 16 18 / 0.06), 0 24px 64px -12px rgb(16 16 18 / 0.28);
+  --shadow-soft: 0 1px 2px rgb(0 0 0 / 0.35);
+  --shadow-float: 0 1px 2px rgb(0 0 0 / 0.4), 0 10px 28px -6px rgb(0 0 0 / 0.6);
+  --shadow-dialog: 0 2px 4px rgb(0 0 0 / 0.4), 0 28px 72px -12px rgb(0 0 0 / 0.75);
 
   --ease-out: cubic-bezier(0.2, 0, 0, 1);
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --bg: #f7f7f5;
+  --surface: #ffffff;
+  --surface-sunken: #f3f3f1;
+  --surface-hover: #efefec;
+  --surface-active: #e9e9e5;
+  --border: #e7e6e2;
+  --border-strong: #d6d5d0;
+
+  --text: #19191b;
+  --text-muted: #67665f;
+  --text-subtle: #9d9c96;
+  --text-inverse: #fafaf9;
+
+  --primary: #19191b;
+  --primary-hover: #2c2c30;
+  --primary-active: #3a3a3f;
+  --primary-fg: #fafaf9;
+
+  --accent: #3b5bfd;
+  --accent-soft: #eef1ff;
+
+  --danger: #c93a2f;
+  --danger-hover: #b23126;
+  --danger-soft: #fdf0ee;
+  --success: #2c8a53;
+  --success-soft: #ecf6f0;
+  --warning: #a86a12;
+  --warning-soft: #fbf3e6;
+
+  --segment-active: #ffffff;
+  --slider-thumb: #ffffff;
+  --tooltip-bg: #1c1c1f;
+  --tooltip-fg: #f2f2f1;
+  --overlay: rgb(16 16 18 / 0.28);
+
+  --shadow-soft: 0 1px 2px rgb(16 16 18 / 0.06);
+  --shadow-float: 0 1px 2px rgb(16 16 18 / 0.06), 0 8px 24px -6px rgb(16 16 18 / 0.14);
+  --shadow-dialog: 0 2px 4px rgb(16 16 18 / 0.06), 0 24px 64px -12px rgb(16 16 18 / 0.28);
 }
 
 @theme inline {
@@ -63,6 +126,18 @@
   --color-inverse: var(--text-inverse);
   --color-accent: var(--accent);
   --color-accent-soft: var(--accent-soft);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-active: var(--primary-active);
+  --color-primary-fg: var(--primary-fg);
+  --color-danger-hover: var(--danger-hover);
+  --color-success-soft: var(--success-soft);
+  --color-warning-soft: var(--warning-soft);
+  --color-segment: var(--segment-active);
+  --color-thumb: var(--slider-thumb);
+  --color-tooltip: var(--tooltip-bg);
+  --color-tooltip-fg: var(--tooltip-fg);
+  --color-overlay: var(--overlay);
   --color-danger: var(--danger);
   --color-danger-soft: var(--danger-soft);
   --color-success: var(--success);
@@ -77,6 +152,7 @@
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 
+  --shadow-soft: var(--shadow-soft);
   --shadow-float: var(--shadow-float);
   --shadow-dialog: var(--shadow-dialog);
   --ease-out: var(--ease-out);
@@ -109,7 +185,6 @@
 
 @layer base {
   html {
-    color-scheme: light;
     -webkit-tap-highlight-color: transparent;
   }
 

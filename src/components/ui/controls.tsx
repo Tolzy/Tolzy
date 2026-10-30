@@ -80,7 +80,7 @@ export function SliderField({
             aria-labelledby={labelId}
             aria-valuetext={format(value)}
             className={cn(
-              "border-line-strong bg-surface block size-3.5 rounded-full border shadow-[0_1px_3px_rgb(16_16_18/0.18)]",
+              "border-line-strong bg-thumb shadow-soft block size-3.5 rounded-full border",
               "transition-transform duration-[120ms] hover:scale-110 focus-visible:outline-offset-1",
             )}
           />
@@ -142,7 +142,7 @@ export function Segmented<T extends string>({
           className={cn(
             "text-muted flex flex-1 items-center justify-center gap-1.5 rounded-[5px] px-2 text-xs",
             "hover:text-fg transition-colors duration-[120ms] disabled:opacity-45 [&_svg]:size-3.5",
-            "data-[state=on]:bg-surface data-[state=on]:text-fg data-[state=on]:shadow-[0_1px_2px_rgb(16_16_18/0.08),0_0_0_1px_var(--border)]",
+            "data-[state=on]:bg-segment data-[state=on]:text-fg data-[state=on]:shadow-[var(--shadow-soft),0_0_0_1px_var(--border)]",
           )}
         >
           {o.label}
@@ -172,12 +172,12 @@ export function Switch({ checked, onChange, id, disabled, ariaLabel }: SwitchPro
       aria-label={ariaLabel}
       className={cn(
         "bg-line-strong relative inline-flex h-[18px] w-[30px] shrink-0 items-center rounded-full",
-        "data-[state=checked]:bg-fg transition-colors duration-[120ms] disabled:opacity-45",
+        "data-[state=checked]:bg-primary transition-colors duration-[120ms] disabled:opacity-45",
       )}
     >
       <RSwitch.Thumb
         className={cn(
-          "block size-3.5 translate-x-0.5 rounded-full bg-white shadow-[0_1px_2px_rgb(16_16_18/0.2)]",
+          "shadow-soft data-[state=checked]:bg-primary-fg block size-3.5 translate-x-0.5 rounded-full bg-white",
           "transition-transform duration-[160ms] ease-out data-[state=checked]:translate-x-[14px]",
         )}
       />
@@ -292,11 +292,11 @@ export function Checkbox({
         onCheckedChange={(v) => onChange(v === true)}
         className={cn(
           "bg-surface ring-line-strong mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-[4px] ring-1 ring-inset",
-          "data-[state=checked]:bg-fg data-[state=checked]:ring-fg transition-colors duration-[120ms] disabled:opacity-45",
+          "data-[state=checked]:bg-primary data-[state=checked]:ring-primary transition-colors duration-[120ms] disabled:opacity-45",
         )}
       >
         <RCheckbox.Indicator>
-          <Check className="text-inverse size-3" strokeWidth={2.5} />
+          <Check className="text-primary-fg size-3" strokeWidth={2.5} />
         </RCheckbox.Indicator>
       </RCheckbox.Root>
       <label htmlFor={id} className={cn("text-fg text-sm", disabled && "opacity-60")}>

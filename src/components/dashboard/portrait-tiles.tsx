@@ -38,7 +38,7 @@ export function NewPortraitTile() {
           "group-hover:border-muted group-hover:bg-sunken transition-colors duration-[120ms]",
         )}
       >
-        <span className="bg-surface text-fg ring-line flex size-10 items-center justify-center rounded-full shadow-[0_1px_2px_rgb(16_16_18/0.08)] ring-1">
+        <span className="bg-surface text-fg ring-line shadow-soft flex size-10 items-center justify-center rounded-full ring-1">
           <Plus className="size-5" />
         </span>
         <span className="text-fg text-sm font-medium">New portrait</span>

@@ -31,7 +31,7 @@ export function Tooltip({ content, shortcut, side = "bottom", children }: Toolti
           sideOffset={6}
           collisionPadding={8}
           className={cn(
-            "z-50 flex items-center gap-2 rounded-md bg-[#1c1c1f] px-2 py-1 text-xs text-[#f2f2f1]",
+            "bg-tooltip text-tooltip-fg z-50 flex items-center gap-2 rounded-md px-2 py-1 text-xs",
             "shadow-float",
           )}
         >

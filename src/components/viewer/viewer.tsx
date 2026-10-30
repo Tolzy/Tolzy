@@ -2,21 +2,45 @@
 
 import { useGLTF, useProgress } from "@react-three/drei";
 import { Canvas, useThree } from "@react-three/fiber";
-import { Component, Suspense, useCallback, useLayoutEffect, useState, type ReactNode } from "react";
+import {
+  Component,
+  Suspense,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type PointerEvent,
+  type ReactNode,
+} from "react";
 import { NeutralToneMapping, PerspectiveCamera, SRGBColorSpace } from "three";
+import { cn } from "@/lib/cn";
 import type { ModelFraming } from "@/lib/studio/sample-model";
 import type { PortraitSettings } from "@/lib/studio/settings";
 import { clippingPlanes, fitDistance, insetShift, MODEL_HEIGHT, zoomedDistance } from "./framing";
 import { PortraitModel, type ModelBounds } from "./portrait-model";
 import { StudioLighting, StudioShadow } from "./studio-lighting";
+import { InteractionController, type Rotation } from "./interaction";
+import { InteractionRig } from "./interaction-rig";
 import { ViewerError, ViewerLoading } from "./viewer-states";
 
 export interface ViewerProps {
   url: string;
   framing: ModelFraming;
   lighting: PortraitSettings["lighting"];
+  motion: PortraitSettings["motion"];
+  reducedMotion: boolean;
   zoom: number;
+  /** Changes when the user resets the view; the head eases back to neutral. */
+  resetKey: number;
+  /** Accessible name of the model, e.g. "Sample head". */
+  label: string;
 }
+
+/** Keyboard rotation step, degrees. */
+const KEY_YAW = 10;
+const KEY_PITCH = 5;
 
 const FOV = 26; // a longer lens avoids wide-angle distortion of the face
 const MARGIN = 1.22;
@@ -28,11 +52,100 @@ const TOOLBAR_INSET = 72;
  * downloaded when a studio opens. The canvas is transparent: the viewport
  * background comes from the Scene settings behind it.
  */
-export default function Viewer({ url, framing, lighting, zoom }: ViewerProps) {
+export default function Viewer({ url, framing, lighting, motion, reducedMotion, zoom, resetKey, label }: ViewerProps) {
   const [bounds, setBounds] = useState<ModelBounds | null>(null);
   const [attempt, setAttempt] = useState(0);
   const onReady = useCallback((b: ModelBounds) => setBounds(b), []);
   const floorY = -framing.pivot * MODEL_HEIGHT;
+  const surface = useRef<HTMLDivElement>(null);
+  const [controller] = useState(() => new InteractionController({ ...motion, reducedMotion }));
+
+  useEffect(() => controller.setConfig({ ...motion, reducedMotion }), [controller, motion, reducedMotion]);
+  useEffect(() => {
+    if (resetKey > 0) controller.reset();
+  }, [controller, resetKey]);
+
+  // Cursor tracking listens on the whole viewport (including the toolbar), so
+  // moving onto the toolbar is not treated as leaving.
+  useEffect(() => {
+    const el = surface.current?.closest<HTMLElement>("[data-viewport]") ?? surface.current;
+    if (!el) return;
+    const move = (e: globalThis.PointerEvent) => {
+      if (e.pointerType === "touch") return; // touch rotates by dragging instead
+      const rect = el.getBoundingClientRect();
+      const nx = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      const ny = -(((e.clientY - rect.top) / rect.height) * 2 - 1);
+      controller.pointerMove(nx, ny);
+    };
+    const leave = () => controller.pointerLeave(performance.now());
+    el.addEventListener("pointermove", move);
+    el.addEventListener("pointerleave", leave);
+    return () => {
+      el.removeEventListener("pointermove", move);
+      el.removeEventListener("pointerleave", leave);
+    };
+  }, [controller]);
+
+  const onPointerDown = (e: PointerEvent<HTMLDivElement>) => {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    if (controller.dragStart(e.pointerId, e.clientX, e.clientY, rect.width, rect.height, performance.now())) {
+      try {
+        // Keep receiving moves even when the pointer leaves the canvas mid-drag.
+        e.currentTarget.setPointerCapture(e.pointerId);
+      } catch {
+        // Some synthetic or already-released pointers cannot be captured; dragging still works.
+      }
+      e.currentTarget.dataset.dragging = "true";
+    }
+  };
+  const onPointerMove = (e: PointerEvent<HTMLDivElement>) => {
+    if (controller.dragging) controller.dragMove(e.pointerId, e.clientX, e.clientY, performance.now());
+  };
+  const endDrag = (e: PointerEvent<HTMLDivElement>, cancelled: boolean) => {
+    if (!controller.dragging) return;
+    const now = performance.now();
+    controller.dragEnd(e.pointerId, now, cancelled);
+    delete e.currentTarget.dataset.dragging;
+    // Released outside the viewport: no leave event will follow, so send one.
+    const area = e.currentTarget.closest<HTMLElement>("[data-viewport]") ?? e.currentTarget;
+    const r = area.getBoundingClientRect();
+    const outside = e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom;
+    if (outside || e.pointerType === "touch") {
+      controller.pointerLeave(now);
+    } else {
+      // Resume tracking towards where the pointer is now, smoothly from the current pose.
+      controller.pointerMove(((e.clientX - r.left) / r.width) * 2 - 1, -(((e.clientY - r.top) / r.height) * 2 - 1));
+    }
+  };
+  const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+    const step: Record<string, [number, number]> = {
+      ArrowLeft: [-KEY_YAW, 0],
+      ArrowRight: [KEY_YAW, 0],
+      ArrowUp: [0, KEY_PITCH],
+      ArrowDown: [0, -KEY_PITCH],
+    };
+    const d = step[e.key];
+    if (!d) return;
+    e.preventDefault();
+    controller.nudge(d[0], d[1]);
+  };
+
+  // Mirror the rotation onto the element for tests and debugging (cheap, only while moving).
+  const lastWritten = useRef("");
+  const onRotate = useCallback((r: Rotation) => {
+    const el = surface.current;
+    if (!el) return;
+    const key = `${r.yaw.toFixed(1)}|${r.pitch.toFixed(1)}|${r.settled}`;
+    if (key === lastWritten.current) return;
+    lastWritten.current = key;
+    el.dataset.yaw = r.yaw.toFixed(2);
+    el.dataset.pitch = r.pitch.toFixed(2);
+    el.dataset.trackYaw = r.trackYaw.toFixed(2);
+    el.dataset.manualYaw = r.manualYaw.toFixed(2);
+    el.dataset.manualPitch = r.manualPitch.toFixed(2);
+    el.dataset.settled = String(r.settled);
+  }, []);
 
   return (
     <ModelErrorBoundary
@@ -48,29 +161,50 @@ export default function Viewer({ url, framing, lighting, zoom }: ViewerProps) {
         />
       )}
     >
-      <Canvas
-        className="!absolute inset-0"
-        frameloop="demand"
-        dpr={[1, 2]}
-        gl={{
-          antialias: true,
-          alpha: true,
-          powerPreference: "high-performance",
-          toneMapping: NeutralToneMapping,
-          toneMappingExposure: 1.0,
-          outputColorSpace: SRGBColorSpace,
-        }}
-        camera={{ fov: FOV, near: 0.05, far: 50, position: [0, 0, 4] }}
-        aria-label="3D sample head"
-        role="img"
+      <div
+        ref={surface}
+        data-testid="viewer-surface"
+        role="application"
+        aria-roledescription="3D viewer"
+        aria-label={`${label}. ${motion.dragEnabled ? "Drag or use the arrow keys to rotate." : "Rotation is turned off."}`}
+        tabIndex={0}
+        className={cn(
+          "absolute inset-0 touch-none outline-none select-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-inset",
+          motion.dragEnabled && "cursor-grab data-[dragging=true]:cursor-grabbing",
+        )}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={(e) => endDrag(e, false)}
+        onPointerCancel={(e) => endDrag(e, true)}
+        onLostPointerCapture={(e) => endDrag(e, true)}
+        onKeyDown={onKeyDown}
       >
-        <CameraRig bounds={bounds} framing={framing} zoom={zoom} />
-        <StudioLighting intensity={lighting.intensity} rotation={lighting.rotation} />
-        <Suspense fallback={null}>
-          <PortraitModel url={url} framing={framing} onReady={onReady} />
-          {lighting.shadows && bounds && <StudioShadow floorY={floorY} />}
-        </Suspense>
-      </Canvas>
+        <Canvas
+          className="!absolute inset-0"
+          frameloop="demand"
+          dpr={[1, 2]}
+          gl={{
+            antialias: true,
+            alpha: true,
+            powerPreference: "high-performance",
+            toneMapping: NeutralToneMapping,
+            toneMappingExposure: 1.0,
+            outputColorSpace: SRGBColorSpace,
+          }}
+          camera={{ fov: FOV, near: 0.05, far: 50, position: [0, 0, 4] }}
+          aria-label={`3D ${label.toLowerCase()}`}
+          role="img"
+        >
+          <CameraRig bounds={bounds} framing={framing} zoom={zoom} />
+          <StudioLighting intensity={lighting.intensity} rotation={lighting.rotation} />
+          <Suspense fallback={null}>
+            <InteractionRig controller={controller} onRotate={onRotate}>
+              <PortraitModel url={url} framing={framing} onReady={onReady} />
+            </InteractionRig>
+            {lighting.shadows && bounds && <StudioShadow floorY={floorY} />}
+          </Suspense>
+        </Canvas>
+      </div>
       {!bounds && <LoadingOverlay />}
     </ModelErrorBoundary>
   );

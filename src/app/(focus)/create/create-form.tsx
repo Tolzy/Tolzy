@@ -31,7 +31,7 @@ export function CreatePortraitForm() {
       <div className="mt-8 grid gap-12 md:grid-cols-[minmax(0,1fr)_340px] md:gap-14">
         <div>
           <div className="border-line-strong bg-bg flex aspect-[16/10] w-full flex-col items-center justify-center rounded-xl border border-dashed px-6 text-center">
-            <span className="bg-surface text-muted ring-line flex size-14 items-center justify-center rounded-full shadow-[0_1px_2px_rgb(16_16_18/0.06)] ring-1">
+            <span className="bg-surface text-muted ring-line shadow-soft flex size-14 items-center justify-center rounded-full ring-1">
               <ScanFace className="size-6" strokeWidth={1.5} />
             </span>
             <p className="text-md text-fg mt-5 font-medium">Drop a photo here</p>

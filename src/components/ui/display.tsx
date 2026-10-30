@@ -13,8 +13,8 @@ const tones: Record<BadgeTone, string> = {
   neutral: "bg-sunken text-muted ring-1 ring-line ring-inset",
   outline: "text-muted ring-1 ring-line-strong ring-inset",
   accent: "bg-accent-soft text-accent",
-  success: "bg-[#ecf6f0] text-success",
-  warning: "bg-[#fbf3e6] text-warning",
+  success: "bg-success-soft text-success",
+  warning: "bg-warning-soft text-warning",
   viewport: "bg-white/[0.06] text-vp-muted ring-1 ring-white/10 ring-inset",
 };
 

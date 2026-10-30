@@ -20,6 +20,8 @@ interface StudioState {
   inspectorOpen: boolean;
   /** Viewport zoom in percent. View state, not part of undo history. */
   zoom: number;
+  /** Incremented to ask the viewer to ease the head back to neutral. */
+  viewResetKey: number;
 
   /** Discrete change: recorded as one undo step immediately. */
   apply: (update: Updater) => void;
@@ -34,6 +36,8 @@ interface StudioState {
   setContext: (context: InspectorContext) => void;
   toggleInspector: () => void;
   setZoom: (zoom: number) => void;
+  /** Zoom back to 100 % and ease the head to neutral. */
+  resetView: () => void;
 }
 
 const pushPast = (past: PortraitSettings[], s: PortraitSettings) => [...past, s].slice(-HISTORY_LIMIT);
@@ -46,6 +50,7 @@ export const useStudioStore = create<StudioState>()((set, get) => ({
   context: "material",
   inspectorOpen: true,
   zoom: 100,
+  viewResetKey: 0,
 
   apply: (update) => {
     const { settings, past, pending } = get();
@@ -95,4 +100,5 @@ export const useStudioStore = create<StudioState>()((set, get) => ({
   setContext: (context) => set({ context, inspectorOpen: true }),
   toggleInspector: () => set((s) => ({ inspectorOpen: !s.inspectorOpen })),
   setZoom: (zoom) => set({ zoom: Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Math.round(zoom))) }),
+  resetView: () => set((s) => ({ zoom: 100, viewResetKey: s.viewResetKey + 1 })),
 }));

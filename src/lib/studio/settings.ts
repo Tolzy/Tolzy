@@ -30,17 +30,20 @@ export interface PortraitSettings {
   };
   background: Background;
   motion: {
+    /** Head follows the pointer. */
     tracking: boolean;
-    /** Max horizontal rotation in degrees (±). */
+    /** Max tracking rotation in degrees (±). */
     yawLimit: number;
-    /** Max vertical rotation in degrees (±). */
     pitchLimit: number;
-    /** 0–1. */
-    sensitivity: number;
-    /** Damping strength (higher = snappier), 1–20. */
-    damping: number;
-    /** Delay before returning to neutral, in ms. */
+    /** 0–1: how little pointer travel reaches the limit. */
+    sensitivityX: number;
+    sensitivityY: number;
+    /** 0–1: higher = softer, slower movement with more inertia. */
+    smoothness: number;
+    /** Delay before returning to neutral (pointer left / drag released), in ms. */
     idleReturnMs: number;
+    /** Click-and-drag / touch rotation. */
+    dragEnabled: boolean;
     dragRelease: DragRelease;
   };
 }
@@ -62,9 +65,11 @@ export const DEFAULT_SETTINGS: PortraitSettings = {
     tracking: true,
     yawLimit: 25,
     pitchLimit: 12,
-    sensitivity: 0.65,
-    damping: 6,
+    sensitivityX: 0.65,
+    sensitivityY: 0.65,
+    smoothness: 0.6,
     idleReturnMs: 600,
+    dragEnabled: true,
     dragRelease: "return",
   },
 };

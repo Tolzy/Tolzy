@@ -7,7 +7,8 @@ describe("settings", () => {
     expect(DEFAULT_SETTINGS.motion).toMatchObject({
       yawLimit: 25,
       pitchLimit: 12,
-      sensitivity: 0.65,
+      sensitivityX: 0.65,
+      sensitivityY: 0.65,
       idleReturnMs: 600,
     });
   });

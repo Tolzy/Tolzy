@@ -42,7 +42,7 @@ export function SearchDialog() {
       }}
     >
       <D.Portal>
-        <D.Overlay className="fixed inset-0 z-40 bg-[rgb(16_16_18/0.2)]" />
+        <D.Overlay className="bg-overlay fixed inset-0 z-40" />
         <D.Content className="border-line bg-surface shadow-dialog fixed top-[18vh] left-1/2 z-50 w-[calc(100vw-32px)] max-w-[560px] -translate-x-1/2 overflow-hidden rounded-xl border outline-none">
           <D.Title className="sr-only">Search</D.Title>
           <D.Description className="sr-only">Search portraits and projects</D.Description>
