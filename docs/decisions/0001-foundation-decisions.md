@@ -1,6 +1,6 @@
 # ADR 0001 — Foundation decisions
 
-Date: 2026-10-30 · Status: Proposed (awaiting product-owner approval)
+Date: 2026-10-30 · Status: Accepted (see ADR 0002 for product decisions)
 
 ## Context
 

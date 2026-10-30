@@ -1,36 +1,38 @@
 # AI reconstruction: provider evaluation
 
 Status: Milestone 0 — **desk research only**. No provider has been tested yet.
+The paid bake-off budget is **not approved** (ADR 0002); no paid plan may be
+purchased without the product owner's approval.
 The decision is deferred to a hands-on bake-off (section 5) that must finish
 before Milestone 6. Nothing in the codebase may hard-code a provider.
 
 ## 1. Why this is the highest product risk
 
-The product promise is *likeness*: the person must be recognisable from the
+The product promise is _likeness_: the person must be recognisable from the
 front, three-quarter and side views, with their hairstyle. Two families of
 technology exist, and each solves only part of the problem:
 
-| Family | Strength | Typical weakness |
-| --- | --- | --- |
-| **Dedicated face/head reconstruction** (parametric head models, avatar SDKs) | Identity-preserving facial geometry, clean topology, correct ears and skull | Hair is often a template or missing; stylised textures; neck/shoulders generic |
-| **General image-to-3D** (large reconstruction / diffusion models) | Complete object including hair, clothes, shoulders; photoreal textures | Face drifts toward a "generic attractive" average; back of head hallucinated; asymmetry and melted ears |
+| Family                                                                       | Strength                                                                    | Typical weakness                                                                                        |
+| ---------------------------------------------------------------------------- | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| **Dedicated face/head reconstruction** (parametric head models, avatar SDKs) | Identity-preserving facial geometry, clean topology, correct ears and skull | Hair is often a template or missing; stylised textures; neck/shoulders generic                          |
+| **General image-to-3D** (large reconstruction / diffusion models)            | Complete object including hair, clothes, shoulders; photoreal textures      | Face drifts toward a "generic attractive" average; back of head hallucinated; asymmetry and melted ears |
 
 A single front-facing photo leaves the side and back unobserved, so every
-system *invents* those regions. Optional extra angles reduce invention and
+system _invents_ those regions. Optional extra angles reduce invention and
 should be supported by the abstraction from day one.
 
 ## 2. Candidates found
 
-| Candidate | Family | Output | What the research says | Open questions |
-| --- | --- | --- | --- | --- |
-| **Avatar SDK — MetaPerson / Avatar API** | Dedicated head/avatar | Rigged GLB/glTF, FBX, facial blendshapes | REST API, one frontal photo → recognisable avatar; API on Enterprise plan; cloud or on-prem | Price, hair quality, whether head-only crop is available, licence for end-user exports |
-| **Hyper3D Rodin (Gen-2 / 2.5)** | General image-to-3D | GLB, OBJ, FBX, USDZ, STL; quad mesh + PBR | Rated highest for detail by reviewers; API from Business plan (~$120/mo), ~$0.40–$1.50 per model; 2–5 min per generation; also on fal.ai | Facial likeness untested; multi-image input support |
-| **Tripo (Tripo3D)** | General image-to-3D | GLB and others | Cheaper and faster (~$0.05–$0.30 per model); clean topology | Lower top-end fidelity; likeness untested |
-| **Meshy** | General image-to-3D | GLB, FBX, OBJ | Documented image-to-3D API; avatar marketing is stylised characters | Not positioned for real-person likeness |
-| **TRELLIS.2 (Microsoft)** | Open model, self-host | Mesh / GLB | MIT for model + code, but rendering deps (nvdiffrast) carry an NVIDIA non-commercial licence — must be resolved | GPU hosting cost, ops burden |
-| **Hunyuan3D 2.x (Tencent)** | Open model, self-host or hosted | Mesh / GLB | Community licence **excludes EU, UK and South Korea**; approval needed above an MAU threshold | Territorial exclusion likely disqualifying for a global product |
-| **FLAME-based research (DECA, MICA, PercHead, etc.)** | Parametric face/head | Mesh | Strong identity geometry | FLAME is **non-commercial** without an MPI licence; hair not modelled; research code |
-| Ready Player Me | Avatar platform | GLB | Docs found cover fetching existing avatars only | Stylised; not a likeness tool. Low priority |
+| Candidate                                             | Family                          | Output                                    | What the research says                                                                                                                   | Open questions                                                                         |
+| ----------------------------------------------------- | ------------------------------- | ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| **Avatar SDK — MetaPerson / Avatar API**              | Dedicated head/avatar           | Rigged GLB/glTF, FBX, facial blendshapes  | REST API, one frontal photo → recognisable avatar; API on Enterprise plan; cloud or on-prem                                              | Price, hair quality, whether head-only crop is available, licence for end-user exports |
+| **Hyper3D Rodin (Gen-2 / 2.5)**                       | General image-to-3D             | GLB, OBJ, FBX, USDZ, STL; quad mesh + PBR | Rated highest for detail by reviewers; API from Business plan (~$120/mo), ~$0.40–$1.50 per model; 2–5 min per generation; also on fal.ai | Facial likeness untested; multi-image input support                                    |
+| **Tripo (Tripo3D)**                                   | General image-to-3D             | GLB and others                            | Cheaper and faster (~$0.05–$0.30 per model); clean topology                                                                              | Lower top-end fidelity; likeness untested                                              |
+| **Meshy**                                             | General image-to-3D             | GLB, FBX, OBJ                             | Documented image-to-3D API; avatar marketing is stylised characters                                                                      | Not positioned for real-person likeness                                                |
+| **TRELLIS.2 (Microsoft)**                             | Open model, self-host           | Mesh / GLB                                | MIT for model + code, but rendering deps (nvdiffrast) carry an NVIDIA non-commercial licence — must be resolved                          | GPU hosting cost, ops burden                                                           |
+| **Hunyuan3D 2.x (Tencent)**                           | Open model, self-host or hosted | Mesh / GLB                                | Community licence **excludes EU, UK and South Korea**; approval needed above an MAU threshold                                            | Territorial exclusion likely disqualifying for a global product                        |
+| **FLAME-based research (DECA, MICA, PercHead, etc.)** | Parametric face/head            | Mesh                                      | Strong identity geometry                                                                                                                 | FLAME is **non-commercial** without an MPI licence; hair not modelled; research code   |
+| Ready Player Me                                       | Avatar platform                 | GLB                                       | Docs found cover fetching existing avatars only                                                                                          | Stylised; not a likeness tool. Low priority                                            |
 
 Unverified in this research (search returned nothing usable): Avaturn and other
 photo-to-avatar services. They should be added to the bake-off if they still
@@ -38,19 +40,19 @@ offer an API.
 
 ## 3. Evaluation criteria and weights
 
-| Criterion | Weight | How measured |
-| --- | --- | --- |
-| Facial likeness | 30 % | Blind human panel (1–5) + face-embedding similarity between photo and renders |
-| Side / three-quarter fidelity | 15 % | Panel rating against held-out side photos |
-| Hairstyle preservation | 10 % | Panel rating |
-| Complete head (scalp, ears, back, neck to upper shoulders) | 10 % | Checklist; manual inspection in the viewer |
-| Geometry quality | 10 % | Manifold check, triangle count, artefacts, normals |
-| Texture quality | 5 % | Resolution, seams, baked lighting |
-| Processing time | 5 % | p50 / p95 wall-clock |
-| GLB compatibility | 5 % | Loads in our viewer; survives glTF Transform pipeline |
-| Commercial licensing | gate | Pass/fail: must permit commercial SaaS use and user ownership of outputs |
-| Data handling | gate | Pass/fail: no training on uploads (or opt-out), deletion API or retention guarantee |
-| Cost | 10 % | Per-portrait cost at expected volume |
+| Criterion                                                  | Weight | How measured                                                                        |
+| ---------------------------------------------------------- | ------ | ----------------------------------------------------------------------------------- |
+| Facial likeness                                            | 30 %   | Blind human panel (1–5) + face-embedding similarity between photo and renders       |
+| Side / three-quarter fidelity                              | 15 %   | Panel rating against held-out side photos                                           |
+| Hairstyle preservation                                     | 10 %   | Panel rating                                                                        |
+| Complete head (scalp, ears, back, neck to upper shoulders) | 10 %   | Checklist; manual inspection in the viewer                                          |
+| Geometry quality                                           | 10 %   | Manifold check, triangle count, artefacts, normals                                  |
+| Texture quality                                            | 5 %    | Resolution, seams, baked lighting                                                   |
+| Processing time                                            | 5 %    | p50 / p95 wall-clock                                                                |
+| GLB compatibility                                          | 5 %    | Loads in our viewer; survives glTF Transform pipeline                               |
+| Commercial licensing                                       | gate   | Pass/fail: must permit commercial SaaS use and user ownership of outputs            |
+| Data handling                                              | gate   | Pass/fail: no training on uploads (or opt-out), deletion API or retention guarantee |
+| Cost                                                       | 10 %   | Per-portrait cost at expected volume                                                |
 
 Licensing and data handling are **gates**: a provider that fails either is
 excluded regardless of score.
@@ -59,8 +61,8 @@ excluded regardless of score.
 
 The most probable winning setup is not a single API but a **pipeline**:
 
-1. Head-specialised reconstruction for the face region, *or*
-2. A general model fed with optional extra angles, *followed by*
+1. Head-specialised reconstruction for the face region, _or_
+2. A general model fed with optional extra angles, _followed by_
 3. Our own post-processing: crop at upper shoulders, re-centre pivot, decimate,
    texture resize, compression (glTF Transform).
 
@@ -68,6 +70,10 @@ The provider abstraction (see `architecture.md` §6) is designed so that a
 pipeline of several providers looks like one provider to the rest of the app.
 
 ## 5. Bake-off protocol (Milestone 6, step 1)
+
+Before any spend: narrow the shortlist using free tiers and credits, providers'
+published samples, licence and data-handling terms, and availability for users
+in Nigeria (the first market). Then request budget approval for the steps below.
 
 1. **Test set:** 8–12 consenting participants (written consent, internal use
    only), covering age, skin tone, gender presentation, facial hair, glasses,

@@ -9,15 +9,15 @@ are referenced from general product knowledge only and are marked as such.
 
 ## 1. What was searched
 
-| Query | Purpose |
-| --- | --- |
-| Design editor with canvas and properties panel | Studio layout, inspector anatomy |
-| 3D viewer editor with material settings | Viewport treatment, 3D result screens |
-| Framer editor properties panel | Property row density, section disclosure |
-| AI image generation upload and progress (flows) | Upload → generate → result → error flows |
+| Query                                                  | Purpose                                  |
+| ------------------------------------------------------ | ---------------------------------------- |
+| Design editor with canvas and properties panel         | Studio layout, inspector anatomy         |
+| 3D viewer editor with material settings                | Viewport treatment, 3D result screens    |
+| Framer editor properties panel                         | Property row density, section disclosure |
+| AI image generation upload and progress (flows)        | Upload → generate → result → error flows |
 | Creative tool project dashboard with recent files grid | Dashboard, recents, project organisation |
-| Share and embed code dialog | Publishing, privacy, embed snippets |
-| Photo upload dropzone with guidelines and validation | Upload constraints and validation copy |
+| Share and embed code dialog                            | Publishing, privacy, embed snippets      |
+| Photo upload dropzone with guidelines and validation   | Upload constraints and validation copy   |
 
 ## 2. References and extracted patterns
 

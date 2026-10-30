@@ -28,57 +28,66 @@ Principles:
 
 ## 2. Stack and versions
 
-| Concern | Choice | Version at time of writing |
-| --- | --- | --- |
-| Framework | Next.js (App Router) + React + TypeScript (strict) | next 16.x, react 19.x |
-| Styling | Tailwind CSS v4 with CSS-variable design tokens | 4.x |
-| UI primitives | Radix UI primitives (unstyled, accessible), wrapped in our own components | — |
-| 3D | three, @react-three/fiber, @react-three/drei | three 0.187, R3F 9 |
-| Asset pipeline | @gltf-transform/core + functions, meshoptimizer, sharp | — |
-| State | Zustand (client), server state via route handlers + SWR-style fetch | 5.x |
-| Validation | Zod (shared client/server schemas) | 4.x |
-| Auth / DB | Supabase Auth + Postgres with Row Level Security | — |
-| Source photos | Supabase Storage, **private** bucket | — |
-| Generated assets | Cloudflare R2 (S3 API via @aws-sdk/client-s3) | — |
-| Face pre-check | @mediapipe/tasks-vision Face Landmarker (Apache-2.0, runs in browser) | — |
-| Hosting | Vercel | — |
-| Tests | Vitest (unit), Playwright (e2e + visual), axe-core (a11y) | — |
+| Concern          | Choice                                                                    | Version at time of writing |
+| ---------------- | ------------------------------------------------------------------------- | -------------------------- |
+| Framework        | Next.js (App Router) + React + TypeScript (strict)                        | next 16.x, react 19.x      |
+| Styling          | Tailwind CSS v4 with CSS-variable design tokens                           | 4.x                        |
+| UI primitives    | Radix UI primitives (unstyled, accessible), wrapped in our own components | —                          |
+| 3D               | three, @react-three/fiber, @react-three/drei                              | three 0.187, R3F 9         |
+| Asset pipeline   | @gltf-transform/core + functions, meshoptimizer, sharp                    | —                          |
+| State            | Zustand (client), server state via route handlers + SWR-style fetch       | 5.x                        |
+| Validation       | Zod (shared client/server schemas)                                        | 4.x                        |
+| Auth / DB        | Supabase Auth + Postgres with Row Level Security                          | —                          |
+| Source photos    | Supabase Storage, **private** bucket                                      | —                          |
+| Generated assets | Cloudflare R2 (S3 API via @aws-sdk/client-s3)                             | —                          |
+| Face pre-check   | @mediapipe/tasks-vision Face Landmarker (Apache-2.0, runs in browser)     | —                          |
+| Hosting          | Vercel                                                                    | —                          |
+| Tests            | Vitest (unit), Playwright (e2e + visual), axe-core (a11y)                 | —                          |
 
 Dependencies are added per milestone, not up front. Radix and MediaPipe are the
 only additions beyond the brief, justified by accessibility and by face checks
 that would otherwise need a server-side ML model.
 
-## 3. Repository layout (proposed)
+## 3. Repository layout
+
+Entries marked `*` exist as of Milestone 1; the rest arrive with their milestone.
 
 ```
 src/
   app/
-    (marketing)/            public landing (later)
-    (app)/                  authenticated shell
-      dashboard/            recents, projects, search
-      projects/[id]/
-      create/               upload + validation + start generation
-      studio/[portraitId]/  3D editor
-      settings/
-    e/[slug]/               public embed (separate minimal layout)
+    (app)/                  * shell with sidebar: dashboard, projects, settings (+ storage)
+    (focus)/create/         * focused creation flow (upload + validation in M5)
+    (studio)/studio/[portraitId]/ * full-screen 3D editor (Suspense + skeleton)
+    dev/components/         * design-system gallery, development only
+    e/[slug]/               public embed (M9, separate minimal layout)
     api/                    route handlers (uploads, generation, webhooks, cron, exports)
+    globals.css             * design tokens (Tailwind v4 @theme)
   components/
-    ui/                     design-system primitives (Button, Field, Segmented, Slider, …)
-    studio/                 inspector panels, toolbar
-    viewer/                 R3F: Viewer, PortraitModel, InteractionRig, Lighting, Backdrop
+    ui/                     * primitives: Button, Field, Slider, Segmented, Switch, Checkbox,
+                              ColorField, Section, Disclosure, PresetGroup, Badge, Dialog,
+                              Menu, Select, Tooltip, Kbd, EmptyState
+    shell/                  * sidebar, search (⌘K), mobile drawer, page header, settings rows
+    dashboard/              * portrait tiles and cards
+    studio/                 * studio layout, inspector panels, viewport toolbar, share dialog
+    viewer/                 R3F: Viewer, PortraitModel, InteractionRig, Lighting, Backdrop (M2+)
   lib/
+    studio/                 * settings types/defaults, preset metadata
     reconstruction/         provider interface + adapters (server-only)
     storage/                R2 + Supabase storage helpers (server-only)
     gltf/                   glTF Transform pipeline (server-only)
     images/                 sharp processing (server-only)
     supabase/               client/server factories
     validation/             Zod schemas shared by client and server
-  stores/                   Zustand stores
-  styles/                   tokens.css, globals.css
+  stores/                   * Zustand: studio settings with undo/redo, view state
 supabase/migrations/        SQL migrations
-tests/                      e2e, visual, fixtures
+tests/e2e/                  * Playwright navigation, studio and axe tests
+scripts/                    * screenshot capture for visual review
 docs/                       this documentation
 ```
+
+Next.js 16 runs with Cache Components and Partial Prefetching (framework
+defaults). Pages that read runtime data (`params`, cookies) do so inside a
+`<Suspense>` boundary with a designed fallback, so navigation stays instant.
 
 ## 4. 3D rendering foundation
 
@@ -125,10 +134,10 @@ with frame-rate-independent damping (`MathUtils.damp`):
 rotation = track(pointer) + manual(drag)
 ```
 
-| Component | Input | Range | Behaviour |
-| --- | --- | --- | --- |
-| `track` | Normalised pointer `[-1, 1]` relative to the canvas (or the window in embeds) | yaw ±25°, pitch ±12° × sensitivity 0.65 | Returns to 0 after 0.6 s without pointer movement or on pointer leave |
-| `manual` | Pointer drag delta (mouse, touch, pen) | yaw unlimited, pitch clamped ±30° | Setting: **return** (eases to 0 after release) or **hold** |
+| Component | Input                                                                         | Range                                   | Behaviour                                                             |
+| --------- | ----------------------------------------------------------------------------- | --------------------------------------- | --------------------------------------------------------------------- |
+| `track`   | Normalised pointer `[-1, 1]` relative to the canvas (or the window in embeds) | yaw ±25°, pitch ±12° × sensitivity 0.65 | Returns to 0 after 0.6 s without pointer movement or on pointer leave |
+| `manual`  | Pointer drag delta (mouse, touch, pen)                                        | yaw unlimited, pitch clamped ±30°       | Setting: **return** (eases to 0 after release) or **hold**            |
 
 Coexistence rule: while a drag is active the `track` target is frozen at its
 current value (not zeroed), so there is no jump when the drag starts; after
@@ -152,14 +161,14 @@ All values live in `portrait_settings.motion` and are validated by Zod.
   shared across meshes; the original `normalMap` (if present) is reused so
   surface detail survives on Chrome/Gold/Ceramic.
 
-| Preset | Key parameters (starting points) |
-| --- | --- |
-| Original | Provider textures, `envMapIntensity` tuned per lighting preset |
-| Chrome | color #ffffff, metalness 1, roughness 0.05–0.08, high-contrast studio environment required |
-| Obsidian | color #0b0b0c, metalness 0, roughness 0.18, clearcoat 1, clearcoatRoughness 0.05 |
-| Ceramic | color #f2efe9, roughness 0.38, clearcoat 0.5, sheen 0.2 |
-| Glass | transmission 1, thickness 0.6, ior 1.5, roughness 0.05, attenuation tint; quality toggle (drei `MeshTransmissionMaterial` on high, physical transmission on low/mobile) |
-| Gold | color ≈ #f5c66b (sRGB of gold F0), metalness 1, roughness 0.22 |
+| Preset   | Key parameters (starting points)                                                                                                                                        |
+| -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Original | Provider textures, `envMapIntensity` tuned per lighting preset                                                                                                          |
+| Chrome   | color #ffffff, metalness 1, roughness 0.05–0.08, high-contrast studio environment required                                                                              |
+| Obsidian | color #0b0b0c, metalness 0, roughness 0.18, clearcoat 1, clearcoatRoughness 0.05                                                                                        |
+| Ceramic  | color #f2efe9, roughness 0.38, clearcoat 0.5, sheen 0.2                                                                                                                 |
+| Glass    | transmission 1, thickness 0.6, ior 1.5, roughness 0.05, attenuation tint; quality toggle (drei `MeshTransmissionMaterial` on high, physical transmission on low/mobile) |
+| Gold     | color ≈ #f5c66b (sRGB of gold F0), metalness 1, roughness 0.22                                                                                                          |
 
 Reflective presets need a structured environment: a flat or uniform HDRI makes
 chrome look grey. We will build studio environments from drei `Lightformer`s
@@ -175,9 +184,9 @@ interface ReconstructionProvider {
   id: ProviderId;
   capabilities: { multiImage: boolean; webhooks: boolean; maxImages: number };
   submit(input: ReconstructionInput): Promise<{ providerJobId: string }>;
-  getStatus(providerJobId: string): Promise<ProviderStatus>;      // polling fallback
-  parseWebhook(req: Request): Promise<ProviderStatus | null>;     // verifies signature
-  fetchResult(providerJobId: string): Promise<ReadableStream>;    // raw model bytes
+  getStatus(providerJobId: string): Promise<ProviderStatus>; // polling fallback
+  parseWebhook(req: Request): Promise<ProviderStatus | null>; // verifies signature
+  fetchResult(providerJobId: string): Promise<ReadableStream>; // raw model bytes
   deleteRemoteData?(providerJobId: string): Promise<void>;
 }
 ```
@@ -236,7 +245,7 @@ risk R5).
   with long cache headers; unpublishing deletes it and deactivates the slug.
   Private assets are never exposed through the embed.
 - Security headers: embed routes send `Content-Security-Policy:
-  frame-ancestors *` (or the user's allow-list); every other route sends
+frame-ancestors *` (or the user's allow-list); every other route sends
   `frame-ancestors 'none'`.
 - Snippet: a responsive iframe using CSS `aspect-ratio`, `loading="lazy"`,
   and a `title` attribute for accessibility.

@@ -180,27 +180,27 @@ Stored as JSON, validated by a shared Zod schema, versioned with
 ```ts
 const PortraitSettings = z.object({
   material: z.object({
-    preset: z.enum(['original', 'chrome', 'obsidian', 'ceramic', 'glass', 'gold']),
+    preset: z.enum(["original", "chrome", "obsidian", "ceramic", "glass", "gold"]),
     overrides: z.object({ color: Hex, roughness: Unit, metalness: Unit }).partial().optional(),
   }),
   lighting: z.object({
-    preset: z.enum(['studio', 'softbox', 'rim', 'dramatic', 'daylight']),
+    preset: z.enum(["studio", "softbox", "rim", "dramatic", "daylight"]),
     intensity: z.number().min(0).max(3),
-    rotation: z.number().min(-180).max(180),   // environment yaw in degrees
+    rotation: z.number().min(-180).max(180), // environment yaw in degrees
   }),
-  background: z.discriminatedUnion('type', [
-    z.object({ type: z.literal('solid'), color: Hex }),
-    z.object({ type: z.literal('gradient'), from: Hex, to: Hex }),
-    z.object({ type: z.literal('transparent') }),
+  background: z.discriminatedUnion("type", [
+    z.object({ type: z.literal("solid"), color: Hex }),
+    z.object({ type: z.literal("gradient"), from: Hex, to: Hex }),
+    z.object({ type: z.literal("transparent") }),
   ]),
   motion: z.object({
     tracking: z.boolean(),
-    yawLimit: z.number().min(0).max(60),        // default 25
-    pitchLimit: z.number().min(0).max(30),      // default 12
-    sensitivity: Unit,                          // default 0.65
-    damping: z.number().min(1).max(20),         // default ≈ 6 (lambda)
-    idleReturnMs: z.number().min(0).max(5000),  // default 600
-    dragRelease: z.enum(['return', 'hold']),
+    yawLimit: z.number().min(0).max(60), // default 25
+    pitchLimit: z.number().min(0).max(30), // default 12
+    sensitivity: Unit, // default 0.65
+    damping: z.number().min(1).max(20), // default ≈ 6 (lambda)
+    idleReturnMs: z.number().min(0).max(5000), // default 600
+    dragRelease: z.enum(["return", "hold"]),
   }),
   camera: z.object({ distance: z.number(), fov: z.number().min(15).max(50) }),
 });
@@ -208,12 +208,12 @@ const PortraitSettings = z.object({
 
 ## 5. Storage layout
 
-| Store | Bucket / prefix | Visibility |
-| --- | --- | --- |
-| Source photos | Supabase Storage `source-images/{userId}/{portraitId}/{imageId}.jpg` | Private; RLS on `storage.objects` by path prefix; signed URLs (≤ 10 min) |
-| Generated models | R2 `models/{userId}/{portraitId}/{assetId}.glb` | Private; presigned GET (≤ 15 min) |
-| Exports / thumbnails | R2 `exports/{userId}/{portraitId}/{exportId}.png` | Private; presigned GET |
-| Published embeds | R2 public bucket `p/{slug}/{assetId}.glb` | Public, only after explicit publish; deleted on unpublish |
+| Store                | Bucket / prefix                                                      | Visibility                                                               |
+| -------------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| Source photos        | Supabase Storage `source-images/{userId}/{portraitId}/{imageId}.jpg` | Private; RLS on `storage.objects` by path prefix; signed URLs (≤ 10 min) |
+| Generated models     | R2 `models/{userId}/{portraitId}/{assetId}.glb`                      | Private; presigned GET (≤ 15 min)                                        |
+| Exports / thumbnails | R2 `exports/{userId}/{portraitId}/{exportId}.png`                    | Private; presigned GET                                                   |
+| Published embeds     | R2 public bucket `p/{slug}/{assetId}.glb`                            | Public, only after explicit publish; deleted on unpublish                |
 
 ## 6. Deletion
 

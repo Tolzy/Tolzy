@@ -21,29 +21,29 @@ state laws (e.g. Illinois BIPA, Texas CUBI).
 
 ## 2. Controls
 
-| Area | Control |
-| --- | --- |
-| Authentication | Supabase Auth (email magic link + OAuth); session cookies via `@supabase/ssr`; server checks on every route handler |
-| Authorisation | Postgres RLS on every table; server writes job/asset rows with service role only after ownership check |
-| Uploads | Signed upload URLs, size limit, MIME sniffing (not extension), Sharp re-encode to JPEG/WebP, EXIF stripped, dimension limits |
-| Asset access | Presigned R2 GET URLs, ≤ 15 min; source photos via Supabase signed URLs, ≤ 10 min |
-| Provider calls | Server-only; inputs passed as short-lived signed URLs; webhook signatures verified; idempotent handlers |
-| Embeds | Separate public bucket containing only published copies; unguessable slugs; `frame-ancestors` only on embed routes |
-| Headers | CSP, `X-Content-Type-Options`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy` |
-| Rate limiting | Per-user limits on uploads and generation starts (cost protection) |
-| Logging | No image URLs or personal data in logs; job errors stored as codes + user-safe messages |
-| Dependencies | Lockfile, `npm audit` in CI, minimal dependency set |
+| Area           | Control                                                                                                                      |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Authentication | Supabase Auth (email magic link + OAuth); session cookies via `@supabase/ssr`; server checks on every route handler          |
+| Authorisation  | Postgres RLS on every table; server writes job/asset rows with service role only after ownership check                       |
+| Uploads        | Signed upload URLs, size limit, MIME sniffing (not extension), Sharp re-encode to JPEG/WebP, EXIF stripped, dimension limits |
+| Asset access   | Presigned R2 GET URLs, ≤ 15 min; source photos via Supabase signed URLs, ≤ 10 min                                            |
+| Provider calls | Server-only; inputs passed as short-lived signed URLs; webhook signatures verified; idempotent handlers                      |
+| Embeds         | Separate public bucket containing only published copies; unguessable slugs; `frame-ancestors` only on embed routes           |
+| Headers        | CSP, `X-Content-Type-Options`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy`                      |
+| Rate limiting  | Per-user limits on uploads and generation starts (cost protection)                                                           |
+| Logging        | No image URLs or personal data in logs; job errors stored as codes + user-safe messages                                      |
+| Dependencies   | Lockfile, `npm audit` in CI, minimal dependency set                                                                          |
 
-## 3. Retention policy (proposed defaults)
+## 3. Retention policy (approved defaults, ADR 0002)
 
-| Data | Retention |
-| --- | --- |
-| Source photos | Deleted **30 days** after a successful generation, or immediately on user request. Users may choose "Keep my photos" to allow regeneration later. |
-| Failed-job photos | Deleted after 7 days. |
-| Provider copies | Deleted via provider API right after result download, where supported; provider retention terms recorded per provider. |
-| Generated models, exports | Kept until the user deletes the portrait or account. |
-| Public embed copies | Deleted immediately on unpublish or portrait deletion. |
-| Account deletion | All rows and objects removed within 30 days (immediately where possible). |
+| Data                      | Retention                                                                                                                                         |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Source photos             | Deleted **30 days** after a successful generation, or immediately on user request. Users may choose "Keep my photos" to allow regeneration later. |
+| Failed-job photos         | Deleted after 7 days.                                                                                                                             |
+| Provider copies           | Deleted via provider API right after result download, where supported; provider retention terms recorded per provider.                            |
+| Generated models, exports | Kept until the user deletes the portrait or account.                                                                                              |
+| Public embed copies       | Deleted immediately on unpublish or portrait deletion.                                                                                            |
+| Account deletion          | All rows and objects removed within 30 days (immediately where possible).                                                                         |
 
 A daily cron route enforces `source_images.delete_after`.
 
@@ -59,7 +59,16 @@ A daily cron route enforces `source_images.delete_after`.
 
 The consent version is recorded in `consents`.
 
-## 5. Open items
+## 5. Regions
+
+Nigeria is the first market. The Nigeria Data Protection Act 2023 treats
+biometric data as sensitive personal data, and photographs sent to a provider
+outside Nigeria are a cross-border transfer. Production image processing is
+enabled per region by configuration only after provider availability,
+licensing and privacy requirements are reviewed for that region. Nothing is
+hard-coded per country.
+
+## 6. Open items
 
 - Legal review of biometric-data obligations per launch region.
 - Data Processing Agreement with the chosen reconstruction provider.

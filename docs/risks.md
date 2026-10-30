@@ -2,24 +2,24 @@
 
 Ranked by impact × likelihood. Each has an owner milestone and a mitigation.
 
-| # | Risk | Impact | Likelihood | Mitigation | Milestone |
-| --- | --- | --- | --- | --- | --- |
-| R1 | **No provider delivers recognisable likeness from one photo**, especially side/back and hair | Critical — core promise | High | Bake-off before integration; support optional extra angles from day one; consider a hybrid pipeline; set honest expectations in UI copy | 0, 6 |
-| R2 | Provider licence or data terms incompatible with commercial use (FLAME non-commercial, Hunyuan territorial exclusions, nvdiffrast) | High | Medium | Licence and data handling are pass/fail gates in the evaluation; record in ADR | 6 |
-| R3 | Inconsistent provider outputs: axis orientation, scale, pivot, crop (full body vs head), huge files | Medium | High | Normalizer + server-side glTF Transform pipeline; stored `orientation_fix`; crop-at-shoulders step | 2, 6 |
-| R4 | Chrome / glass look cheap (flat env, no reflections, transmission cost on mobile) | Medium | Medium | Lightformer-based studio environments; quality tiers; test on mid-range mobile GPUs | 4 |
-| R5 | Vercel function time/memory limits for model download + optimisation | Medium | Medium | Measure with real outputs; if exceeded, move pipeline to a background worker (e.g. a container job or queue service) behind the same interface | 6 |
-| R6 | Cursor tracking and drag fight, jitter, or feel unnatural; touch scroll conflicts in embeds | Medium | Medium | Additive rotation model, frame-rate independent damping, `touch-action: pan-y` in embeds; user testing | 3 |
-| R7 | Biometric / privacy compliance (GDPR, BIPA) and misuse with other people's photos | High | Medium | Consent attestation, retention policy, deletion, legal review before launch | 5, 10 |
-| R8 | Generation cost abuse | Medium | Medium | Auth required, per-user rate limits, quotas | 6 |
-| R9 | WebGL memory leaks when switching portraits/materials | Medium | Medium | Strict disposal, `useGLTF.clear`, memory checks in tests (`renderer.info`) | 2 |
-| R10 | Embed performance on third-party sites (bundle size, GLB size) | Medium | Medium | Separate minimal embed route, lazy loading, meshopt, poster image before interaction | 9 |
-| R11 | PNG export at high resolution exceeds GPU limits (`MAX_TEXTURE_SIZE`, mobile) | Low | Medium | Clamp to device limit; tiled rendering later if needed | 8 |
-| R12 | Face pre-check false negatives frustrate users | Low | Medium | Pre-check warns, rarely blocks; only "no face" and "multiple faces" block | 5 |
+| #   | Risk                                                                                                                               | Impact                  | Likelihood | Mitigation                                                                                                                                     | Milestone |
+| --- | ---------------------------------------------------------------------------------------------------------------------------------- | ----------------------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | --------- |
+| R1  | **No provider delivers recognisable likeness from one photo**, especially side/back and hair                                       | Critical — core promise | High       | Bake-off before integration; support optional extra angles from day one; consider a hybrid pipeline; set honest expectations in UI copy        | 0, 6      |
+| R2  | Provider licence or data terms incompatible with commercial use (FLAME non-commercial, Hunyuan territorial exclusions, nvdiffrast) | High                    | Medium     | Licence and data handling are pass/fail gates in the evaluation; record in ADR                                                                 | 6         |
+| R3  | Inconsistent provider outputs: axis orientation, scale, pivot, crop (full body vs head), huge files                                | Medium                  | High       | Normalizer + server-side glTF Transform pipeline; stored `orientation_fix`; crop-at-shoulders step                                             | 2, 6      |
+| R4  | Chrome / glass look cheap (flat env, no reflections, transmission cost on mobile)                                                  | Medium                  | Medium     | Lightformer-based studio environments; quality tiers; test on mid-range mobile GPUs                                                            | 4         |
+| R5  | Vercel function time/memory limits for model download + optimisation                                                               | Medium                  | Medium     | Measure with real outputs; if exceeded, move pipeline to a background worker (e.g. a container job or queue service) behind the same interface | 6         |
+| R6  | Cursor tracking and drag fight, jitter, or feel unnatural; touch scroll conflicts in embeds                                        | Medium                  | Medium     | Additive rotation model, frame-rate independent damping, `touch-action: pan-y` in embeds; user testing                                         | 3         |
+| R7  | Biometric / privacy compliance (GDPR, BIPA) and misuse with other people's photos                                                  | High                    | Medium     | Consent attestation, retention policy, deletion, legal review before launch                                                                    | 5, 10     |
+| R8  | Generation cost abuse                                                                                                              | Medium                  | Medium     | Auth required, per-user rate limits, quotas                                                                                                    | 6         |
+| R9  | WebGL memory leaks when switching portraits/materials                                                                              | Medium                  | Medium     | Strict disposal, `useGLTF.clear`, memory checks in tests (`renderer.info`)                                                                     | 2         |
+| R10 | Embed performance on third-party sites (bundle size, GLB size)                                                                     | Medium                  | Medium     | Separate minimal embed route, lazy loading, meshopt, poster image before interaction                                                           | 9         |
+| R11 | PNG export at high resolution exceeds GPU limits (`MAX_TEXTURE_SIZE`, mobile)                                                      | Low                     | Medium     | Clamp to device limit; tiled rendering later if needed                                                                                         | 8         |
+| R12 | Face pre-check false negatives frustrate users                                                                                     | Low                     | Medium     | Pre-check warns, rarely blocks; only "no face" and "multiple faces" block                                                                      | 5         |
 
 ## Dependencies on the user / business
 
 - Supabase project, Cloudflare account (R2), Vercel project.
-- Budget for the provider bake-off (≈ $200 plus plan fees).
-- Consenting test participants for the bake-off.
-- Legal review of the privacy policy and consent copy.
+- Budget for the provider bake-off (≈ $200 plus plan fees) — **not yet approved**; requested before Milestone 6.
+- Consenting test participants (8–12), recruited after shortlisting and once consent procedures exist.
+- Legal review of the privacy policy and consent copy, starting with Nigeria (NDPA 2023) as the first market.

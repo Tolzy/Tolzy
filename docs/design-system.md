@@ -1,7 +1,10 @@
 # Design system and product design
 
-Status: Milestone 0 direction. Tokens and components are implemented and
-reviewed in Milestone 1. Research basis: `research/design-references.md`.
+Status: Implemented in Milestone 1 (ADR 0002: light-first application, dark
+studio viewport). Tokens live in `src/app/globals.css`, primitives in
+`src/components/ui`, and every component and state is shown at
+`/dev/components` in development. Research basis:
+`research/design-references.md`.
 
 ## 1. Character
 
@@ -18,28 +21,44 @@ Working name for the language: **Studio Neutral**.
 Neutral greys with a very slight warm bias (photographic, not clinical), one
 accent. Defined as CSS variables, exposed to Tailwind v4 via `@theme`.
 
-| Token | Light | Dark | Use |
-| --- | --- | --- | --- |
-| `--bg` | #FAFAF9 | #0F0F10 | App background |
-| `--surface` | #FFFFFF | #161617 | Panels, inspector |
-| `--surface-sunken` | #F3F3F1 | #1C1C1E | Inputs, wells |
-| `--border` | #E7E6E3 | #262628 | Hairlines (1 px) |
-| `--border-strong` | #D6D5D1 | #34343A | Focused inputs, dividers that must read |
-| `--text` | #18181A | #EDEDEC | Primary text |
-| `--text-muted` | #6B6A67 | #9A9A97 | Labels, meta |
-| `--text-subtle` | #9C9B97 | #6A6A6E | Placeholders, disabled |
-| `--accent` | #3E5BFF | #6F86FF | Selection, focus ring, active state — nothing else |
-| `--danger` | #D43B32 | #F0675E | Destructive actions, errors |
-| `--success` | #2F8F57 | #4CC07D | Passed validation checks |
-| `--viewport` | #E9E8E5 → #F7F6F4 | #121214 → #1D1D20 | Default studio backdrop (radial) |
+Application chrome (light-first):
 
-Primary buttons are `--text` on `--bg` inverted (near-black in light,
-near-white in dark), not accent-coloured. No gradients in UI chrome; the only
+| Token              | Value   | Use                                                          |
+| ------------------ | ------- | ------------------------------------------------------------ |
+| `--bg`             | #F7F7F5 | App background, sidebar                                      |
+| `--surface`        | #FFFFFF | Content sheet, panels, inspector                             |
+| `--surface-sunken` | #F3F3F1 | Inputs, wells, segmented tracks                              |
+| `--border`         | #E7E6E2 | Hairlines (1 px)                                             |
+| `--border-strong`  | #D6D5D0 | Dashed drop zones, dividers that must read                   |
+| `--text`           | #19191B | Primary text, primary buttons                                |
+| `--text-muted`     | #67665F | Labels, meta, secondary text (≥ 4.5:1 on both backgrounds)   |
+| `--text-subtle`    | #9D9C96 | Icons, placeholders and disabled text only — never body text |
+| `--accent`         | #3B5BFD | Selection rings, focus ring — nothing else                   |
+| `--danger`         | #C93A2F | Destructive actions, errors                                  |
+| `--success`        | #2C8A53 | Passed checks                                                |
+
+Studio viewport (dark by default, independent of the app theme):
+
+| Token                   | Value             | Use                                |
+| ----------------------- | ----------------- | ---------------------------------- |
+| default background      | #1F1F23 → #0B0B0C | Radial gradient, user-configurable |
+| `--viewport-chrome`     | #1B1B1E           | Floating toolbar                   |
+| `--viewport-border`     | #2B2B30           | Toolbar border, dividers           |
+| `--viewport-text`       | #EDEDEC           | Toolbar values                     |
+| `--viewport-text-muted` | #8C8C93           | Toolbar icons, captions            |
+
+A dark application theme is deferred; tokens are variables so it can be added
+without touching components.
+
+Primary buttons are near-black (`--text`) with light text, not
+accent-coloured. Switches use near-black when on; the accent is reserved for
+selection and focus. No gradients in UI chrome; the only
 gradient is the optional viewport backdrop.
 
 ### Typography
 
-- **Geist Sans** (SIL OFL) for UI, **Geist Mono** for numeric values in the
+- **Geist Sans** (SIL OFL) for UI with tabular figures for inspector values;
+  **Geist Mono** only for hex codes and step numbers in the
   inspector (tabular, aligned). Self-hosted via `next/font`.
 - Scale (px / line-height): 11/16 · 12/16 · 13/20 · 14/20 · 16/24 · 20/28 ·
   28/34 · 40/44.
@@ -69,7 +88,7 @@ Lucide icons at 16 px, 1.5 px stroke, `--text-muted` by default.
 ## 3. Core components (Milestone 1)
 
 Button (primary / secondary / ghost / danger; sm 28 px, md 32 px, lg 40 px),
-IconButton, Field row (label + control), NumberInput with scrub-on-drag label,
+IconButton, Field row (label + control), NumberInput with scrub-on-drag label (deferred to M4),
 Slider (with numeric value), SegmentedControl, Switch, Select, ColorField,
 SwatchGrid (visual preset picker), Disclosure section, Tabs / Context rail,
 Tooltip with keyboard shortcut, Menu, Dialog, Toast, Progress (linear +
@@ -106,8 +125,8 @@ Two steps, no wizard chrome beyond a step indicator.
 1. **Photo.** Large drop zone with a face silhouette. Requirements stated
    before upload (JPG/PNG/WebP/HEIC, ≤ 20 MB, ≥ 1024 px short edge, one face,
    facing camera, even light, no sunglasses/hats). After drop, a live checklist
-   appears beside the image: *Face detected · Single person · Facing camera ·
-   Sharp · Well lit · Resolution*. Each item passes, warns (can proceed) or
+   appears beside the image: _Face detected · Single person · Facing camera ·
+   Sharp · Well lit · Resolution_. Each item passes, warns (can proceed) or
    fails (blocks) with a one-line fix.
    Optional **More angles**: collapsible row of slots (Left 3/4, Right 3/4,
    Left profile, Right profile) with explanation that extra angles improve
@@ -156,8 +175,8 @@ Two steps, no wizard chrome beyond a step indicator.
 
 - **Export menu:** Download GLB (original), Download GLB (with material),
   Render PNG… (dialog: size 1×/2×/4×, transparent background toggle, preview).
-- **Share dialog:** two tiles — *Private* (default, "Only you") and *Public
-  embed* ("Anyone with the link or embed can view this 3D portrait"). Choosing
+- **Share dialog:** two tiles — _Private_ (default, "Only you") and _Public
+  embed_ ("Anyone with the link or embed can view this 3D portrait"). Choosing
   Public requires confirming; then shows link, iframe snippet with copy
   buttons, size presets, live preview with Desktop/Mobile toggle, and **Stop
   sharing**.
