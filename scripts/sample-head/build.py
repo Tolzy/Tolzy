@@ -289,7 +289,7 @@ class Gltf:
 
 BASE_MATERIAL = {
     "name": "Base",
-    "pbrMetallicRoughness": {"baseColorFactor": [0.06, 0.055, 0.055, 1.0], "metallicFactor": 0.0, "roughnessFactor": 0.85},
+    "pbrMetallicRoughness": {"baseColorFactor": [0.16, 0.12, 0.1, 1.0], "metallicFactor": 0.0, "roughnessFactor": 0.9},
 }
 
 Corner = tuple[np.ndarray, np.ndarray, np.ndarray]  # position, normal, uv
@@ -314,6 +314,40 @@ def clip_polygon(poly: list[Corner], fn) -> list[Corner]:
                     hi = mid
             t = (lo + hi) / 2
             out.append(tuple(a[k] + (b[k] - a[k]) * t for k in range(3)))  # type: ignore[arg-type]
+    return out
+
+
+def ear_clip(poly: np.ndarray) -> list[tuple[int, int, int]]:
+    """Triangulates a simple 2D polygon (n, 2) by ear clipping. Returns index triples."""
+    idx = list(range(len(poly)))
+    area = 0.5 * sum(poly[i][0] * poly[(i + 1) % len(poly)][1] - poly[(i + 1) % len(poly)][0] * poly[i][1] for i in idx)
+    if area < 0:
+        idx.reverse()  # make counter-clockwise
+
+    def cross(o, a, b):
+        return (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0])
+
+    def inside_tri(p, a, b, c):
+        return cross(a, b, p) >= 0 and cross(b, c, p) >= 0 and cross(c, a, p) >= 0
+
+    out: list[tuple[int, int, int]] = []
+    guard = 0
+    while len(idx) > 3 and guard < 10000:
+        guard += 1
+        for k in range(len(idx)):
+            i0, i1, i2 = idx[k - 1], idx[k], idx[(k + 1) % len(idx)]
+            a, b, c = poly[i0], poly[i1], poly[i2]
+            if cross(a, b, c) <= 1e-12:
+                continue  # reflex or degenerate corner
+            if any(inside_tri(poly[j], a, b, c) for j in idx if j not in (i0, i1, i2)):
+                continue
+            out.append((i0, i1, i2))
+            idx.pop(k)
+            break
+        else:
+            break  # no ear found (degenerate input): stop rather than loop
+    if len(idx) == 3:
+        out.append((idx[0], idx[1], idx[2]))
     return out
 
 
@@ -387,21 +421,18 @@ def build_clipped_skin(coords, normals, vt, kept, crossing, planes, uv_fn, skin_
         if len(loop) >= 3:
             loops.append(loop)
 
-    cap_pos, cap_idx = [], []
-    centre = P.mean(axis=0)
+    # Close each outline with a flat cap, triangulated by ear clipping in the
+    # cut plane (the chest cross-section is not convex, so a fan would overlap).
+    cap_pos: list[np.ndarray] = []
+    cap_idx: list[int] = []
     for loop in loops:
-        ring = P[loop]
-        c = ring.mean(axis=0)
         base_i = len(cap_pos)
-        cap_pos.extend([c, *ring])
-        for i in range(len(ring)):
-            a, b = base_i + 1 + i, base_i + 1 + (i + 1) % len(ring)
-            tri = [base_i, a, b]
-            fn_ = np.cross(cap_pos[a] - cap_pos[base_i], cap_pos[b] - cap_pos[base_i])
-            mid = (cap_pos[base_i] + cap_pos[a] + cap_pos[b]) / 3
-            if np.dot(fn_, mid - centre) < 0:
-                tri = [base_i, b, a]
-            cap_idx.extend(tri)
+        cap_pos.extend(P[loop])
+        tris2d = ear_clip(P[loop][:, [0, 2]])
+        for t in tris2d:
+            a_, b_, c_ = (base_i + k for k in t)
+            n_ = np.cross(cap_pos[b_] - cap_pos[a_], cap_pos[c_] - cap_pos[a_])
+            cap_idx.extend([a_, b_, c_] if n_[1] < 0 else [a_, c_, b_])  # face down, out of the bust
     CP = np.array(cap_pos)
     CI = np.array(cap_idx).reshape(-1, 3)
     CN = vertex_normals(CP, CI)
@@ -422,7 +453,8 @@ def build_clipped_skin(coords, normals, vt, kept, crossing, planes, uv_fn, skin_
         CI.reshape(-1).astype(np.uint32),
         base_mat,
     )
-    print(f"bust section: {len(loops)} outline loop(s), {len(CI)} cap triangles")
+    expected = sum(len(lp) - 2 for lp in loops)
+    print(f"bust section: {len(loops)} outline loop(s), {len(CI)}/{expected} cap triangles")
     return skin, cap
 
 
@@ -435,6 +467,7 @@ def main() -> None:
     ap.add_argument("--assets", type=Path, required=True)
     ap.add_argument("--skins", type=Path, required=True)
     ap.add_argument("--out", type=Path, required=True)
+    ap.add_argument("--cut-depth", type=float, default=3.2, help="bust cut, decimetres below the crown")
     args = ap.parse_args()
 
     base = read_obj(args.makehuman / "3dobjs/base.obj")
@@ -455,25 +488,23 @@ def main() -> None:
     ]:
         coords += weight * read_target(macro / f"{name}.target", n)
 
-    # Bust cut: keep body faces above a curved plane that rises towards the shoulders.
+    # Bust cut: a single horizontal plane, like a classical bust with a flat
+    # base. The section then faces straight down and cannot be seen from the
+    # front, three-quarter or side views. (An earlier curved cut that rose
+    # towards the shoulders exposed its cap at ~20°+ of rotation.)
     body_faces = [c for g, c in base.faces if g == "body"]
     body_tris = [t for c in body_faces for t in triangulate(c)]
     tri_v = np.array([[vi for vi, _ in t] for t in body_tris])
     normals = vertex_normals(coords, tri_v)
-
     body_idx = np.unique(tri_v)
-    neck_x = 0.0
     crown_y = coords[body_idx][:, 1].max()
-    cut_y = crown_y - 3.5  # ~35 cm below the crown: base of the neck / upper chest
-    half_width = 1.38  # dm: keeps the start of the shoulder line, removes arms
-    rise = 0.95  # dm: how far the cut curves up towards the shoulders
+    cut_y = crown_y - args.cut_depth
 
     def cut_value(p: np.ndarray) -> float:
-        """>= 0 inside the bust: below the crown, above the curved chest cut."""
-        dx = min(abs(p[0] - neck_x), half_width)
-        return p[1] - (cut_y + rise * (dx / half_width) ** 2)
+        """>= 0 inside the bust (above the cut plane)."""
+        return p[1] - cut_y
 
-    cut_planes = [cut_value, lambda p: half_width - (p[0] - neck_x), lambda p: half_width + (p[0] - neck_x)]
+    cut_planes = [cut_value]
 
     def inside(vi: int) -> bool:
         return all(fn(coords[vi]) >= 0 for fn in cut_planes)

@@ -95,6 +95,10 @@ tracking toggle, horizontal/vertical drag, tracking + drag combination,
 reset, drag disabled, arrow keys, touch swipe (CDP touch events), reduced
 motion, theme default/persistence, axe in both themes, and a heap-growth
 test over repeated visits.
+**Review refinements:** the sample bust now has a flat horizontal base (the
+previous curved cut exposed a dark cap as a "wedge" beyond ~20° of rotation),
+and touch drags use a separate, configurable rate (55 % of mouse by default).
+Covered by asset-geometry unit tests and mobile short/medium/long swipe tests.
 **Deferred:** `touch-action: pan-y` for embeds (Milestone 9).
 
 ## M4 — Materials, lighting and customisation

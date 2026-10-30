@@ -17,6 +17,7 @@ const CONFIG: MotionConfig = {
   idleReturnMs: 600,
   dragEnabled: true,
   dragRelease: "return",
+  touchSensitivity: 0.55,
   reducedMotion: false,
 };
 
@@ -133,6 +134,25 @@ describe("manual rotation", () => {
     const rot = r.run(1500);
     expect(rot.yaw).toBeCloseTo(55, 0); // a quarter width = 55°
     expect(rot.pitch).toBeCloseTo(11.25, 0); // an eighth height = 11.25°
+  });
+
+  it("touch drags at the touch sensitivity; mouse and pen keep the full rate", () => {
+    const drag = (pointerType: string, touchSensitivity = 0.55) => {
+      const r = rig({ tracking: false, dragRelease: "hold", touchSensitivity });
+      r.c.dragStart(1, 0, 400, 1000, 800, r.now, pointerType);
+      r.c.dragMove(1, 400, 320, r.now); // 40 % of the width, 10 % of the height
+      r.run(600);
+      r.c.dragEnd(1, r.now + 500); // pause before release: no flick
+      return r.run(1500);
+    };
+    const mouse = drag("mouse");
+    expect(mouse.yaw).toBeCloseTo(88, 0); // unchanged: 0.4 × 220°
+    expect(mouse.pitch).toBeCloseTo(9, 0);
+    expect(drag("pen").yaw).toBeCloseTo(88, 0);
+    const touch = drag("touch");
+    expect(touch.yaw).toBeCloseTo(88 * 0.55, 0); // ≈ 48°: 45 % gentler
+    expect(touch.pitch).toBeCloseTo(9 * 0.55, 0);
+    expect(drag("touch", 1).yaw).toBeCloseTo(88, 0); // configurable
   });
 
   it("clamps manual pitch so the head never flips", () => {

@@ -32,6 +32,11 @@ export interface MotionConfig {
   idleReturnMs: number;
   dragEnabled: boolean;
   dragRelease: DragRelease;
+  /**
+   * Drag rate for touch input relative to the mouse rate (1 = same as mouse).
+   * Fingers cover more of a small screen than a mouse does, so touch defaults lower.
+   */
+  touchSensitivity: number;
   /** Operating-system reduced-motion preference. */
   reducedMotion: boolean;
 }
@@ -116,6 +121,8 @@ interface DragState {
   startY: number;
   startYaw: number;
   startPitch: number;
+  /** Degrees-per-pixel multiplier for this drag (touch is gentler than mouse). */
+  rate: number;
   width: number;
   height: number;
   samples: { t: number; yaw: number; pitch: number }[];
@@ -174,7 +181,15 @@ export class InteractionController {
   /* ───────── manual rotation ───────── */
 
   /** Returns false when dragging is disabled. Coordinates are client pixels. */
-  dragStart(id: number, x: number, y: number, width: number, height: number, now: number): boolean {
+  dragStart(
+    id: number,
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    now: number,
+    pointerType: "mouse" | "pen" | "touch" | string = "mouse",
+  ): boolean {
     if (!this.config.dragEnabled || this.drag) return false;
     this.leftAt = null;
     this.releasedAt = null;
@@ -189,6 +204,7 @@ export class InteractionController {
       startPitch: this.manualPitch.x,
       width: Math.max(width, 1),
       height: Math.max(height, 1),
+      rate: pointerType === "touch" ? clamp(this.config.touchSensitivity, 0.05, 2) : 1,
       samples: [{ t: now, yaw: this.manualYaw.x, pitch: this.manualPitch.x }],
     };
     this.onWake();
@@ -198,9 +214,9 @@ export class InteractionController {
   dragMove(id: number, x: number, y: number, now: number) {
     const d = this.drag;
     if (!d || d.id !== id) return;
-    const yaw = d.startYaw + ((x - d.startX) / d.width) * DRAG_YAW_PER_WIDTH;
+    const yaw = d.startYaw + ((x - d.startX) / d.width) * DRAG_YAW_PER_WIDTH * d.rate;
     const pitch = clamp(
-      d.startPitch - ((y - d.startY) / d.height) * DRAG_PITCH_PER_HEIGHT,
+      d.startPitch - ((y - d.startY) / d.height) * DRAG_PITCH_PER_HEIGHT * d.rate,
       -MANUAL_PITCH_LIMIT,
       MANUAL_PITCH_LIMIT,
     );

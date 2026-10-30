@@ -319,6 +319,18 @@ export function MotionPanel() {
             ? "The head eases back to face forward after a short pause."
             : "The head stays where you leave it."}
         </PanelNote>
+        <SliderField
+          label="Touch speed"
+          value={value.touchSensitivity}
+          min={0.2}
+          max={1.5}
+          step={0.05}
+          format={pct}
+          onChange={(touchSensitivity) => drag({ touchSensitivity })}
+          onCommit={commit}
+          disabled={!value.dragEnabled}
+        />
+        <PanelNote>Swipe rotation on touch screens, relative to mouse dragging.</PanelNote>
       </Section>
 
       <DisclosureSection title="Feel">

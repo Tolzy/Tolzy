@@ -45,6 +45,8 @@ export interface PortraitSettings {
     /** Click-and-drag / touch rotation. */
     dragEnabled: boolean;
     dragRelease: DragRelease;
+    /** Touch drag rate relative to the mouse (1 = same). Lower = gentler swipes. */
+    touchSensitivity: number;
   };
 }
 
@@ -71,6 +73,7 @@ export const DEFAULT_SETTINGS: PortraitSettings = {
     idleReturnMs: 600,
     dragEnabled: true,
     dragRelease: "return",
+    touchSensitivity: 0.55,
   },
 };
 

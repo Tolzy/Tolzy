@@ -21,11 +21,14 @@ async function hover(page: Page, box: { x: number; y: number; width: number; hei
   await page.mouse.move(box.x + box.width * fx, box.y + box.height * fy, { steps: 6 });
 }
 
+// Generous ceiling: with software WebGL and parallel workers, frames can be
+// seconds apart on CI. Polls resolve as soon as the value arrives.
+const SETTLE_TIMEOUT = 20_000;
 const settlesTo = (page: Page, key: string, value: number, tolerance = 2) =>
   expect
-    .poll(() => num(page, key), { timeout: 8000 })
+    .poll(() => num(page, key), { timeout: SETTLE_TIMEOUT })
     .toBeGreaterThan(value - tolerance)
-    .then(() => expect.poll(() => num(page, key), { timeout: 8000 }).toBeLessThan(value + tolerance));
+    .then(() => expect.poll(() => num(page, key), { timeout: SETTLE_TIMEOUT }).toBeLessThan(value + tolerance));
 
 test.describe("cursor tracking (desktop)", () => {
   test.skip(({ isMobile }) => isMobile, "mouse hover is a desktop interaction");
@@ -181,6 +184,71 @@ test.describe("touch", () => {
     await touch("touchEnd", 0);
     await settlesTo(page, "manual-yaw", 0, 0.5); // returns after release
   });
+});
+
+test.describe("touch sensitivity", () => {
+  test.skip(({ isMobile }) => !isMobile, "touch runs on the mobile project");
+
+  /** Swipes horizontally by a fraction of the viewport width; returns the angle while the finger is still down. */
+  async function swipe(page: Page, fraction: number) {
+    const box = (await page.locator("[data-viewport]").boundingBox())!;
+    const cdp = await page.context().newCDPSession(page);
+    const y = box.y + box.height * 0.45;
+    const x0 = box.x + box.width * 0.3;
+    const send = (type: "touchStart" | "touchMove" | "touchEnd", x: number) =>
+      cdp.send("Input.dispatchTouchEvent", { type, touchPoints: type === "touchEnd" ? [] : [{ x, y, id: 1 }] });
+    await send("touchStart", x0);
+    for (let i = 1; i <= 8; i++) await send("touchMove", x0 + box.width * fraction * (i / 8));
+    // Hold the finger still. Motion is time-based, so after 2.5 s the head has
+    // caught up even on slow software-rendered frames.
+    await page.waitForTimeout(2500);
+    const angle = await num(page, "manual-yaw");
+    await send("touchEnd", 0);
+    return angle;
+  }
+
+  test("short, medium and long swipes rotate about 45 % less than a mouse drag", async ({ page }) => {
+    await openStudio(page);
+    // Mouse: 220° per viewport width. Touch default: 55 % of that.
+    for (const [fraction, expected] of [
+      [0.1, 12.1],
+      [0.25, 30.3],
+      [0.4, 48.4],
+    ]) {
+      const angle = await swipe(page, fraction);
+      expect(angle).toBeGreaterThan(expected - 3);
+      expect(angle).toBeLessThan(expected + 3);
+      // Smooth, natural return after lifting the finger.
+      await settlesTo(page, "manual-yaw", 0, 0.5);
+    }
+  });
+
+  test("touch speed is configurable from the Motion panel", async ({ page }) => {
+    await openStudio(page);
+    await page.getByRole("navigation", { name: "Properties" }).getByRole("button", { name: "Motion" }).click();
+    const speed = page.getByRole("slider", { name: "Touch speed" });
+    await expect(speed).toHaveAttribute("aria-valuetext", "55%");
+    await speed.focus();
+    for (let i = 0; i < 9; i++) await page.keyboard.press("ArrowRight"); // 55 % → 100 %
+    await expect(speed).toHaveAttribute("aria-valuetext", "100%");
+    const angle = await swipe(page, 0.25);
+    expect(angle).toBeGreaterThan(55 - 4);
+    expect(angle).toBeLessThan(55 + 4);
+  });
+});
+
+test("mouse drag rate is unchanged by the touch setting", async ({ page, isMobile }) => {
+  test.skip(isMobile, "desktop pointer");
+  const box = await openStudio(page);
+  await page.getByRole("toolbar", { name: "Viewport" }).getByRole("button", { name: "Cursor tracking" }).click();
+  await hover(page, box, 0.4, 0.45);
+  await page.mouse.down();
+  await hover(page, box, 0.65, 0.45); // a quarter of the width
+  await page.waitForTimeout(800);
+  const angle = await num(page, "manual-yaw");
+  await page.mouse.up();
+  expect(angle).toBeGreaterThan(55 - 3); // 0.25 × 220°
+  expect(angle).toBeLessThan(55 + 3);
 });
 
 test.describe("reduced motion", () => {

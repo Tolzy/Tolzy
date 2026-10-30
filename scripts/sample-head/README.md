@@ -28,8 +28,12 @@ restrictions.
 
 1. Applies macro targets for an adult male (~40 years, African ethnicity, average
    muscle/weight) to the base mesh.
-2. Keeps the head, neck and upper shoulders: triangles are clipped exactly on a
-   curved bust cut, and the section is closed with a dark matte "Base" surface.
+2. Keeps the head, neck and shoulders: triangles are clipped exactly on a
+   horizontal plane 32 cm below the crown (`--cut-depth`, decimetres), and the
+   flat section is closed with an ear-clipped, downward-facing "Base" cap in a
+   dark warm matte. A flat base cannot be seen from front, three-quarter or
+   profile views (an earlier curved cut exposed its cap as a dark wedge once
+   the head turned past ~20°).
 3. Fits the eye, eyebrow, eyelash and hair proxies to the reshaped mesh with
    their `.mhclo` bindings.
 4. Builds PBR textures: base colour and tangent-space normal map from the skin;
@@ -42,13 +46,23 @@ restrictions.
 | Property             | Value                                                                                                                                |
 | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
 | Format               | glTF 2.0 binary (`.glb`), no extensions, no Draco/meshopt                                                                            |
-| File size            | ≈ 1.76 MB (1,806,016 bytes)                                                                                                          |
-| Triangles / vertices | 15,400 / 9,496                                                                                                                       |
-| Meshes               | Skin 9,018 tris · Base 104 · Eyes 2,040 · Eyebrows 192 · Eyelashes 368 · Hair 3,678                                                  |
+| File size            | ≈ 1.81 MB (1,808,308 bytes)                                                                                                          |
+| Triangles / vertices | 15,502 / 9,549                                                                                                                       |
+| Meshes               | Skin 9,118 tris · Base 106 · Eyes 2,040 · Eyebrows 192 · Eyelashes 368 · Hair 3,678                                                  |
 | Textures             | Skin colour 2048² JPEG · skin normal 2048² JPEG · skin roughness 1024² JPEG · hair 1024² PNG · eyes 512² PNG · brows/lashes 256² PNG |
-| Dimensions           | ≈ 24.8 × 36.8 × 23.6 cm (W × H × D)                                                                                                  |
-| Coverage             | Face, ears, scalp and hair, back of head, neck, upper shoulders; closed base                                                         |
+| Dimensions           | ≈ 45.6 × 33.8 × 24.4 cm (W × H × D)                                                                                                  |
+| Coverage             | Face, ears, scalp and hair, back of head, neck, shoulders; closed flat base                                                          |
 | Thumbnail            | `thumbnail.webp`, 640 × 800, rendered from the studio by `thumbnail.mjs`                                                             |
+
+## Known asset limitations
+
+- 14 skin triangles (≈ 7 mm² in total, under the jaw) have shading normals that
+  disagree with their winding. They come from folded geometry in the MakeHuman
+  base mesh, are invisible at any viewing distance, and are left as-is rather
+  than altering the source topology.
+- Hair is a simple card-based proxy with a slightly hard hairline.
+- `src/lib/studio/sample-asset.test.ts` checks the base stays flat and faces
+  down, and that the skin is open only along the base outline.
 
 ## Rebuilding
 

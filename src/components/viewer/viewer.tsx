@@ -44,6 +44,8 @@ const KEY_PITCH = 5;
 
 const FOV = 26; // a longer lens avoids wide-angle distortion of the face
 const MARGIN = 1.22;
+/** Widest part of the model (relative to its height) that framing must keep in view. */
+const MAX_FRAME_WIDTH = 1;
 /** Space kept clear for the floating viewport toolbar, in CSS pixels. */
 const TOOLBAR_INSET = 72;
 
@@ -89,7 +91,9 @@ export default function Viewer({ url, framing, lighting, motion, reducedMotion, 
   const onPointerDown = (e: PointerEvent<HTMLDivElement>) => {
     if (e.pointerType === "mouse" && e.button !== 0) return;
     const rect = e.currentTarget.getBoundingClientRect();
-    if (controller.dragStart(e.pointerId, e.clientX, e.clientY, rect.width, rect.height, performance.now())) {
+    if (
+      controller.dragStart(e.pointerId, e.clientX, e.clientY, rect.width, rect.height, performance.now(), e.pointerType)
+    ) {
       try {
         // Keep receiving moves even when the pointer leaves the canvas mid-drag.
         e.currentTarget.setPointerCapture(e.pointerId);
@@ -221,7 +225,9 @@ function CameraRig({ bounds, framing, zoom }: { bounds: ModelBounds | null; fram
   const size = useThree((s) => s.size);
 
   useLayoutEffect(() => {
-    const width = bounds?.width ?? 0.8;
+    // Frame at most a square around the bust: on narrow viewports the shoulder
+    // tips may run to the edge (a portrait crop) so the face stays large.
+    const width = Math.min(bounds?.width ?? 0.8, MODEL_HEIGHT * MAX_FRAME_WIDTH);
     const height = bounds?.height ?? MODEL_HEIGHT;
     const aspect = size.width / Math.max(size.height, 1);
     const fill = Math.max(0.5, 1 - TOOLBAR_INSET / Math.max(size.height, 1));

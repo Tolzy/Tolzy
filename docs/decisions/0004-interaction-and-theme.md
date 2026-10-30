@@ -33,6 +33,10 @@ rotation = track(pointer) + manual(drag / keyboard)
   lost capture as a cancelled drag (no flick). Touch rotates by dragging
   (`touch-action: none` on the studio canvas). The surface is keyboard
   focusable with arrow-key rotation.
+- **Touch:** touch drags use their own rate, `touchSensitivity`, relative to
+  the mouse rate (default 55 %: a 40 % swipe turns the head ≈ 48° instead of
+  ≈ 88°). Mouse and pen are unchanged. Configurable as "Touch speed" in the
+  Motion panel. Springs, flick and return behave exactly as for the mouse.
 - **Reduced motion:** tracking starts off, springs are critically damped and
   faster, and releases never fling. Users may still enable tracking.
 
