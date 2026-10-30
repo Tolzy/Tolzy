@@ -1,0 +1,248 @@
+# Technical architecture
+
+Status: Milestone 0 proposal. Decisions marked **(ADR)** have a record in
+`docs/decisions/`.
+
+## 1. System overview
+
+```
+ Browser (Next.js client)                        Server (Vercel)                     External
+ ───────────────────────                         ───────────────                     ────────
+ Dashboard / Create / Studio  ──fetch──▶  Route handlers & server actions  ──▶  Supabase (Auth, Postgres, Storage)
+   React Three Fiber viewport             ├─ /api/uploads/*   (signed upload URLs)
+   Zustand stores                         ├─ /api/portraits/* (CRUD, settings)        ──▶  Cloudflare R2 (GLB, PNG)
+   MediaPipe face pre-check (WASM)        ├─ /api/generation/* (start, status)
+                                          ├─ /api/webhooks/[provider] ◀──────────────────  Reconstruction provider(s)
+ Embed page (/e/[slug])  ◀── public ───   ├─ /api/cron/poll-jobs (fallback polling)
+   minimal viewer bundle                  └─ lib/reconstruction (provider adapters, server-only)
+```
+
+Principles:
+
+- **Server-only secrets.** Provider keys, R2 keys and the Supabase service-role
+  key are only imported from modules marked `import "server-only"`.
+- **Provider independence.** The UI and renderer know only our own types
+  (`Portrait`, `GenerationJob`, `ModelAsset`). Providers are adapters.
+- **Settings ≠ geometry.** Customisation is a versioned JSON document stored
+  separately from the GLB; the GLB is never rewritten to change a material.
+
+## 2. Stack and versions
+
+| Concern | Choice | Version at time of writing |
+| --- | --- | --- |
+| Framework | Next.js (App Router) + React + TypeScript (strict) | next 16.x, react 19.x |
+| Styling | Tailwind CSS v4 with CSS-variable design tokens | 4.x |
+| UI primitives | Radix UI primitives (unstyled, accessible), wrapped in our own components | — |
+| 3D | three, @react-three/fiber, @react-three/drei | three 0.187, R3F 9 |
+| Asset pipeline | @gltf-transform/core + functions, meshoptimizer, sharp | — |
+| State | Zustand (client), server state via route handlers + SWR-style fetch | 5.x |
+| Validation | Zod (shared client/server schemas) | 4.x |
+| Auth / DB | Supabase Auth + Postgres with Row Level Security | — |
+| Source photos | Supabase Storage, **private** bucket | — |
+| Generated assets | Cloudflare R2 (S3 API via @aws-sdk/client-s3) | — |
+| Face pre-check | @mediapipe/tasks-vision Face Landmarker (Apache-2.0, runs in browser) | — |
+| Hosting | Vercel | — |
+| Tests | Vitest (unit), Playwright (e2e + visual), axe-core (a11y) | — |
+
+Dependencies are added per milestone, not up front. Radix and MediaPipe are the
+only additions beyond the brief, justified by accessibility and by face checks
+that would otherwise need a server-side ML model.
+
+## 3. Repository layout (proposed)
+
+```
+src/
+  app/
+    (marketing)/            public landing (later)
+    (app)/                  authenticated shell
+      dashboard/            recents, projects, search
+      projects/[id]/
+      create/               upload + validation + start generation
+      studio/[portraitId]/  3D editor
+      settings/
+    e/[slug]/               public embed (separate minimal layout)
+    api/                    route handlers (uploads, generation, webhooks, cron, exports)
+  components/
+    ui/                     design-system primitives (Button, Field, Segmented, Slider, …)
+    studio/                 inspector panels, toolbar
+    viewer/                 R3F: Viewer, PortraitModel, InteractionRig, Lighting, Backdrop
+  lib/
+    reconstruction/         provider interface + adapters (server-only)
+    storage/                R2 + Supabase storage helpers (server-only)
+    gltf/                   glTF Transform pipeline (server-only)
+    images/                 sharp processing (server-only)
+    supabase/               client/server factories
+    validation/             Zod schemas shared by client and server
+  stores/                   Zustand stores
+  styles/                   tokens.css, globals.css
+supabase/migrations/        SQL migrations
+tests/                      e2e, visual, fixtures
+docs/                       this documentation
+```
+
+## 4. 3D rendering foundation
+
+### Scene graph
+
+```
+<Canvas>                                   camera: perspective, fov 28°, fixed position
+  <Lighting preset />                      environment (self-hosted HDRI or Lightformers) + key/rim lights
+  <Backdrop />                             colour / gradient / transparent
+  <InteractionRig>                         ← cursor tracking + drag rotate THIS group only
+    <Normalizer>                           ← per-model fix-up: centre, scale, forward-axis, pivot
+      <PortraitModel url materialPreset />
+    </Normalizer>
+  </InteractionRig>
+  <ContactShadows />
+</Canvas>
+```
+
+- **Camera:** a long-ish lens (fov ≈ 25–30°) avoids wide-angle facial
+  distortion, which matters for likeness. The camera stays still; zoom changes
+  distance within clamped limits. "Reset" restores both camera and rig.
+- **Normalizer:** computes the bounding box once on load, recentres, scales the
+  head to a canonical height, and applies a stored `orientationFix`
+  (Euler offset) because providers disagree on forward axis (+Z vs −Z) and
+  up-axis. The pivot is placed at the approximate head centre (≈ 0.62 of
+  bbox height above the base, overridable), so rotation reads like a neck turn
+  rather than a spin around the shoulders.
+- **Resource disposal:** on unmount or model swap, traverse and dispose
+  geometries, materials we created, and textures we own; clear `useGLTF` cache
+  for the replaced URL.
+- **Performance:** `frameloop="demand"` and `invalidate()` from the
+  interaction rig while it is settling, so an idle studio does not render at
+  60 fps; DPR clamped to [1, 2]; meshopt-compressed GLBs; KTX2 textures as a
+  later optimisation.
+- **States:** Suspense fallback (skeleton silhouette + progress from
+  `useProgress`), error boundary with retry, and a WebGL-unavailable notice.
+
+### Interaction rig (cursor tracking + drag)
+
+Rotation is the sum of two independent components, each damped per frame
+with frame-rate-independent damping (`MathUtils.damp`):
+
+```
+rotation = track(pointer) + manual(drag)
+```
+
+| Component | Input | Range | Behaviour |
+| --- | --- | --- | --- |
+| `track` | Normalised pointer `[-1, 1]` relative to the canvas (or the window in embeds) | yaw ±25°, pitch ±12° × sensitivity 0.65 | Returns to 0 after 0.6 s without pointer movement or on pointer leave |
+| `manual` | Pointer drag delta (mouse, touch, pen) | yaw unlimited, pitch clamped ±30° | Setting: **return** (eases to 0 after release) or **hold** |
+
+Coexistence rule: while a drag is active the `track` target is frozen at its
+current value (not zeroed), so there is no jump when the drag starts; after
+release, tracking resumes smoothly. Because the two components add rather than
+compete for one target, they never fight.
+
+Touch: drag uses Pointer Events with pointer capture. In embeds, the canvas
+uses `touch-action: pan-y` so vertical page scrolling still works, and only
+horizontal drags rotate. Reduced motion: `prefers-reduced-motion: reduce`
+disables cursor tracking by default, shortens damping, keeps manual drag.
+Keyboard: arrow keys rotate in steps when the viewport is focused; `0` resets.
+
+All values live in `portrait_settings.motion` and are validated by Zod.
+
+## 5. Material system
+
+- On load, each mesh's original material is cloned and stored in a
+  `Map<meshUuid, Material>` — the **Original** preset restores from it, so the
+  skin texture is never lost or modified.
+- Presets are `MeshPhysicalMaterial` instances created once per viewer and
+  shared across meshes; the original `normalMap` (if present) is reused so
+  surface detail survives on Chrome/Gold/Ceramic.
+
+| Preset | Key parameters (starting points) |
+| --- | --- |
+| Original | Provider textures, `envMapIntensity` tuned per lighting preset |
+| Chrome | color #ffffff, metalness 1, roughness 0.05–0.08, high-contrast studio environment required |
+| Obsidian | color #0b0b0c, metalness 0, roughness 0.18, clearcoat 1, clearcoatRoughness 0.05 |
+| Ceramic | color #f2efe9, roughness 0.38, clearcoat 0.5, sheen 0.2 |
+| Glass | transmission 1, thickness 0.6, ior 1.5, roughness 0.05, attenuation tint; quality toggle (drei `MeshTransmissionMaterial` on high, physical transmission on low/mobile) |
+| Gold | color ≈ #f5c66b (sRGB of gold F0), metalness 1, roughness 0.22 |
+
+Reflective presets need a structured environment: a flat or uniform HDRI makes
+chrome look grey. We will build studio environments from drei `Lightformer`s
+(softbox strips, rim cards) rendered into the env map, plus self-hosted CC0
+HDRIs (Poly Haven) as alternatives. drei's built-in `preset` HDRIs load from a
+third-party CDN and will **not** be used in production.
+
+## 6. Reconstruction provider abstraction
+
+```ts
+// lib/reconstruction/types.ts (server-only)
+interface ReconstructionProvider {
+  id: ProviderId;
+  capabilities: { multiImage: boolean; webhooks: boolean; maxImages: number };
+  submit(input: ReconstructionInput): Promise<{ providerJobId: string }>;
+  getStatus(providerJobId: string): Promise<ProviderStatus>;      // polling fallback
+  parseWebhook(req: Request): Promise<ProviderStatus | null>;     // verifies signature
+  fetchResult(providerJobId: string): Promise<ReadableStream>;    // raw model bytes
+  deleteRemoteData?(providerJobId: string): Promise<void>;
+}
+```
+
+- Inputs reference our storage via short-lived signed URLs, never public URLs.
+- A registry chooses the provider from `RECONSTRUCTION_PROVIDER` (env) and
+  stores `provider` on each job, so jobs finish on the provider that started
+  them even after a switch.
+- A `pipeline` provider can compose several adapters (see research doc §4).
+- A `fixture` provider that returns a bundled, licensed sample head exists for
+  local development and tests only; it is disabled in production by an env
+  guard and labelled in the UI as a development fixture.
+
+## 7. Generation job lifecycle
+
+```
+pending ──submit ok──▶ processing ──result ok──▶ completed
+   │                       │
+   └──submit error──▶ failed ◀──provider error / timeout / pipeline error
+```
+
+1. `POST /api/generation` validates ownership + images, inserts a `pending` job,
+   submits to the provider, moves to `processing`.
+2. Completion arrives by **webhook** (signature-verified, idempotent on
+   `provider_job_id`) or by **polling**: a Vercel Cron route checks
+   `processing` jobs older than N seconds with exponential backoff.
+3. On success: download result → glTF Transform pipeline (dedupe, prune, weld,
+   optional simplify, texture resize to 2048/1024, meshopt compression) →
+   upload to R2 under `models/{userId}/{portraitId}/{assetId}.glb` → insert
+   `model_assets` row → job `completed` → portrait points to the new asset.
+4. Timeouts (e.g. 20 min) mark the job `failed` with a user-facing reason.
+5. The client watches the job via Supabase Realtime on `generation_jobs`
+   (fallback: polling the status route every 5 s).
+
+Vercel function duration limits apply to step 3. If optimisation of large
+outputs exceeds them, the pipeline moves to a background worker (documented
+risk R5).
+
+## 8. Exports
+
+- **GLB (original):** signed R2 download of the optimised model.
+- **GLB (styled):** client-side `GLTFExporter` of the current scene with the
+  active material preset baked in (binary). Glass uses
+  `KHR_materials_transmission`.
+- **PNG:** rendered client-side at a chosen resolution (1×–4× viewport, max
+  4096 px) by temporarily resizing the renderer, rendering one frame, and
+  reading the canvas with `toBlob`. Transparent background uses
+  `alpha: true` and no scene background; contact shadow stays.
+  Optionally uploaded to R2 and recorded in `exports`.
+
+## 9. Embeds
+
+- Route `/e/[slug]` renders only the viewer with the **published snapshot**
+  of settings, with no app chrome or auth.
+- Publishing copies the GLB to a public R2 bucket/path behind a custom domain
+  with long cache headers; unpublishing deletes it and deactivates the slug.
+  Private assets are never exposed through the embed.
+- Security headers: embed routes send `Content-Security-Policy:
+  frame-ancestors *` (or the user's allow-list); every other route sends
+  `frame-ancestors 'none'`.
+- Snippet: a responsive iframe using CSS `aspect-ratio`, `loading="lazy"`,
+  and a `title` attribute for accessibility.
+
+## 10. Environments and configuration
+
+See `.env.example`. Required services: Supabase project, Cloudflare R2 bucket
+(private) + public bucket for published embeds, a reconstruction provider key
+(after the bake-off), Vercel project with Cron enabled.
