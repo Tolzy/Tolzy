@@ -4,12 +4,28 @@ Milestones run in order. A milestone is complete only when its acceptance
 criteria pass, its tests pass, and the running interface has been inspected
 (screenshots attached to the PR). Each milestone ships as its own pull request.
 
-Development before Milestone 6 uses a **licensed sample head scan** as a
-development fixture (candidate: the Lee Perry-Smith head scan distributed with
-the three.js examples, CC BY 3.0 — licence to be re-verified and attributed),
+Development before Milestone 6 uses a **licensed sample head** as a
+development fixture (a CC0 bust built from MakeHuman assets, ADR 0003),
 clearly labelled "Sample model" in the UI. It is not presented as generated
 output. No paid reconstruction provider is used or subscribed to without the
 product owner's approval (ADR 0002).
+
+**Expanded scope (31 October 2026, ADR 0006):** advanced colour picker (M4),
+model parts / Geometry tool (new M7), eye effects and Effects Studio (new
+M8). Later milestones were renumbered:
+
+| Milestone                          | Before  | Now            |
+| ---------------------------------- | ------- | -------------- |
+| Materials, lighting, colour, theme | M4      | M4 (re-opened) |
+| Upload / Reconstruction            | M5 / M6 | M5 / M6        |
+| Model parts and Geometry tool      | —       | **M7**         |
+| Eye effects and Effects Studio     | —       | **M8**         |
+| Dashboard and project management   | M7      | M9             |
+| GLB and PNG exports                | M8      | M10            |
+| Embedding and publishing           | M9      | M11            |
+| Quality assurance and deployment   | M10     | M12            |
+
+Feature dependencies: `docs/feature-dependencies.md`.
 
 ---
 
@@ -99,35 +115,53 @@ test over repeated visits.
 previous curved cut exposed a dark cap as a "wedge" beyond ~20° of rotation),
 and touch drags use a separate, configurable rate (55 % of mouse by default).
 Covered by asset-geometry unit tests and mobile short/medium/long swipe tests.
-**Deferred:** `touch-action: pan-y` for embeds (Milestone 9).
+**Deferred:** `touch-action: pan-y` for embeds (Milestone 11; was M9).
 
-## M4 — Materials, lighting and customisation (in review)
+## M4 — Materials, lighting, colour and theme (re-opened)
 
-**As built:** six material presets applied by a reusable `MaterialSystem`
-(originals preserved, geometry untouched, materials cached and updated in
-place), Adjust controls per preset with Reset, five lighting rigs with a
-persistent procedural environment for reflections, Glass refracting the Scene
-background, real rendered preset previews, and the global theme fix (all
-interface chrome follows Dark/Light; the viewport stays dark). See ADR 0005.
-**Deferred:** mobile Glass quality switch; Zod settings schema and saved
-settings move to M7 with persistence.
+**Objective:** Studio-quality look controls without regenerating geometry, a
+precise colour picker, and a theme that reaches every Studio surface.
 
-**Objective:** Studio-quality look controls without regenerating geometry.
-**Scope:** Material presets (Original, Chrome, Obsidian, Ceramic, Glass,
-Gold) with original-material preservation; lighting presets built from
-Lightformers + self-hosted HDRIs; background (solid, gradient, transparent);
-inspector UI with presets and Adjust disclosure; Zod settings schema;
-undo/redo; local persistence (server persistence arrives in M7).
+**Delivered so far (commit fb6b053, ADR 0005):** six material presets applied
+by a reusable `MaterialSystem` (originals preserved, geometry untouched,
+materials cached and updated in place); per-preset Adjust with Reset; five
+lighting rigs with a persistent procedural environment for reflections;
+Glass refracting the Scene background; rendered preset previews; floating
+viewport controls on theme tokens; tests for all of it.
+
+**Remaining scope:**
+
+1. **Theme completion** (ADR 0006 §7). Review found the theme cannot be
+   changed from the Studio, and the Next.js Dev Tools "Preferences → Theme"
+   (development only) only restyles its own panel. Add a Dark / Light /
+   System control in the Studio top bar and the app shell; disable the Dev
+   Tools indicator (`devIndicators: false`); audit and fix every Studio
+   surface in both themes — top bar, breadcrumbs, rail, inspector, mobile tab
+   bar and sheets, popovers, menus, dialogs, tooltips, toasts, viewport
+   overlays (loading, error, no-WebGL). The viewport stage stays dark.
+2. **Advanced colour picker** (`docs/specs/colour-picker.md`): spectrum, hue,
+   alpha with checkerboard, HEX/RGB/HSL/HSB, eyedropper (native + viewport
+   sampler), recent and in-portrait colours, copy/paste; wired to material
+   tint (with opacity), background colours and gradient stops.
+3. **Material opacity** from the tint alpha (depth pre-pass, no sorting
+   artefacts) and a lower-cost Glass tier on mobile.
+
 **Acceptance:**
 
 - Switching presets never alters geometry and Original restores the exact
-  textures.
-- Chrome and Gold show readable reflections in every lighting preset.
-- Glass has a lower-cost fallback on mobile; ≥ 45 fps on a mid-range phone.
-- Settings round-trip through the Zod schema.
+  textures. ✅
+- Chrome and Gold show readable reflections in every lighting preset. ✅
+- Theme can be changed from inside the Studio; every Studio surface listed
+  above passes contrast in Dark and Light; the viewport, model, materials and
+  lighting are identical in both themes; preference persists.
+- Colour picker meets its spec acceptance (round-trips, eyedropper, recent
+  colours, copy/paste, keyboard, axe) and drives the real renderer.
+- Glass has a lower-cost tier on mobile; ≥ 45 fps on a mid-range phone.
 
-**Testing:** Unit tests for schema and material factory; visual regression
-screenshots per preset × lighting; performance profile on mobile.
+**Testing:** Unit tests for colour conversion/parsing; browser tests that
+switch the theme from the Studio and check each surface, picker → renderer
+tests, viewport sampling, existing material/lighting suites.
+**Not in M4:** model parts, eye effects, Effects Studio.
 
 ## M5 — Photograph upload and validation
 
@@ -155,7 +189,9 @@ Supabase (CLI); RLS tests with two users; e2e upload flow.
 vendor conversations, then a budget request to the product owner for the
 paid bake-off with consenting volunteers (see research doc §5), and an ADR. Step 2 provider
 interface + chosen adapter(s); generation_jobs + model_assets migrations;
-start route; webhook route; cron polling fallback; glTF Transform pipeline;
+start route; webhook route; cron polling fallback; glTF Transform pipeline
+built as named, versioned stages (normalise → segment slot for M7 → optimise
+→ thumbnail) so later stages can be added and back-filled;
 R2 upload; progress UI with Realtime; failures and retries; rate limits.
 **Acceptance:**
 
@@ -168,42 +204,88 @@ R2 upload; progress UI with Realtime; failures and retries; rate limits.
 **Testing:** Adapter contract tests with recorded fixtures; webhook signature
 tests; job state machine unit tests; one real end-to-end run per release.
 
-## M7 — Dashboard and project management
+## M7 — Model parts and Geometry tool
+
+**Objective:** Show head only, head and neck, full bust or a custom set of
+parts on any portrait, with clean closed geometry.
+**Scope** (`docs/specs/model-parts.md`): segmentation stage in the asset
+pipeline (landmarks by render-and-detect with MediaPipe, cross-section
+profile, exact triangle splits, cap generation, validation); glTF primitives
+per part + Model Descriptor metadata (`model_assets.manifest`); backfill of
+existing assets; sample head rebuilt with the same labels; client
+`GeometrySystem`; Model panel (presets, custom part list, hover highlight);
+framing and contact shadow from visible bounds; clipping-plane fallback for
+unsegmentable models.
+**Depends on:** M5 (MediaPipe), M6 (versioned pipeline, real outputs).
+**Acceptance:** presets work with closed caps under every material on the
+sample and ≥ 3 generated models; vertex data never changes; failed
+segmentation degrades to Full bust with a message.
+**Testing:** unit tests for profile/cut/cap maths; pipeline golden tests on
+fixtures; browser tests for presets, framing and caps.
+
+## M8 — Eye effects and Effects Studio
+
+**Objective:** Real-time GPU effects around the portrait, reusable across
+portraits.
+**Scope:** Effects workspace (`/studio/[id]/effects`, shared viewer in the
+studio layout), layers list, properties, timeline strip; effects runtime
+(module interface, scheduler, depth pre-pass, quality tiers); eye effects
+(`docs/specs/eye-effects.md`: glow colour, intensity, radius, hover and
+proximity triggers, pulse, glow blink; eyelid blink only with blend shapes);
+smoke, particles, fog, glow, light trails and appear / disappear / reveal /
+loop / burst transitions (`docs/specs/effects-studio.md`); MaterialSystem
+emissive and dissolve hooks; effect library presets.
+**Depends on:** M4 (colour picker), M7 (anchors, visible bounds).
+**Acceptance:** every control drives the renderer in real time; transitions
+scrubbable; stacks transfer between portraits; GPU counters stable; ≥ 45 fps
+on a mid-range phone (low tier, two layers); no frames rendered when idle
+with static effects; reduced-motion behaviour.
+**Testing:** unit tests for timeline and triggers (deterministic clock);
+browser pixel tests per effect and transition; performance profiles.
+May be split into M8a (runtime + eyes) and M8b (Effects Studio) at kickoff if
+the estimate requires.
+
+## M9 — Dashboard and project management
 
 **Objective:** Organise and find portraits.
 **Scope:** Projects CRUD, portraits list/grid, search, filters, sort,
 rename/move/delete (with storage cleanup), thumbnails, server-persisted
-settings with autosave, account settings (profile, data deletion).
+settings with autosave (Zod schema v2 incl. `geometry` and `effects`, v1 → v2
+migration), recent colours per account, account settings (profile, data
+deletion).
 **Acceptance:** All actions work with keyboard; deletion removes storage
 objects; empty, loading and error states designed; list of 200 portraits stays
 responsive.
 **Testing:** e2e CRUD flows; RLS tests; deletion integration test.
 
-## M8 — GLB and PNG exports
+## M10 — GLB and PNG exports
 
 **Objective:** Take the portrait out of the app.
 **Scope:** Original GLB download (presigned), styled GLB via GLTFExporter,
 PNG render dialog (1×/2×/4×, transparent), clamping to GPU limits, export
-records, thumbnails from the same renderer.
+records, thumbnails from the same renderer. Exports include only visible
+parts (M7); PNG renders the current effects frame (M8); GLB export explains
+that shader effects are not included.
 **Acceptance:** Exported GLBs open in Blender and the three.js editor with
 correct materials; PNG transparency verified; 4× export works on desktop and
 degrades gracefully on mobile.
 **Testing:** Unit test GLB validity with glTF Transform / gltf-validator;
 visual checks of exported PNGs.
 
-## M9 — Embedding and publishing
+## M11 — Embedding and publishing
 
 **Objective:** Share an interactive portrait safely.
 **Scope:** Share dialog (Private / Public embed), publish/unpublish routes,
 public bucket copy, `/e/[slug]` minimal viewer, poster image, frame-ancestors
-headers, iframe snippet with responsive sizing, optional origin allow-list.
+headers, iframe snippet with responsive sizing, optional origin allow-list;
+effects runtime as a lazy chunk loaded only for snapshots with effects.
 **Acceptance:** Unpublished portraits are unreachable (asset URL 404s);
 embed works on a third-party test page on desktop and mobile; embed route JS
 budget ≤ 250 KB gzip excluding three.js core chunk; Lighthouse performance ≥ 80
 on the embed page.
 **Testing:** e2e publish/unpublish; header tests; third-party page harness.
 
-## M10 — Quality assurance and deployment
+## M12 — Quality assurance and deployment
 
 **Objective:** Production readiness.
 **Scope:** Full accessibility audit, cross-browser/device matrix, performance
@@ -228,10 +310,18 @@ no critical a11y or security findings open; runbook documented.
    assets. Generated models have their own deletion controls. Everything is
    private by default.
 4. **Theme:** Light-first application; the 3D Studio viewport is dark by
-   default.
+   default. _(Updated in M3: dark-first application with a persisted Light
+   option; the viewport stays dark in both.)_
 5. **Region:** Nigeria is the initial market; the architecture stays
    international. No regional restrictions are hard-coded; production image
    processing is enabled per region only after provider availability,
    licensing and privacy requirements are evaluated.
 
 See `docs/decisions/0002-product-owner-decisions.md`.
+
+## Product-owner decisions (31 October 2026)
+
+6. **Expanded scope:** advanced colour picker (M4), model parts (M7, after
+   reconstruction), eye effects and Effects Studio (M8). ADR 0006.
+7. **Theme:** must reach every Studio surface and be changeable from the
+   Studio; completed within M4.

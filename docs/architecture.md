@@ -1,7 +1,8 @@
 # Technical architecture
 
-Status: Milestone 0 proposal. Decisions marked **(ADR)** have a record in
-`docs/decisions/`.
+Status: Milestone 0 proposal, updated through Milestone 4 and the expanded
+scope of 31 October 2026 (ADR 0006). Decisions marked **(ADR)** have a record
+in `docs/decisions/`; feature specs live in `docs/specs/`.
 
 ## 1. System overview
 
@@ -59,7 +60,7 @@ src/
     (focus)/create/         * focused creation flow (upload + validation in M5)
     (studio)/studio/[portraitId]/ * full-screen 3D editor (Suspense + skeleton)
     dev/components/         * design-system gallery, development only
-    e/[slug]/               public embed (M9, separate minimal layout)
+    e/[slug]/               public embed (M11, separate minimal layout)
     api/                    route handlers (uploads, generation, webhooks, cron, exports)
     globals.css             * design tokens (Tailwind v4 @theme)
   components/
@@ -70,9 +71,13 @@ src/
     dashboard/              * portrait tiles and cards
     studio/                 * studio layout, inspector panels, viewport toolbar, share dialog
     viewer/                 * R3F: LazyViewer, Viewer, PortraitModel, StudioLighting, framing maths
-                              interaction controller + rig (M3)
+                              interaction controller + rig (M3), MaterialSystem (M4),
+                              geometry-system (M7), effects/ runtime + modules (M8)
+    ui/color/               advanced colour picker (M4)
   lib/
-    studio/                 * settings types/defaults, preset metadata
+    studio/                 * settings types/defaults, materials ✅, lighting ✅, presets;
+                              geometry (M7), effects (M8)
+    color/                  colour conversion, parsing, formatting, three.js boundary (M4)
     reconstruction/         provider interface + adapters (server-only)
     storage/                R2 + Supabase storage helpers (server-only)
     gltf/                   glTF Transform pipeline (server-only)
@@ -92,19 +97,44 @@ defaults). Pages that read runtime data (`params`, cookies) do so inside a
 
 ## 4. 3D rendering foundation
 
+### Six scene layers (ADR 0006)
+
+The portrait is composed of independent layers — **geometry, materials,
+lighting, scene/environment, motion, effects** — each with its own settings
+slice, pure data module (`lib/studio/*`), runtime (`components/viewer/*`) and
+panel. Layers never write each other's state. They share a read-only
+**Model Descriptor** (parts, anchors, framing, capabilities) and a few
+services (frame scheduler, depth pre-pass, pointer state, clock). Materials
+expose two hooks — emissive (eye glow) and dissolve (reveal, part
+cross-fades) — which are the only way other layers affect a material.
+
+```
+             ┌──────────── ModelDescriptor (read-only) ────────────┐
+settings ──▶ │ geometry │ material │ lighting │ scene │ motion │ effects │ ──▶ one R3F scene
+             └──────────────────────────────────────────────────────────┘
+                               shared: scheduler · depth pre-pass · pointer · clock
+```
+
 ### Scene graph
 
 ```
-<Canvas>                                   camera: perspective, fov 26°, fixed position (as built in M2)
-  <Lighting preset />                      environment (self-hosted HDRI or Lightformers) + key/rim lights
-  <Backdrop />                             colour / gradient / transparent
-  <InteractionRig>                         ← cursor tracking + drag rotate THIS group only
-    <Normalizer>                           ← per-model fix-up: centre, scale, forward-axis, pivot
-      <PortraitModel url materialPreset />
-    </Normalizer>
-  </InteractionRig>
-  <ContactShadows />
-</Canvas>
+<StudioLayout>                             viewer lives in the layout (M8): Design and Effects
+                                           workspaces share it without reloading the model
+  <Canvas frameloop="demand">              camera: perspective, fov 26°, fixed (M2)
+    <StudioLighting rig />                 ✅ direct lights + hemisphere + persistent procedural environment
+    <TransmissionBackdrop />               ✅ Scene background for glass refraction only
+    <SceneProbe />                         ✅ test/debug mirror of live scene state
+    <InteractionRig>                       ✅ tracking + drag rotate THIS group only
+      <PortraitModel>                      ✅ normaliser + MaterialSystem
+        GeometrySystem                     (M7) part/cap visibility from the descriptor
+        EyeEffects                         (M8) emissive hook + halos at eye anchors
+      </PortraitModel>
+      <EffectsLayer stack />               (M8) model-relative effects rotate with the head
+    </InteractionRig>
+    <EffectsLayer world />                 (M8) world-fixed effects (fog, floor smoke)
+    <StudioShadow />                       ✅ contact shadow at the visible floor
+  </Canvas>
+</StudioLayout>
 ```
 
 - **As built (M2):** see ADR 0003 — PBR Neutral tone mapping, Lightformer
@@ -180,6 +210,30 @@ As built in Milestone 4: see ADR 0005.
 - `components/viewer/scene-probe.tsx` — mirrors live scene state (lights,
   environment version, GPU counts) onto data attributes for tests.
 
+## 5a. Colour (M4)
+
+Spec: `docs/specs/colour-picker.md`. Colours are stored as sRGB
+`#RRGGBB`/`#RRGGBBAA`; HSB/HSL/RGB are UI views; `lib/color/three.ts` is the
+single conversion point to linear three.js colours and alpha.
+
+## 5b. Model geometry and parts (M7)
+
+Spec: `docs/specs/model-parts.md`. Segmentation runs once per asset in the
+server pipeline and is stored in the GLB (primitives per part, cap
+primitives, `scene.extras.portraitStudio`) and in `model_assets.manifest`.
+The browser's `GeometrySystem` only toggles visibility and reports visible
+bounds to framing, shadows and effects. Clipping planes are a fallback only.
+
+## 5c. Effects (M8)
+
+Specs: `docs/specs/eye-effects.md`, `docs/specs/effects-studio.md`. Effect
+modules implement `create / update / tick / animated / dispose`; simulation
+runs on the GPU (stateless instanced particles, noise shaders); no full-screen
+post-processing by default; a scheduler renders frames only while something
+animates and the viewport is visible; quality tiers and reduced-motion
+behaviour per module. Placement is anchor-relative, so effect stacks are
+reusable across portraits.
+
 ## 6. Reconstruction provider abstraction
 
 ```ts
@@ -217,8 +271,10 @@ pending ──submit ok──▶ processing ──result ok──▶ completed
 2. Completion arrives by **webhook** (signature-verified, idempotent on
    `provider_job_id`) or by **polling**: a Vercel Cron route checks
    `processing` jobs older than N seconds with exponential backoff.
-3. On success: download result → glTF Transform pipeline (dedupe, prune, weld,
-   optional simplify, texture resize to 2048/1024, meshopt compression) →
+3. On success: download result → glTF Transform pipeline as named, versioned
+   stages (validate → normalise → segment (M7) → dedupe, prune, weld,
+   optional simplify per primitive, texture resize to 2048/1024, meshopt
+   compression → thumbnail) →
    upload to R2 under `models/{userId}/{portraitId}/{assetId}.glb` → insert
    `model_assets` row → job `completed` → portrait points to the new asset.
 4. Timeouts (e.g. 20 min) mark the job `failed` with a user-facing reason.
@@ -233,8 +289,9 @@ risk R5).
 
 - **GLB (original):** signed R2 download of the optimised model.
 - **GLB (styled):** client-side `GLTFExporter` of the current scene with the
-  active material preset baked in (binary). Glass uses
-  `KHR_materials_transmission`.
+  active material preset baked in (binary) and only the visible parts (M7).
+  Glass uses `KHR_materials_transmission`. Shader effects cannot be stored in
+  glTF; the dialog says so.
 - **PNG:** rendered client-side at a chosen resolution (1×–4× viewport, max
   4096 px) by temporarily resizing the renderer, rendering one frame, and
   reading the canvas with `toBlob`. Transparent background uses

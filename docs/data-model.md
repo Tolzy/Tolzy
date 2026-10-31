@@ -104,6 +104,8 @@ create table model_assets (
   texture_size    int,
   pipeline_version text not null,
   orientation_fix jsonb not null default '{"x":0,"y":0,"z":0}',
+  manifest        jsonb not null default '{}',   -- Model Descriptor: parts, anchors, capabilities (ADR 0006, M7)
+  segmentation_version text,                     -- null until the M7 stage has run (backfill target)
   created_at      timestamptz not null default now()
 );
 
@@ -175,36 +177,54 @@ create policy "owner can write"  on portraits for all    using (owner_id = auth.
 ## 4. Portrait settings document
 
 Stored as JSON, validated by a shared Zod schema, versioned with
-`schema_version` so later migrations can upgrade old documents.
+`schema_version` so later migrations can upgrade old documents. The schema
+and server persistence ship in M9; until then settings live in the studio
+store. Version 2 (planned, ADR 0006) has one slice per scene layer:
 
 ```ts
-const PortraitSettings = z.object({
+const Hex = z.string().regex(/^#([0-9a-f]{6}|[0-9a-f]{8})$/i); // sRGB, optional alpha
+
+const PortraitSettingsV2 = z.object({
+  geometry: z.object({
+    // M7
+    preset: z.enum(["head", "headNeck", "bust", "custom"]),
+    parts: z.array(PartId).optional(),
+  }),
   material: z.object({
+    // M4 (as built) + opacity via tint alpha
     preset: z.enum(["original", "chrome", "obsidian", "ceramic", "glass", "gold"]),
-    overrides: z.object({ color: Hex, roughness: Unit, metalness: Unit }).partial().optional(),
+    tint: Hex,
+    roughness: Unit,
+    metalness: Unit,
+    clearcoat: Unit,
+    thickness: z.number().min(0.05).max(1.5),
   }),
   lighting: z.object({
-    preset: z.enum(["studio", "softbox", "rim", "dramatic", "daylight"]),
+    // M4 (as built)
+    preset: z.enum(["studio", "dramatic", "soft", "rim", "neutral"]),
     intensity: z.number().min(0).max(3),
-    rotation: z.number().min(-180).max(180), // environment yaw in degrees
+    rotation: z.number().min(-180).max(180),
+    shadows: z.boolean(),
   }),
-  background: z.discriminatedUnion("type", [
-    z.object({ type: z.literal("solid"), color: Hex }),
-    z.object({ type: z.literal("gradient"), from: Hex, to: Hex }),
-    z.object({ type: z.literal("transparent") }),
-  ]),
-  motion: z.object({
-    tracking: z.boolean(),
-    yawLimit: z.number().min(0).max(60), // default 25
-    pitchLimit: z.number().min(0).max(30), // default 12
-    sensitivity: Unit, // default 0.65
-    damping: z.number().min(1).max(20), // default ≈ 6 (lambda)
-    idleReturnMs: z.number().min(0).max(5000), // default 600
-    dragRelease: z.enum(["return", "hold"]),
+  scene: z.object({
+    background: z.discriminatedUnion("type", [
+      z.object({ type: z.literal("solid"), color: Hex }),
+      z.object({ type: z.literal("gradient"), from: Hex, to: Hex }),
+      z.object({ type: z.literal("transparent") }),
+    ]),
+    camera: z.object({ zoom: z.number() }),
   }),
-  camera: z.object({ distance: z.number(), fov: z.number().min(15).max(50) }),
+  motion: MotionSettings, // M3 (as built)
+  effects: z.object({
+    // M8
+    eyes: EyeEffectSettings, // docs/specs/eye-effects.md §5
+    stack: z.array(EffectInstance).max(8), // docs/specs/effects-studio.md §7
+  }),
 });
 ```
+
+Migration v1 → v2: move `background` under `scene`, add `geometry`
+(`bust`) and an empty `effects`; 6-digit colours stay valid.
 
 ## 5. Storage layout
 

@@ -176,6 +176,25 @@ Two steps, no wizard chrome beyond a step indicator.
 - Autosave of settings (debounced 800 ms) with "Saving… / Saved" in the top
   bar; undo/redo (`⌘Z` / `⇧⌘Z`) over settings changes.
 
+**Planned additions (ADR 0006):**
+
+- **Theme control in the Studio** (M4): Dark / Light / System in the top bar
+  menu, mirroring Settings → Appearance. Every Studio surface — top bar,
+  rail, inspector, mobile tab bar and sheets, popovers, menus, dialogs,
+  tooltips, toasts, viewport overlays — uses app tokens; only the viewport
+  stage (`--viewport-*`) stays dark.
+- **Colour picker** (M4, `docs/specs/colour-picker.md`): popover from the
+  swatch row (bottom sheet on phones), themed; spectrum, hue, alpha over a
+  checkerboard, HEX/RGB/HSL/HSB fields with scrub-on-label, eyedropper,
+  recent and in-portrait swatches, copy/paste.
+- **Model** context first on the rail (M7): Head · Head & neck · Bust ·
+  Custom, part list with hover highlight; unavailable parts disabled with a
+  reason.
+- **Workspace switch** in the top bar (M8): Design · Effects. Effects
+  workspace: Layers list + Properties in the inspector, a timeline strip
+  under the viewport (play/pause, scrub, transition handles). Same viewport,
+  same toolbar.
+
 ### Export and publish
 
 - **Export menu:** Download GLB (original), Download GLB (with material),

@@ -1,6 +1,6 @@
 # ADR 0005 — Material presets, lighting rigs and theme scope
 
-Date: 2026-10-31 · Status: Proposed (Milestone 4, awaiting review)
+Date: 2026-10-31 · Status: Accepted in part — materials and lighting as built; theme scope extended by ADR 0006 (Milestone 4 re-opened)
 
 ## Materials
 
@@ -76,6 +76,11 @@ Floating controls use `--float-*` tokens; `--viewport-*` tokens are reserved
 for the always-dark stage. Preset preview tiles stay dark in both themes:
 they are small renders of the stage, not chrome.
 
+**Review addendum (31 Oct 2026):** the product owner reported that only a
+floating Preferences panel changed theme. That panel is the Next.js Dev
+Tools (development only); the app theme cannot be changed from the Studio.
+Completion of the theme work stays in M4 — see ADR 0006 §7.
+
 ## Limitations
 
 - Transmission is the most expensive material; there is no mobile quality
@@ -84,4 +89,4 @@ they are small renders of the stage, not chrome.
 - Glass refracts the Scene background colour, not the checkerboard shown for
   "Transparent" (it uses a neutral dark instead).
 - Settings are held in the studio store for the session; server persistence
-  arrives with accounts (Milestone 7).
+  arrives with the dashboard milestone (M9 after the 31 Oct renumbering).
