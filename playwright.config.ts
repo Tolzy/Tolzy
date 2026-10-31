@@ -1,7 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
 const PORT = 3200;
-const HEAVY = /materials\.spec\.ts/;
+const HEAVY = /(materials|customization)\.spec\.ts/;
 const DESKTOP = { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 } };
 const MOBILE = { ...devices["Pixel 7"] };
 

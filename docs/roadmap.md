@@ -10,20 +10,26 @@ clearly labelled "Sample model" in the UI. It is not presented as generated
 output. No paid reconstruction provider is used or subscribed to without the
 product owner's approval (ADR 0002).
 
-**Expanded scope (31 October 2026, ADR 0006):** advanced colour picker (M4),
-model parts / Geometry tool (new M7), eye effects and Effects Studio (new
-M8). Later milestones were renumbered:
+**Expanded scope (31 October 2026, ADR 0006; numbering confirmed by the
+product owner the same day):** advanced colour picker (M4), model parts /
+Geometry tool (M7), Eye Effects (M8), Effects Studio (M9). Later milestones
+were renumbered:
 
-| Milestone                          | Before  | Now            |
-| ---------------------------------- | ------- | -------------- |
-| Materials, lighting, colour, theme | M4      | M4 (re-opened) |
-| Upload / Reconstruction            | M5 / M6 | M5 / M6        |
-| Model parts and Geometry tool      | —       | **M7**         |
-| Eye effects and Effects Studio     | —       | **M8**         |
-| Dashboard and project management   | M7      | M9             |
-| GLB and PNG exports                | M8      | M10            |
-| Embedding and publishing           | M9      | M11            |
-| Quality assurance and deployment   | M10     | M12            |
+| Milestone                          | Original | Now     |
+| ---------------------------------- | -------- | ------- |
+| Materials, lighting, colour, theme | M4       | M4 ✅   |
+| Photo upload and validation        | M5       | M5 ✅\* |
+| AI reconstruction                  | M6       | M6      |
+| Model parts and Geometry tool      | —        | **M7**  |
+| Eye Effects                        | —        | **M8**  |
+| Effects Studio                     | —        | **M9**  |
+| Dashboard and project management   | M7       | M10     |
+| GLB and PNG exports                | M8       | M11     |
+| Embedding and publishing           | M9       | M12     |
+| Quality assurance and deployment   | M10      | M13     |
+
+\* M5's on-device selection and validation are complete; the secure server
+upload waits for accounts (Supabase project) — see M5 below.
 
 Feature dependencies: `docs/feature-dependencies.md`.
 
@@ -115,72 +121,80 @@ test over repeated visits.
 previous curved cut exposed a dark cap as a "wedge" beyond ~20° of rotation),
 and touch drags use a separate, configurable rate (55 % of mouse by default).
 Covered by asset-geometry unit tests and mobile short/medium/long swipe tests.
-**Deferred:** `touch-action: pan-y` for embeds (Milestone 11; was M9).
+**Deferred:** `touch-action: pan-y` for embeds (Milestone 12; originally M9).
 
-## M4 — Materials, lighting, colour and theme (re-opened)
+## M4 — Materials, lighting, customisation and global theming ✅ (in review)
 
 **Objective:** Studio-quality look controls without regenerating geometry, a
-precise colour picker, and a theme that reaches every Studio surface.
+precise colour picker, and a theme that reaches every surface. ADRs 0005,
+0006 §7 and 0007.
 
-**Delivered so far (commit fb6b053, ADR 0005):** six material presets applied
-by a reusable `MaterialSystem` (originals preserved, geometry untouched,
-materials cached and updated in place); per-preset Adjust with Reset; five
-lighting rigs with a persistent procedural environment for reflections;
-Glass refracting the Scene background; rendered preset previews; floating
-viewport controls on theme tokens; tests for all of it.
+**Delivered:**
 
-**Remaining scope:**
+- **Theme:** Dark default; Dark / Light / System menu in the Studio top bar,
+  the app sidebar and the New Portrait header (same preference as Settings →
+  Appearance); applied before first paint; persisted; every page, panel,
+  menu, dialog, popover and tooltip on semantic tokens; viewport stage dark
+  in both themes. Next.js dev-tools indicator disabled. Light-theme warning
+  colour darkened to pass 4.5:1.
+- **Colour picker** (`components/ui/color`, `lib/color`): spectrum,
+  hue, opacity over a checkerboard, HEX/RGB/HSL/HSB inputs, eyedropper
+  (native EyeDropper API where available), live preview, copy/paste of any
+  CSS colour format, recent colours, preset swatches; replaces the native
+  input everywhere (material tint, light colour, background colours).
+- **Materials:** six presets; Adjust = tint, roughness, metalness, lacquer
+  (Obsidian/Ceramic), thickness (Glass), **opacity 0–100 %** (all but Glass;
+  Original keeps its textures via a cached translucent copy). Translucency
+  uses a depth pre-pass so only the front-most surface blends; shadows fade
+  with opacity. Reset to preset; undo/redo.
+- **Lighting:** five rigs; intensity, rotation, light colour, ambient,
+  shadow strength, contact shadow; Reset to preset; undo/redo.
+- **Scene:** background presets, gradient/solid/none, custom colours with
+  opacity (checkerboard shows through), independent of material and lighting.
+- **Persistence:** settings validated by a versioned Zod schema
+  (`lib/studio/schema.ts`) and saved per portrait on this device; the same
+  document moves to `portrait_settings` in M10.
 
-1. **Theme completion** (ADR 0006 §7). Review found the theme cannot be
-   changed from the Studio, and the Next.js Dev Tools "Preferences → Theme"
-   (development only) only restyles its own panel. Add a Dark / Light /
-   System control in the Studio top bar and the app shell; disable the Dev
-   Tools indicator (`devIndicators: false`); audit and fix every Studio
-   surface in both themes — top bar, breadcrumbs, rail, inspector, mobile tab
-   bar and sheets, popovers, menus, dialogs, tooltips, toasts, viewport
-   overlays (loading, error, no-WebGL). The viewport stage stays dark.
-2. **Advanced colour picker** (`docs/specs/colour-picker.md`): spectrum, hue,
-   alpha with checkerboard, HEX/RGB/HSL/HSB, eyedropper (native + viewport
-   sampler), recent and in-portrait colours, copy/paste; wired to material
-   tint (with opacity), background colours and gradient stops.
-3. **Material opacity** from the tint alpha (depth pre-pass, no sorting
-   artefacts) and a lower-cost Glass tier on mobile.
+**Acceptance (met):** presets change the real model; adjustments are live;
+opacity renders without inner-face artefacts; formats round-trip; picker
+opacity works; lighting presets and adjustments change the scene; background
+presets and custom colours work; undo/redo restores settings; both themes
+across the app, persisted, viewport dark in both; no material or lighting
+regressions.
+**Testing:** unit (colour maths and parsing, schema, material system incl.
+opacity), browser (`customization.spec.ts`, `materials.spec.ts`,
+`theme.spec.ts`, axe in both themes on every page).
+**Deferred:** viewport colour sampler for browsers without the EyeDropper
+API (the eyedropper is hidden there); mobile Glass quality tier.
 
-**Acceptance:**
-
-- Switching presets never alters geometry and Original restores the exact
-  textures. ✅
-- Chrome and Gold show readable reflections in every lighting preset. ✅
-- Theme can be changed from inside the Studio; every Studio surface listed
-  above passes contrast in Dark and Light; the viewport, model, materials and
-  lighting are identical in both themes; preference persists.
-- Colour picker meets its spec acceptance (round-trips, eyedropper, recent
-  colours, copy/paste, keyboard, axe) and drives the real renderer.
-- Glass has a lower-cost tier on mobile; ≥ 45 fps on a mid-range phone.
-
-**Testing:** Unit tests for colour conversion/parsing; browser tests that
-switch the theme from the Studio and check each surface, picker → renderer
-tests, viewport sampling, existing material/lighting suites.
-**Not in M4:** model parts, eye effects, Effects Studio.
-
-## M5 — Photograph upload and validation
+## M5 — Photograph upload and validation ✅ (on-device; server upload pending)
 
 **Objective:** Collect good input and consent before spending money.
-**Scope:** Supabase project + Auth (sign-in is required before any upload or
-generation; the dashboard and projects are tied to the signed-in account); migrations for profiles, projects,
-portraits, source_images, consents; private storage bucket; upload flow with
-client face pre-check (MediaPipe), server validation and re-encode (Sharp,
-EXIF strip); optional extra angles; consent capture.
-**Acceptance:**
-
-- Invalid files rejected with specific messages; no-face and multi-face
-  blocked; other checks warn.
-- Uploaded files contain no EXIF/GPS; stored privately; RLS prevents
-  cross-user access (tested).
-- Consent recorded with version.
-
-**Testing:** Unit tests for validators; integration tests against a local
-Supabase (CLI); RLS tests with two users; e2e upload flow.
+**Delivered** (ADR 0007): New Portrait flow — drag-and-drop or browse,
+preview, replace, remove; four optional angle slots, each independent;
+guidelines with a framing illustration; consent required; Continue lists
+exactly what is missing; a review step that states plainly that uploading is
+not available yet and that nothing has been uploaded. Validation runs **on
+the device**: file signature (not extension), 20 MB limit, decoding (HEIC
+where the browser can), 1024 px minimum, then MediaPipe Face Landmarker
+(self-hosted runtime and model) for face count, face size, pose, framing,
+eyes, expression, plus focus and exposure measured on the face. Exposure uses
+percentiles and clipping, never average brightness, so skin tone does not
+affect the result.
+**Remaining (needs the Supabase project — product-owner dependency):**
+Supabase Auth (sign-in before upload), migrations for profiles, projects,
+portraits, source_images, consents; private bucket with RLS; signed upload
+URLs; server validation and re-encode (Sharp, EXIF strip); consent records
+with version; retention job (30 days, keep/delete options).
+**Acceptance (met for this build):** invalid files rejected with specific
+messages; no-face, multi-face, too-small face, blur and files that fail
+format/size/resolution are blocked; other checks warn; consent enforced; no
+network request carries photo data and none goes to a third party.
+**Testing:** unit (format sniffing, limits, focus/exposure maths, readiness
+rules), browser (`create.spec.ts`: browse, drag-and-drop, every format and
+limit, each face check, replace/remove, independent angles, consent,
+no-upload guarantee, axe in both themes). Fixtures are renders of the CC0
+sample head — no real person's photo.
 
 ## M6 — AI reconstruction integration
 
@@ -223,29 +237,39 @@ segmentation degrades to Full bust with a message.
 **Testing:** unit tests for profile/cut/cap maths; pipeline golden tests on
 fixtures; browser tests for presets, framing and caps.
 
-## M8 — Eye effects and Effects Studio
+## M8 — Eye Effects
+
+**Objective:** Independently controllable eye illumination on any portrait.
+**Scope** (`docs/specs/eye-effects.md`): effects runtime foundations
+(module interface, frame scheduler, quality tiers); eye glow on/off, colour,
+intensity, radius; hover-triggered illumination; cursor-proximity response;
+pulse; glow blink (eyelid blink only when the asset has blend shapes);
+independent left/right where supported; MaterialSystem emissive hook.
+**Depends on:** M4 (colour picker), M7 (eye anchors).
+**Acceptance:** glow follows the eyes through tracking and drag on the sample
+and on a generated model without eye meshes; triggers respond within a frame;
+never visible through the head; no frames rendered while static.
+**Testing:** unit (proximity curve, pulse/blink timing with a deterministic
+clock); browser pixel tests at the eye anchors; GPU counters.
+
+## M9 — Effects Studio
 
 **Objective:** Real-time GPU effects around the portrait, reusable across
 portraits.
-**Scope:** Effects workspace (`/studio/[id]/effects`, shared viewer in the
-studio layout), layers list, properties, timeline strip; effects runtime
-(module interface, scheduler, depth pre-pass, quality tiers); eye effects
-(`docs/specs/eye-effects.md`: glow colour, intensity, radius, hover and
-proximity triggers, pulse, glow blink; eyelid blink only with blend shapes);
-smoke, particles, fog, glow, light trails and appear / disappear / reveal /
-loop / burst transitions (`docs/specs/effects-studio.md`); MaterialSystem
-emissive and dissolve hooks; effect library presets.
-**Depends on:** M4 (colour picker), M7 (anchors, visible bounds).
+**Scope** (`docs/specs/effects-studio.md`): Effects workspace
+(`/studio/[id]/effects`, shared viewer in the studio layout), layers,
+properties, timeline strip; procedural smoke, particles, atmospheric fog,
+light trails; appear / disappear / reveal / loop / burst transitions and
+triggers; MaterialSystem dissolve hook (Reveal); library presets.
+**Depends on:** M8 (runtime), M4 (colour picker), M7 (anchors, visible bounds).
 **Acceptance:** every control drives the renderer in real time; transitions
 scrubbable; stacks transfer between portraits; GPU counters stable; ≥ 45 fps
-on a mid-range phone (low tier, two layers); no frames rendered when idle
-with static effects; reduced-motion behaviour.
-**Testing:** unit tests for timeline and triggers (deterministic clock);
-browser pixel tests per effect and transition; performance profiles.
-May be split into M8a (runtime + eyes) and M8b (Effects Studio) at kickoff if
-the estimate requires.
+on a mid-range phone (low tier, two layers); idle with static effects renders
+no frames; reduced-motion behaviour.
+**Testing:** unit (timeline, triggers); browser pixel tests per effect and
+transition; performance profiles.
 
-## M9 — Dashboard and project management
+## M10 — Dashboard and project management
 
 **Objective:** Organise and find portraits.
 **Scope:** Projects CRUD, portraits list/grid, search, filters, sort,
@@ -258,13 +282,13 @@ objects; empty, loading and error states designed; list of 200 portraits stays
 responsive.
 **Testing:** e2e CRUD flows; RLS tests; deletion integration test.
 
-## M10 — GLB and PNG exports
+## M11 — GLB and PNG exports
 
 **Objective:** Take the portrait out of the app.
 **Scope:** Original GLB download (presigned), styled GLB via GLTFExporter,
 PNG render dialog (1×/2×/4×, transparent), clamping to GPU limits, export
 records, thumbnails from the same renderer. Exports include only visible
-parts (M7); PNG renders the current effects frame (M8); GLB export explains
+parts (M7); PNG renders the current effects frame (M8–M9); GLB export explains
 that shader effects are not included.
 **Acceptance:** Exported GLBs open in Blender and the three.js editor with
 correct materials; PNG transparency verified; 4× export works on desktop and
@@ -272,7 +296,7 @@ degrades gracefully on mobile.
 **Testing:** Unit test GLB validity with glTF Transform / gltf-validator;
 visual checks of exported PNGs.
 
-## M11 — Embedding and publishing
+## M12 — Embedding and publishing
 
 **Objective:** Share an interactive portrait safely.
 **Scope:** Share dialog (Private / Public embed), publish/unpublish routes,
@@ -285,7 +309,7 @@ budget ≤ 250 KB gzip excluding three.js core chunk; Lighthouse performance ≥
 on the embed page.
 **Testing:** e2e publish/unpublish; header tests; third-party page harness.
 
-## M12 — Quality assurance and deployment
+## M13 — Quality assurance and deployment
 
 **Objective:** Production readiness.
 **Scope:** Full accessibility audit, cross-browser/device matrix, performance
@@ -322,6 +346,11 @@ See `docs/decisions/0002-product-owner-decisions.md`.
 ## Product-owner decisions (31 October 2026)
 
 6. **Expanded scope:** advanced colour picker (M4), model parts (M7, after
-   reconstruction), eye effects and Effects Studio (M8). ADR 0006.
+   reconstruction), Eye Effects (M8), Effects Studio (M9). ADR 0006.
 7. **Theme:** must reach every Studio surface and be changeable from the
    Studio; completed within M4.
+8. **Delivery:** Milestones 4 and 5 implemented in one cycle, kept as
+   separate modules with separate tests and acceptance criteria.
+9. **Dev tools:** the floating Next.js developer indicator is disabled.
+10. **Model parts:** real geometry segmentation, not clipping, for selecting
+    the head independently of neck and shoulders (M7).

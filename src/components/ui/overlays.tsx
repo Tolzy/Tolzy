@@ -126,6 +126,43 @@ export function MenuItem({
   );
 }
 
+/** A single-choice group inside a menu (e.g. theme). */
+export function MenuRadioGroup<T extends string>({
+  value,
+  onChange,
+  label,
+  children,
+}: {
+  value: T;
+  onChange: (value: T) => void;
+  label?: string;
+  children: ReactNode;
+}) {
+  return (
+    <M.RadioGroup value={value} onValueChange={(v) => onChange(v as T)}>
+      {label && <M.Label className="text-2xs text-muted px-2 pt-1.5 pb-1 font-medium">{label}</M.Label>}
+      {children}
+    </M.RadioGroup>
+  );
+}
+
+export function MenuRadioItem({ value, icon, children }: { value: string; icon?: ReactNode; children: ReactNode }) {
+  return (
+    <M.RadioItem
+      value={value}
+      className={cn(
+        "text-fg data-[highlighted]:bg-hover flex h-8 items-center gap-2.5 rounded-md px-2 text-sm outline-none select-none [&_svg]:size-4",
+      )}
+    >
+      {icon && <span className="text-muted">{icon}</span>}
+      <span className="flex-1">{children}</span>
+      <M.ItemIndicator>
+        <Check className="text-fg" />
+      </M.ItemIndicator>
+    </M.RadioItem>
+  );
+}
+
 export function MenuSeparator() {
   return <M.Separator className="bg-line my-1 h-px" />;
 }

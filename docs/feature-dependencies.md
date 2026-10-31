@@ -6,14 +6,14 @@ architecture and `docs/specs/` for each feature.
 
 ```mermaid
 flowchart LR
-  subgraph M4["M4 · Materials, lighting, colour, theme"]
-    T[Theme in every Studio surface]
-    C[Advanced colour picker]
+  subgraph M4["M4 · Materials, lighting, colour, theme ✅"]
+    T[Theme in every surface ✅]
+    C[Advanced colour picker ✅]
     MS[MaterialSystem ✅]
     LR[Lighting rigs ✅]
   end
-  subgraph M5["M5 · Upload"]
-    MP[MediaPipe Face Landmarker]
+  subgraph M5["M5 · Photo upload and validation"]
+    MP[MediaPipe Face Landmarker ✅]
   end
   subgraph M6["M6 · Reconstruction"]
     PL[Versioned asset pipeline]
@@ -23,13 +23,15 @@ flowchart LR
     MD[Model Descriptor: parts + anchors]
     GEO[Geometry tool]
   end
-  subgraph M8["M8 · Eye effects + Effects Studio"]
+  subgraph M8["M8 · Eye Effects"]
     RT[Effects runtime + scheduler]
     EYE[Eye effects]
+  end
+  subgraph M9["M9 · Effects Studio"]
     FX[Smoke · particles · fog · glow · trails]
     TL[Transitions + triggers]
   end
-  subgraph Later["M9–M11"]
+  subgraph Later["M10–M12"]
     PER[Settings schema v2 + persistence]
     EXP[Exports]
     EMB[Embeds]

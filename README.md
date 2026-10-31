@@ -4,9 +4,12 @@ An AI-powered web application that turns photographs of real people into
 recognisable, interactive 3D portraits — customisable with studio materials and
 lighting, exportable as GLB and PNG, and publishable as an embeddable viewer.
 
-**Status:** Milestone 3 — the sample head follows the cursor and can be
-rotated by drag, touch or keyboard; dark-first theme with a light option. This is a preview build: sign-in, photo upload, generation and exports
-are not enabled yet and are labelled as such in the interface. See the [roadmap](docs/roadmap.md).
+**Status:** Milestones 4 and 5 in review — studio materials (with opacity),
+lighting, backgrounds and a full colour picker on the sample head; Dark and
+Light themes across the app; photo selection with on-device validation
+(MediaPipe). This is a preview build: sign-in, photo upload, generation and
+exports are not enabled yet and are labelled as such in the interface. See
+the [roadmap](docs/roadmap.md).
 
 ## Development
 
@@ -32,6 +35,10 @@ gallery, development only).
 | `npm run test:e2e`  | Builds, starts and runs Playwright + axe tests |
 | `npm run format`    | Prettier                                       |
 
+`npm run dev` and `npm run build` first copy MediaPipe's WebAssembly runtime
+into `public/vendor` (`scripts/vendor-mediapipe.mjs`, git-ignored). Photo-check
+fixtures are renders of the CC0 sample head (`tests/fixtures/photos`).
+
 `node scripts/screenshots.mjs http://localhost:3000 <dir>` captures the main
 screens at desktop, tablet and phone widths for visual review.
 
@@ -39,7 +46,7 @@ screens at desktop, tablet and phone widths for visual review.
 
 | Document                                                              | Contents                                                                                          |
 | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| [Roadmap](docs/roadmap.md)                                            | Milestones 0–10 with scope, acceptance criteria, tests, open questions                            |
+| [Roadmap](docs/roadmap.md)                                            | Milestones 0–13 with scope, acceptance criteria, tests, open questions                            |
 | [Architecture](docs/architecture.md)                                  | System design, rendering, interaction rig, materials, provider abstraction, jobs, exports, embeds |
 | [Data model](docs/data-model.md)                                      | Tables, RLS, settings schema, storage layout, deletion                                            |
 | [Design system](docs/design-system.md)                                | Visual language, tokens, components, screen designs                                               |
@@ -49,6 +56,8 @@ screens at desktop, tablet and phone widths for visual review.
 | [Risks](docs/risks.md)                                                | Ranked risks and mitigations                                                                      |
 | [Sample head asset](scripts/sample-head/README.md)                    | Sources, CC0 licences, build pipeline and stats of the bundled sample model                       |
 | [Decisions](docs/decisions/)                                          | Architecture decision records                                                                     |
+| [Feature specs](docs/specs/)                                          | Colour picker, model parts, eye effects, Effects Studio                                           |
+| [Feature dependencies](docs/feature-dependencies.md)                  | How planned features depend on each other and on milestones                                       |
 
 ## Planned stack
 

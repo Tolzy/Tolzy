@@ -78,6 +78,8 @@ export default function Viewer({
   const onReady = useCallback((b: ModelBounds) => setBounds(b), []);
   const floorY = -framing.pivot * MODEL_HEIGHT;
   const surface = useRef<HTMLDivElement>(null);
+  // A translucent model casts proportionally lighter shadows.
+  const modelOpacity = MATERIAL_PRESET_DEFS[material.preset].controls.includes("opacity") ? material.opacity : 1;
   const [controller] = useState(() => new InteractionController({ ...motion, reducedMotion }));
 
   useEffect(() => controller.setConfig({ ...motion, reducedMotion }), [controller, motion, reducedMotion]);
@@ -184,6 +186,8 @@ export default function Viewer({
     el.dataset.hiddenMeshes = String(m.hidden);
     el.dataset.geometryKey = m.geometryKey;
     el.dataset.materialsCreated = String(m.created);
+    el.dataset.opacity = m.opacity.toFixed(3);
+    el.dataset.depthPrepass = String(m.depthPrepass);
   }, []);
 
   return (
@@ -236,7 +240,14 @@ export default function Viewer({
           role="img"
         >
           <CameraRig bounds={bounds} framing={framing} zoom={zoom} />
-          <StudioLighting preset={lighting.preset} intensity={lighting.intensity} rotation={lighting.rotation} />
+          <StudioLighting
+            preset={lighting.preset}
+            intensity={lighting.intensity}
+            rotation={lighting.rotation}
+            color={lighting.color}
+            ambient={lighting.ambient}
+            shadowIntensity={lighting.shadowIntensity * modelOpacity}
+          />
           <SceneProbe target={surface} />
           <TransmissionBackdrop
             background={background}
@@ -252,7 +263,9 @@ export default function Viewer({
                 onMaterials={onMaterials}
               />
             </InteractionRig>
-            {lighting.shadows && bounds && <StudioShadow floorY={floorY} />}
+            {lighting.shadows && bounds && (
+              <StudioShadow floorY={floorY} opacity={lighting.shadowIntensity * modelOpacity} />
+            )}
           </Suspense>
         </Canvas>
       </div>

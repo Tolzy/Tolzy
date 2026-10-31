@@ -3,7 +3,8 @@
 import { Copy, Pencil, Plus, Trash2 } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
-import { Checkbox, ColorField, Segmented, SliderField, SwitchRow } from "@/components/ui/controls";
+import { Checkbox, Segmented, SliderField, SwitchRow } from "@/components/ui/controls";
+import { ColorField } from "@/components/ui/color/color-field";
 import { Badge, DisclosureSection, EmptyState, PresetGroup, PresetTile, Section } from "@/components/ui/display";
 import { Dialog, Menu, MenuContent, MenuItem, MenuSeparator, MenuTrigger, Select } from "@/components/ui/overlays";
 import { Tooltip } from "@/components/ui/tooltip";
@@ -95,7 +96,7 @@ export function ComponentGallery() {
               format={(v) => `${Math.round(v * 100)}%`}
               onChange={setSlider}
             />
-            <ColorField label="Colour" value={color} onChange={setColor} />
+            <ColorField label="Colour" value={color} onChange={setColor} alpha />
             <SwitchRow label="Follow cursor" description="With a description." checked={on} onChange={setOn} />
           </Section>
           <Section title="Presets">

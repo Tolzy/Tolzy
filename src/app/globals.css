@@ -53,6 +53,8 @@
   --overlay: rgb(0 0 0 / 0.55);
 
   /* Floating controls over the viewport (toolbar, badges): follow the theme */
+  --checker-a: #3a3a3f;
+  --checker-b: #26262a;
   --float-bg: #1b1b1e;
   --float-hover: #27272b;
   --float-border: #2e2e33;
@@ -106,7 +108,7 @@
   --danger-soft: #fdf0ee;
   --success: #2c8a53;
   --success-soft: #ecf6f0;
-  --warning: #a86a12;
+  --warning: #94590a;
   --warning-soft: #fbf3e6;
 
   --segment-active: #ffffff;
@@ -114,6 +116,8 @@
   --tooltip-bg: #ffffff;
   --tooltip-fg: #19191b;
 
+  --checker-a: #ffffff;
+  --checker-b: #dcdcd8;
   --float-bg: rgb(255 255 255 / 0.96);
   --float-hover: #efefec;
   --float-border: #e1e0db;
@@ -238,6 +242,22 @@
 @layer utilities {
   .tabular {
     font-variant-numeric: tabular-nums;
+  }
+
+  /* Small transparency checkerboard for colour chips and opacity sliders (themed). */
+  .checker-chip {
+    background-color: var(--checker-a);
+    background-image:
+      linear-gradient(45deg, var(--checker-b) 25%, transparent 25%),
+      linear-gradient(-45deg, var(--checker-b) 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, var(--checker-b) 75%),
+      linear-gradient(-45deg, transparent 75%, var(--checker-b) 75%);
+    background-size: 8px 8px;
+    background-position:
+      0 0,
+      0 4px,
+      4px -4px,
+      -4px 0;
   }
 
   .checkerboard {

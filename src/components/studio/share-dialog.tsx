@@ -65,7 +65,7 @@ export function ShareDialog({ trigger }: { trigger: ReactNode }) {
         />
       </RadioGroup.Root>
       <p className="text-muted mt-4 text-xs">
-        Public embeds are coming in Milestone 9, for generated portraits. Everything stays private until then.
+        Public embeds are coming in Milestone 12, for generated portraits. Everything stays private until then.
       </p>
     </Dialog>
   );

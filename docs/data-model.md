@@ -177,9 +177,16 @@ create policy "owner can write"  on portraits for all    using (owner_id = auth.
 ## 4. Portrait settings document
 
 Stored as JSON, validated by a shared Zod schema, versioned with
-`schema_version` so later migrations can upgrade old documents. The schema
-and server persistence ship in M9; until then settings live in the studio
-store. Version 2 (planned, ADR 0006) has one slice per scene layer:
+`schema_version` so later migrations can upgrade old documents.
+
+**As built (M4, schema version 1):** `src/lib/studio/schema.ts` validates
+`material` (preset, tint, roughness, metalness, clearcoat, thickness,
+opacity), `lighting` (preset, intensity, rotation, color, ambient, shadows,
+shadowIntensity), `background` and `motion`, each section falling back to
+defaults independently. Saved per portrait on the device until server
+persistence (`portrait_settings`) arrives in M10.
+
+**Version 2 (planned, ADR 0006)** has one slice per scene layer:
 
 ```ts
 const Hex = z.string().regex(/^#([0-9a-f]{6}|[0-9a-f]{8})$/i); // sRGB, optional alpha
@@ -216,7 +223,7 @@ const PortraitSettingsV2 = z.object({
   }),
   motion: MotionSettings, // M3 (as built)
   effects: z.object({
-    // M8
+    // M8–M9
     eyes: EyeEffectSettings, // docs/specs/eye-effects.md §5
     stack: z.array(EffectInstance).max(8), // docs/specs/effects-studio.md §7
   }),

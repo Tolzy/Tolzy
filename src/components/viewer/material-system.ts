@@ -12,13 +12,20 @@
  *     cutout  — alpha-tested cards such as hair: keep their silhouette;
  *     detail  — thin, mostly transparent cards (eyebrows, lashes): hidden
  *               under sculptural materials, where they would read as noise.
+ * - Opacity below 100 % renders a "ghost" of the surface: each opaque mesh
+ *   gets a depth-only twin drawn first (sharing its geometry), then the
+ *   colour pass blends only the front-most surface. Without it a translucent
+ *   head would show its own inner faces, ears and the back of the skull.
+ *   Original keeps the source materials untouched: a translucent copy is
+ *   made once and cached.
  */
 
 import {
   CanvasTexture,
   Color,
   DoubleSide,
-  type Mesh,
+  Mesh,
+  MeshBasicMaterial,
   MeshPhysicalMaterial,
   type MeshStandardMaterial,
   NoColorSpace,
@@ -46,6 +53,10 @@ export interface MaterialSummary {
   geometryKey: string;
   /** Preset materials created so far (should stop growing after one cycle). */
   created: number;
+  /** Surface opacity actually applied (1 = opaque). */
+  opacity: number;
+  /** Depth pre-pass meshes currently drawn (translucent rendering). */
+  depthPrepass: number;
 }
 
 interface Entry {
@@ -80,8 +91,9 @@ export function classifyMaterial(m: MeshStandardMaterial): MeshRole {
 
 export class MaterialSystem {
   private entries: Entry[] = [];
-  private cache = new Map<string, MeshPhysicalMaterial>();
+  private cache = new Map<string, MeshPhysicalMaterial | MeshStandardMaterial>();
   private alphaMaps = new Map<Texture, Texture>();
+  private prepass = new Map<Mesh, Mesh>();
   private current: MaterialPreset = "original";
   private readonly geometryKey: string;
 
@@ -109,23 +121,34 @@ export class MaterialSystem {
 
   apply(preset: MaterialPreset, params: MaterialParams): MaterialSummary {
     this.current = preset;
+    const glass = MATERIAL_PRESET_DEFS[preset].physics.transmission > 0;
+    // Glass has no opacity control: transmission is its transparency.
+    const opacity = glass ? 1 : Math.min(1, Math.max(0, params.opacity));
+    const translucent = opacity < 0.999;
+
     for (const e of this.entries) {
       if (preset === "original") {
-        e.mesh.material = e.original;
+        e.mesh.material = translucent ? this.translucentOriginal(e, opacity) : e.original;
         e.mesh.visible = true;
         e.mesh.castShadow = e.role !== "detail";
+        // Already-transparent originals (eyes, brows) blend as before; a depth
+        // twin would hide the eyeball behind its own cornea.
+        this.setPrepass(e, translucent && !e.original.transparent);
         continue;
       }
       if (e.role === "detail") {
         e.mesh.visible = false;
+        this.setPrepass(e, false);
         continue;
       }
       const mat = this.materialFor(preset, e);
       this.update(mat, preset, params, e.original);
+      this.setOpacity(mat, opacity);
       e.mesh.material = mat;
       e.mesh.visible = true;
       // Transmissive glass should not cast solid shadows.
-      e.mesh.castShadow = MATERIAL_PRESET_DEFS[preset].physics.transmission === 0;
+      e.mesh.castShadow = !glass;
+      this.setPrepass(e, translucent);
     }
     return this.summary(preset);
   }
@@ -146,6 +169,8 @@ export class MaterialSystem {
       hidden: this.entries.filter((e) => !e.mesh.visible).length,
       geometryKey: this.geometryKey,
       created: this.cache.size,
+      opacity: m?.transparent ? m.opacity : 1,
+      depthPrepass: [...this.prepass.values()].filter((p) => p.visible).length,
     };
   }
 
@@ -155,17 +180,76 @@ export class MaterialSystem {
       e.mesh.material = e.original;
       e.mesh.visible = true;
     }
+    for (const [mesh, twin] of this.prepass) {
+      mesh.remove(twin);
+      (twin.material as MeshBasicMaterial).dispose();
+    }
     for (const m of this.cache.values()) m.dispose();
     for (const t of this.alphaMaps.values()) t.dispose();
+    this.prepass.clear();
     this.cache.clear();
     this.alphaMaps.clear();
   }
 
+  /** Transparent blending for preset materials; depth comes from the pre-pass. */
+  private setOpacity(mat: MeshPhysicalMaterial | MeshStandardMaterial, opacity: number, base = 1) {
+    const translucent = opacity < 0.999;
+    if (mat.transparent !== translucent) {
+      mat.transparent = translucent;
+      mat.depthWrite = !translucent;
+      mat.needsUpdate = true;
+    }
+    mat.opacity = base * opacity;
+  }
+
+  /** A cached translucent copy of a source material (textures shared, not copied). */
+  private translucentOriginal(e: Entry, opacity: number): MeshStandardMaterial {
+    const key = `original|${e.original.uuid}`;
+    let mat = this.cache.get(key);
+    if (!mat) {
+      mat = e.original.clone();
+      mat.name = `${e.original.name || "material"} · translucent`;
+      mat.transparent = true;
+      // Opaque sources rely on the depth pre-pass; transparent ones keep their own setting.
+      mat.depthWrite = e.original.transparent ? e.original.depthWrite : false;
+      this.cache.set(key, mat);
+    }
+    mat.opacity = e.original.opacity * opacity;
+    return mat;
+  }
+
+  /** Shows or hides the depth-only twin of a mesh (created once, shares geometry). */
+  private setPrepass(e: Entry, on: boolean) {
+    let twin = this.prepass.get(e.mesh);
+    if (!on) {
+      if (twin) twin.visible = false;
+      return;
+    }
+    if (!twin) {
+      const depth = new MeshBasicMaterial({ colorWrite: false, side: e.original.side });
+      depth.name = "depth-prepass";
+      if (e.role === "cutout") {
+        depth.alphaMap = this.alphaMapFor(e.original.map);
+        depth.alphaTest = e.original.alphaTest || 0.5;
+      }
+      twin = new Mesh(e.mesh.geometry, depth);
+      twin.name = `${e.mesh.name || "mesh"} · depth`;
+      twin.renderOrder = -1; // before everything else in the opaque pass
+      twin.castShadow = false;
+      twin.receiveShadow = false;
+      twin.raycast = () => {};
+      twin.userData.helper = true; // not part of the model (skipped by traversals)
+      e.mesh.add(twin);
+      this.prepass.set(e.mesh, twin);
+    }
+    twin.visible = true;
+  }
+
   private materialFor(preset: MaterialPreset, e: Entry): MeshPhysicalMaterial {
     const key = `${preset}|${e.original.uuid}`;
-    let mat = this.cache.get(key);
-    if (mat) return mat;
-    mat = new MeshPhysicalMaterial({ name: `${preset} · ${e.original.name || "material"}` });
+    const cached = this.cache.get(key);
+    if (cached) return cached as MeshPhysicalMaterial;
+    const mat = new MeshPhysicalMaterial({ name: `${preset} · ${e.original.name || "material"}` });
     // Glass shows its far side through the near one, like a solid glass bust.
     mat.side = MATERIAL_PRESET_DEFS[preset].physics.transmission > 0 ? DoubleSide : e.original.side;
     // Keep the model's surface detail (pores, folds) from its own normal map.

@@ -21,7 +21,11 @@ describe("material presets", () => {
 
   it("describes physically distinct materials", () => {
     const d = MATERIAL_PRESET_DEFS;
-    expect(d.original.controls).toEqual([]);
+    // Original keeps its textures: only opacity applies. Glass has no opacity.
+    expect(d.original.controls).toEqual(["opacity"]);
+    expect(d.glass.controls).not.toContain("opacity");
+    for (const id of ["chrome", "obsidian", "ceramic", "gold"] as const)
+      expect(d[id].controls).toEqual(expect.arrayContaining(["tint", "roughness", "metalness", "opacity"]));
     expect(d.chrome.defaults.metalness).toBe(1);
     expect(d.gold.defaults.metalness).toBe(1);
     expect(d.obsidian.defaults.metalness).toBe(0);

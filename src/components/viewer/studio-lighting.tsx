@@ -3,15 +3,22 @@
 import { ContactShadows, Environment, Lightformer } from "@react-three/drei";
 import { useEffect, useMemo } from "react";
 import { BackSide, BufferAttribute, Color, SphereGeometry } from "three";
+import { toThreeColor } from "@/lib/color/three";
 import { LIGHTING_RIGS, type LightingPreset } from "@/lib/studio/lighting";
 import { MODEL_HEIGHT } from "./framing";
 
 interface StudioLightingProps {
   preset: LightingPreset;
-  /** Overall multiplier from the Light panel (1 = default). */
+  /** Multiplier for the direct lights (1 = default). */
   intensity: number;
   /** Rotation of the whole light rig around the model, in degrees. */
   rotation: number;
+  /** Tint multiplied into the direct lights (sRGB hex, white = rig colours). */
+  color: string;
+  /** Multiplier for hemisphere fill and environment light (1 = default). */
+  ambient: number;
+  /** 0–1 strength of the shadow cast by the model onto itself. */
+  shadowIntensity: number;
 }
 
 /**
@@ -20,9 +27,14 @@ interface StudioLightingProps {
  * light panels — used for lighting and reflections only. The visible viewport
  * background is independent (Scene panel).
  */
-export function StudioLighting({ preset, intensity, rotation }: StudioLightingProps) {
+export function StudioLighting({ preset, intensity, rotation, color, ambient, shadowIntensity }: StudioLightingProps) {
   const rig = LIGHTING_RIGS[preset];
   const yaw = (rotation * Math.PI) / 180;
+  // Rig colours × user tint, computed once per change (not per frame).
+  const colors = useMemo(() => {
+    const tint = toThreeColor(color).color;
+    return rig.lights.map((l) => new Color(l.color).multiply(tint));
+  }, [rig, color]);
 
   return (
     <>
@@ -31,9 +43,10 @@ export function StudioLighting({ preset, intensity, rotation }: StudioLightingPr
           <directionalLight
             key={`${rig.id}-${i}`}
             position={l.position}
-            color={l.color}
+            color={colors[i]}
             intensity={l.intensity * intensity}
             castShadow={!!l.castShadow}
+            shadow-intensity={shadowIntensity}
             shadow-mapSize={[1024, 1024]}
             shadow-radius={rig.shadowRadius}
             shadow-bias={-0.0004}
@@ -47,7 +60,11 @@ export function StudioLighting({ preset, intensity, rotation }: StudioLightingPr
           />
         ))}
       </group>
-      <hemisphereLight args={[rig.hemisphere.sky, rig.hemisphere.ground, rig.hemisphere.intensity * intensity]} />
+      <hemisphereLight
+        color={rig.hemisphere.sky}
+        groundColor={rig.hemisphere.ground}
+        intensity={rig.hemisphere.intensity * ambient}
+      />
 
       {/*
        * One environment for the viewer's lifetime: it re-renders (frames=1)
@@ -57,7 +74,7 @@ export function StudioLighting({ preset, intensity, rotation }: StudioLightingPr
       <Environment
         resolution={256}
         frames={1}
-        environmentIntensity={rig.environment.intensity * intensity}
+        environmentIntensity={rig.environment.intensity * ambient}
         environmentRotation={[0, yaw, 0]}
       >
         <GradientWalls top={rig.environment.walls[0]} bottom={rig.environment.walls[1]} />
@@ -107,14 +124,14 @@ function GradientWalls({ top, bottom }: { top: string; bottom: string }) {
  * Soft contact shadow under the bust. Rendered once (frames=1), so it must
  * mount after the model is in place.
  */
-export function StudioShadow({ floorY }: { floorY: number }) {
+export function StudioShadow({ floorY, opacity = 1 }: { floorY: number; opacity?: number }) {
   return (
     <ContactShadows
       position={[0, floorY - 0.002, 0]}
       scale={MODEL_HEIGHT * 1.6}
       far={MODEL_HEIGHT * 0.5}
       blur={2.6}
-      opacity={0.55}
+      opacity={0.55 * opacity}
       resolution={512}
       frames={1}
       color="#000000"

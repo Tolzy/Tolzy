@@ -20,12 +20,76 @@ test("light theme can be chosen and persists across visits", async ({ page }) =>
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
 });
 
+test("the theme menu switches the whole app immediately, from the Studio too", async ({ page, isMobile }) => {
+  await page.goto("/studio/sample");
+  await expect(page.getByTestId("viewer-surface")).toBeVisible({ timeout: 30_000 });
+  await page.getByRole("button", { name: "Theme: Dark" }).click();
+  await page.getByRole("menuitemradio", { name: "Light" }).click();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+  await expect
+    .poll(() => bgLuma(page.getByRole("complementary", { name: "Material properties" })))
+    .toBeGreaterThan(200);
+  // The stage stays dark.
+  await expect(page.getByTestId("viewport-background")).toHaveCSS("background-image", /rgb\(31, 31, 35\)/);
+  await page.reload();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+
+  // Sidebar menu on the dashboard (desktop sidebar), back to dark.
+  if (isMobile) return;
+  await page.goto("/dashboard");
+  await page.getByRole("button", { name: "Theme: Light" }).first().click();
+  await page.getByRole("menuitemradio", { name: "Dark" }).click();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+});
+
+test("the saved theme is applied before first paint (no flash)", async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem("ps-theme", "light");
+    const seen: string[] = [];
+    (window as unknown as { __themes: string[] }).__themes = seen;
+    new MutationObserver(() => seen.push(document.documentElement.dataset.theme ?? "")).observe(
+      document.documentElement,
+      {
+        attributes: true,
+        attributeFilter: ["data-theme"],
+      },
+    );
+  });
+  await page.goto("/dashboard");
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+  const themes = await page.evaluate(() => (window as unknown as { __themes: string[] }).__themes);
+  expect(themes.every((t) => t === "light")).toBe(true);
+});
+
+const PAGES = ["/dashboard", "/projects", "/settings", "/settings/appearance", "/settings/storage", "/create"];
+
+for (const theme of ["dark", "light"] as const) {
+  test(`every major page follows the ${theme} theme`, async ({ page }) => {
+    await page.addInitScript((t) => localStorage.setItem("ps-theme", t), theme);
+    for (const path of PAGES) {
+      await page.goto(path);
+      await expect(page.locator("h1").first()).toBeVisible();
+      const luma = await bgLuma(page.locator("h1").first());
+      if (theme === "light") expect(luma, path).toBeGreaterThan(200);
+      else expect(luma, path).toBeLessThan(60);
+    }
+  });
+}
+
 test.describe("light theme accessibility", () => {
   test.beforeEach(async ({ page }) => {
     await page.addInitScript(() => localStorage.setItem("ps-theme", "light"));
   });
 
-  for (const path of ["/dashboard", "/settings/appearance", "/studio/sample"]) {
+  for (const path of [
+    "/dashboard",
+    "/projects",
+    "/settings",
+    "/settings/appearance",
+    "/settings/storage",
+    "/create",
+    "/studio/sample",
+  ]) {
     test(`${path} has no serious violations in light`, async ({ page }) => {
       await page.goto(path);
       await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
@@ -40,9 +104,16 @@ test.describe("light theme accessibility", () => {
 async function bgLuma(locator: import("@playwright/test").Locator) {
   return locator.evaluate((start) => {
     for (let el: Element | null = start; el; el = el.parentElement) {
-      const m = getComputedStyle(el)
-        .backgroundColor.match(/[\d.]+/g)!
-        .map(Number);
+      const css = getComputedStyle(el).backgroundColor;
+      const n = css.match(/[\d.]+/g)!.map(Number);
+      // oklab()/oklch(): perceptual lightness L (0–1) is a fine proxy here.
+      if (css.startsWith("okl")) {
+        if (n.length === 3 || n[3] > 0.5) return n[0] * 255;
+        continue;
+      }
+      // "rgb(r g b / a)" uses 0–255; "color(srgb r g b / a)" uses 0–1.
+      const scale = css.startsWith("color(") ? 255 : 1;
+      const m = n.map((v, i) => (i < 3 ? v * scale : v));
       if (m.length === 3 || m[3] > 0.5) return 0.2126 * m[0] + 0.7152 * m[1] + 0.0722 * m[2];
     }
     return -1;
@@ -69,7 +140,7 @@ for (const theme of ["dark", "light"] as const) {
       await expectThemed(await bgLuma(page.getByRole("complementary", { name: "Material properties" })));
 
       // The viewport is the same dark studio in both themes.
-      const viewport = page.getByRole("region", { name: "3D viewport" });
+      const viewport = page.getByTestId("viewport-background");
       await expect(viewport).toHaveCSS("background-image", /radial-gradient\(.*rgb\(31, 31, 35\).*rgb\(11, 11, 12\)/);
 
       // Overlays: the share dialog follows the theme too.

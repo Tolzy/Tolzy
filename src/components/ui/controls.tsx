@@ -2,7 +2,7 @@
 
 import { Checkbox as RCheckbox, Slider as RSlider, Switch as RSwitch, ToggleGroup } from "radix-ui";
 import { Check } from "lucide-react";
-import { useId, useState, type ReactNode } from "react";
+import { useId, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
 
 /* ───────────────────────── Field row ───────────────────────── */
@@ -210,62 +210,6 @@ export function SwitchRow({
       </div>
       <Switch id={id} checked={checked} onChange={onChange} disabled={disabled} />
     </div>
-  );
-}
-
-/* ───────────────────────── Colour field ───────────────────────── */
-
-const HEX = /^#[0-9a-f]{6}$/i;
-
-export function ColorField({
-  label,
-  value,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  onChange: (hex: string) => void;
-}) {
-  const id = useId();
-  const [draft, setDraft] = useState(value);
-  // Keep the text field in sync when the value changes elsewhere (picker, undo).
-  const [synced, setSynced] = useState(value);
-  if (synced !== value) {
-    setSynced(value);
-    setDraft(value);
-  }
-
-  const commit = () => {
-    const next = draft.startsWith("#") ? draft : `#${draft}`;
-    if (HEX.test(next)) onChange(next.toLowerCase());
-    else setDraft(value);
-  };
-
-  return (
-    <Field label={label} htmlFor={id}>
-      <div className="bg-sunken ring-line focus-within:ring-line-strong flex h-7 items-center gap-2 rounded-md pr-2 pl-1 ring-1 ring-inset">
-        <span className="relative size-5 shrink-0 overflow-hidden rounded-[4px] ring-1 ring-black/10">
-          <span className="absolute inset-0" style={{ background: value }} />
-          <input
-            type="color"
-            aria-label={`${label} picker`}
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            className="absolute inset-0 size-full cursor-pointer opacity-0"
-          />
-        </span>
-        <input
-          id={id}
-          value={draft.replace("#", "").toUpperCase()}
-          onChange={(e) => setDraft(e.target.value.trim())}
-          onBlur={commit}
-          onKeyDown={(e) => e.key === "Enter" && commit()}
-          spellCheck={false}
-          maxLength={7}
-          className="tabular text-fg w-full min-w-0 bg-transparent font-mono text-xs uppercase outline-none"
-        />
-      </div>
-    </Field>
   );
 }
 

@@ -1,7 +1,7 @@
 # Spec — Eye effects
 
-Milestone: **M8** (with the Effects Studio). Status: planned, not implemented.
-Depends on: Model Descriptor anchors (M7), effects runtime (M8), colour picker (M4).
+Milestone: **M8 — Eye Effects**. Status: planned, not implemented.
+Depends on: Model Descriptor anchors (M7), effects runtime (built in M8), colour picker (M4 ✅).
 
 ## 1. Goal
 

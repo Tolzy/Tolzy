@@ -1,6 +1,6 @@
 # ADR 0006 — Scene layers, Model Descriptor and the expanded product scope
 
-Date: 2026-10-31 · Status: Proposed (for product-owner review)
+Date: 2026-10-31 · Status: Accepted (scope approved 31 Oct 2026; milestone numbers updated: Eye Effects M8, Effects Studio M9, later milestones M10–M13)
 
 Context: the product owner added an advanced colour picker, model part
 selection, eye effects and an Effects Studio, and reported that the Light
@@ -110,6 +110,6 @@ that switch the theme from inside the Studio. The viewport stage stays dark.
 - Two new milestones (Model parts; Effects) and renumbering of later ones
   (roadmap).
 - The settings document grows to schema v2 (`geometry`, `effects`, 8-digit
-  colours); the Zod schema and migration v1 → v2 ship with persistence (M9).
+  colours); the Zod schema shipped in M4 (`lib/studio/schema.ts`); server persistence and the v1 → v2 migration ship in M10.
 - The M6 pipeline must be built as named, versioned stages.
 - The embed bundle gains an optional, lazily loaded effects chunk.

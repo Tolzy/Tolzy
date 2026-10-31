@@ -50,3 +50,5 @@ next-env.d.ts
 # python
 __pycache__/
 *.pyc
+/public/vendor/
+tests/fixtures/photos/source/

@@ -4,3 +4,5 @@ package-lock.json
 next-env.d.ts
 playwright-report
 test-results
+public/vendor
+tests/fixtures/photos/source

@@ -1,8 +1,8 @@
 # Spec — Effects Studio
 
-Milestone: **M8** (with eye effects). Status: planned, not implemented.
-Depends on: colour picker (M4), Model Descriptor + anchors (M7),
-MaterialSystem shader hook (M8, small extension of M4 code).
+Milestone: **M9 — Effects Studio**. Status: planned, not implemented.
+Depends on: effects runtime (M8), colour picker (M4 ✅), Model Descriptor +
+anchors (M7), MaterialSystem dissolve hook (small extension of M4 code).
 
 ## 1. Goal
 
@@ -140,9 +140,9 @@ presets are the same documents.
 
 ## 8. Outputs
 
-- PNG export (M10): renders the current timeline frame.
+- PNG export (M11): renders the current timeline frame.
 - GLB export cannot contain shader effects; the export dialog says so.
-- Embeds (M11): the effects runtime is a separate lazy chunk loaded only when
+- Embeds (M12): the effects runtime is a separate lazy chunk loaded only when
   the published snapshot has effects; counts against the embed JS budget.
 - Video export (WebM via `canvas.captureStream` + MediaRecorder) is a natural
   follow-up; not planned yet.

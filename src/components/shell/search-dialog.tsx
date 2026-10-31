@@ -16,7 +16,7 @@ export const useSearch = create<{
 
 /**
  * Global search (⌘K). Searches the signed-in user's portraits and projects;
- * results are wired up with the dashboard data in Milestone 7.
+ * results are wired up with the dashboard data in Milestone 10.
  */
 export function SearchDialog() {
   const { open, setOpen } = useSearch();

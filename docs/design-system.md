@@ -178,19 +178,20 @@ Two steps, no wizard chrome beyond a step indicator.
 
 **Planned additions (ADR 0006):**
 
-- **Theme control in the Studio** (M4): Dark / Light / System in the top bar
-  menu, mirroring Settings → Appearance. Every Studio surface — top bar,
+- **Theme control** (M4, built): Dark / Light / System menu in the Studio top
+  bar, the app sidebar footer and the New Portrait header, mirroring Settings
+  → Appearance. Every Studio surface — top bar,
   rail, inspector, mobile tab bar and sheets, popovers, menus, dialogs,
   tooltips, toasts, viewport overlays — uses app tokens; only the viewport
   stage (`--viewport-*`) stays dark.
-- **Colour picker** (M4, `docs/specs/colour-picker.md`): popover from the
+- **Colour picker** (M4, built — `docs/specs/colour-picker.md`): popover from the
   swatch row (bottom sheet on phones), themed; spectrum, hue, alpha over a
   checkerboard, HEX/RGB/HSL/HSB fields with scrub-on-label, eyedropper,
   recent and in-portrait swatches, copy/paste.
 - **Model** context first on the rail (M7): Head · Head & neck · Bust ·
   Custom, part list with hover highlight; unavailable parts disabled with a
   reason.
-- **Workspace switch** in the top bar (M8): Design · Effects. Effects
+- **Workspace switch** in the top bar (M9): Design · Effects. Effects
   workspace: Layers list + Properties in the inspector, a timeline strip
   under the viewport (play/pause, scrub, transition handles). Same viewport,
   same toolbar.

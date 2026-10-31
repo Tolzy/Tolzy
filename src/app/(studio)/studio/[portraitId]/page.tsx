@@ -7,7 +7,7 @@ import { SAMPLE_FRAMING, SAMPLE_MODEL } from "@/lib/studio/sample-model";
 
 export const metadata: Metadata = { title: "Studio" };
 
-/** Only the sample portrait exists until portraits are stored (Milestone 7). */
+/** Only the sample portrait exists until portraits are stored (Milestone 10). */
 export function generateStaticParams() {
   return [{ portraitId: "sample" }];
 }
@@ -25,6 +25,7 @@ async function StudioForPortrait({ params }: Pick<PageProps<"/studio/[portraitId
   if (portraitId !== "sample") notFound();
   return (
     <Studio
+      portraitId={portraitId}
       portraitName={SAMPLE_MODEL.name}
       projectName="Samples"
       modelUrl={SAMPLE_MODEL.url}

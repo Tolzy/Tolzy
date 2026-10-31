@@ -4,12 +4,20 @@ import { RadioGroup } from "radix-ui";
 import { Download, Info, Share2 } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
-import { BACKGROUND_SWATCHES, LIGHTING_PRESETS, MATERIAL_PRESETS } from "@/lib/studio/presets";
+import { BACKGROUND_PRESETS, BACKGROUND_SWATCHES, LIGHTING_PRESETS, MATERIAL_PRESETS } from "@/lib/studio/presets";
 import { CONTROL_LABELS, controlRange, MATERIAL_PRESET_DEFS } from "@/lib/studio/materials";
-import { DEFAULT_SETTINGS, materialSettings, type Background } from "@/lib/studio/settings";
+import {
+  backgroundIsTranslucent,
+  backgroundToCss,
+  DEFAULT_SETTINGS,
+  lightingSettings,
+  materialSettings,
+  type Background,
+} from "@/lib/studio/settings";
 import { useStudioStore } from "@/stores/studio-store";
 import { Button } from "@/components/ui/button";
-import { ColorField, Field, Segmented, SliderField, SwitchRow } from "@/components/ui/controls";
+import { Field, Segmented, SliderField, SwitchRow } from "@/components/ui/controls";
+import { ColorField } from "@/components/ui/color/color-field";
 import { Badge, DisclosureSection, PresetGroup, PresetTile, Section } from "@/components/ui/display";
 import { usePrefersReducedMotion, useSection } from "./use-studio";
 import { ShareDialog } from "./share-dialog";
@@ -88,50 +96,52 @@ export function MaterialPanel() {
       </Section>
 
       <DisclosureSection title="Adjust">
-        {def.controls.length === 0 ? (
-          <PanelNote>Original shows the model’s own textures. Choose a material to adjust its surface.</PanelNote>
-        ) : (
-          <>
-            {def.controls.map((control) => {
-              if (control === "tint") {
-                return (
-                  <ColorField
-                    key={control}
-                    label={CONTROL_LABELS.tint}
-                    value={value.tint}
-                    onChange={(tint) => set({ tint })}
-                  />
-                );
-              }
-              const [min, max] = controlRange(value.preset, control);
-              return (
-                <SliderField
-                  key={control}
-                  label={CONTROL_LABELS[control]}
-                  value={value[control]}
-                  min={min}
-                  max={max}
-                  step={0.01}
-                  format={control === "thickness" ? (v) => v.toFixed(2) : percent}
-                  onChange={(v) => drag({ [control]: v })}
-                  onCommit={commit}
-                />
-              );
-            })}
-            <div className="flex justify-end pt-1">
-              <Button
-                variant="ghost"
-                size="sm"
-                disabled={atDefaults}
-                onClick={() => set(materialSettings(value.preset))}
-              >
-                Reset to preset
-              </Button>
-            </div>
-          </>
+        {def.controls.map((control) => {
+          if (control === "tint") {
+            return (
+              <ColorField
+                key={control}
+                label={CONTROL_LABELS.tint}
+                value={value.tint}
+                onPreview={(tint) => drag({ tint })}
+                onChange={(tint) => set({ tint })}
+              />
+            );
+          }
+          const [min, max] = controlRange(value.preset, control);
+          return (
+            <SliderField
+              key={control}
+              label={CONTROL_LABELS[control]}
+              value={value[control]}
+              min={min}
+              max={max}
+              step={0.01}
+              format={control === "thickness" ? (v) => v.toFixed(2) : percent}
+              onChange={(v) => drag({ [control]: v })}
+              onCommit={commit}
+            />
+          );
+        })}
+        {value.preset === "original" && (
+          <PanelNote>Original keeps the model’s own textures. Choose a material to change its surface.</PanelNote>
         )}
+        {value.preset === "glass" && (
+          <PanelNote>Glass is see-through by nature, so it has no opacity control.</PanelNote>
+        )}
+        <ResetRow disabled={atDefaults} onReset={() => set(materialSettings(value.preset))} />
       </DisclosureSection>
     </>
+  );
+}
+
+function ResetRow({ disabled, onReset }: { disabled: boolean; onReset: () => void }) {
+  return (
+    <div className="flex justify-end pt-1">
+      <Button variant="ghost" size="sm" disabled={disabled} onClick={onReset}>
+        Reset to preset
+      </Button>
+    </div>
   );
 }
 
@@ -140,11 +150,13 @@ export function MaterialPanel() {
 export function LightPanel() {
   const { value, set, drag, commit } = useSection("lighting");
   const active = LIGHTING_PRESETS.find((p) => p.id === value.preset)!;
+  const defaults = lightingSettings(value.preset);
+  const atDefaults = (Object.keys(defaults) as (keyof typeof defaults)[]).every((k) => value[k] === defaults[k]);
 
   return (
     <>
       <Section title="Preset">
-        <PresetGroup label="Lighting preset" value={value.preset} onChange={(preset) => set({ preset })}>
+        <PresetGroup label="Lighting preset" value={value.preset} onChange={(preset) => set(lightingSettings(preset))}>
           {LIGHTING_PRESETS.map((p) => (
             <PresetTile key={p.id} value={p.id} label={p.label} preview={<PreviewImage src={p.preview!} />} />
           ))}
@@ -160,6 +172,16 @@ export function LightPanel() {
           description="Grounds the bust in the scene."
           checked={value.shadows}
           onChange={(shadows) => set({ shadows })}
+        />
+        <SliderField
+          label="Strength"
+          value={value.shadowIntensity}
+          min={0}
+          max={1}
+          step={0.01}
+          format={percent}
+          onChange={(shadowIntensity) => drag({ shadowIntensity })}
+          onCommit={commit}
         />
       </Section>
 
@@ -183,10 +205,38 @@ export function LightPanel() {
           onChange={(rotation) => drag({ rotation })}
           onCommit={commit}
         />
+        <ColorField
+          label="Light colour"
+          value={value.color}
+          onPreview={(color) => drag({ color })}
+          onChange={(color) => set({ color })}
+          swatches={LIGHT_SWATCHES}
+        />
+        <SliderField
+          label="Ambient"
+          value={value.ambient}
+          min={0}
+          max={2}
+          step={0.05}
+          format={(v) => `${v.toFixed(2)}×`}
+          onChange={(ambient) => drag({ ambient })}
+          onCommit={commit}
+        />
+        <ResetRow disabled={atDefaults} onReset={() => set(lightingSettings(value.preset))} />
       </DisclosureSection>
     </>
   );
 }
+
+/** Common light temperatures for the light colour picker. */
+const LIGHT_SWATCHES = [
+  { label: "Neutral white", color: "#ffffff" },
+  { label: "Warm 3200 K", color: "#ffd2a1" },
+  { label: "Soft warm 4000 K", color: "#ffe4c4" },
+  { label: "Daylight 5600 K", color: "#fff3e8" },
+  { label: "Cool 7500 K", color: "#e6ecff" },
+  { label: "Blue hour", color: "#a9c4ff" },
+] as const;
 
 /* ───────────────────────── Scene ───────────────────────── */
 
@@ -218,48 +268,106 @@ function ColorSwatches({ value, onChange }: { value: string; onChange: (color: s
 export function ScenePanel() {
   const background = useStudioStore((s) => s.settings.background);
   const apply = useStudioStore((s) => s.apply);
+  const preview = useStudioStore((s) => s.preview);
   const setBg = (bg: Background) => apply((s) => ({ ...s, background: bg }));
+  const dragBg = (bg: Background) => preview((s) => ({ ...s, background: bg }));
+  const presetId = BACKGROUND_PRESETS.find((p) => sameBackground(p.background, background))?.id ?? "";
 
   const changeType = (type: Background["type"]) => {
     if (type === background.type) return;
-    if (type === "solid") setBg({ type, color: "#161618" });
-    else if (type === "gradient") setBg(DEFAULT_SETTINGS.background);
+    if (type === "solid") setBg({ type, color: background.type === "gradient" ? background.to : "#161618" });
+    else if (type === "gradient") setBg(BACKGROUND_PRESETS[0].background);
     else setBg({ type: "transparent" });
   };
 
   return (
-    <Section title="Background">
-      <Segmented
-        ariaLabel="Background type"
-        value={background.type}
-        onChange={changeType}
-        options={[
-          { value: "gradient", label: "Gradient" },
-          { value: "solid", label: "Solid" },
-          { value: "transparent", label: "None" },
-        ]}
-      />
-      <div className="pt-2">
-        {background.type === "solid" && (
-          <>
-            <ColorSwatches value={background.color} onChange={(color) => setBg({ type: "solid", color })} />
-            <ColorField label="Colour" value={background.color} onChange={(color) => setBg({ type: "solid", color })} />
-          </>
-        )}
-        {background.type === "gradient" && (
-          <>
-            <ColorField label="Centre" value={background.from} onChange={(from) => setBg({ ...background, from })} />
-            <ColorField label="Edge" value={background.to} onChange={(to) => setBg({ ...background, to })} />
-          </>
-        )}
-        {background.type === "transparent" && (
-          <PanelNote>
-            The checkerboard marks transparency. PNG exports and embeds will show whatever is behind them.
-          </PanelNote>
-        )}
-      </div>
-    </Section>
+    <>
+      <Section title="Presets">
+        <RadioGroup.Root
+          aria-label="Background preset"
+          value={presetId}
+          onValueChange={(id) => setBg(BACKGROUND_PRESETS.find((p) => p.id === id)!.background)}
+          className="grid grid-cols-4 gap-2"
+        >
+          {BACKGROUND_PRESETS.map((p) => (
+            <RadioGroup.Item
+              key={p.id}
+              value={p.id}
+              className="group flex flex-col items-center gap-1 rounded-md outline-offset-2"
+            >
+              <span
+                className={cn(
+                  "ring-line relative block aspect-[4/3] w-full overflow-hidden rounded-md ring-1",
+                  "group-hover:ring-line-strong group-data-[state=checked]:ring-accent group-data-[state=checked]:ring-2",
+                  p.background.type === "transparent" && "checkerboard",
+                )}
+                style={{ background: backgroundToCss(p.background) }}
+              />
+              <span className="text-2xs text-muted group-data-[state=checked]:text-fg truncate">{p.label}</span>
+            </RadioGroup.Item>
+          ))}
+        </RadioGroup.Root>
+      </Section>
+
+      <Section title="Background">
+        <Segmented
+          ariaLabel="Background type"
+          value={background.type}
+          onChange={changeType}
+          options={[
+            { value: "gradient", label: "Gradient" },
+            { value: "solid", label: "Solid" },
+            { value: "transparent", label: "None" },
+          ]}
+        />
+        <div className="pt-2">
+          {background.type === "solid" && (
+            <>
+              <ColorSwatches value={background.color} onChange={(color) => setBg({ type: "solid", color })} />
+              <ColorField
+                label="Colour"
+                alpha
+                swatches={BACKGROUND_SWATCHES}
+                value={background.color}
+                onPreview={(color) => dragBg({ type: "solid", color })}
+                onChange={(color) => setBg({ type: "solid", color })}
+              />
+            </>
+          )}
+          {background.type === "gradient" && (
+            <>
+              <ColorField
+                label="Centre"
+                alpha
+                value={background.from}
+                onPreview={(from) => dragBg({ ...background, from })}
+                onChange={(from) => setBg({ ...background, from })}
+              />
+              <ColorField
+                label="Edge"
+                alpha
+                value={background.to}
+                onPreview={(to) => dragBg({ ...background, to })}
+                onChange={(to) => setBg({ ...background, to })}
+              />
+            </>
+          )}
+          {background.type === "transparent" && (
+            <PanelNote>
+              The checkerboard marks transparency. PNG exports and embeds will show whatever is behind them.
+            </PanelNote>
+          )}
+          {background.type !== "transparent" && backgroundIsTranslucent(background) && (
+            <PanelNote>Below 100 % opacity the checkerboard shows where the background is see-through.</PanelNote>
+          )}
+        </div>
+      </Section>
+    </>
   );
+}
+
+function sameBackground(a: Background, b: Background): boolean {
+  return JSON.stringify(a) === JSON.stringify(b);
 }
 
 /* ───────────────────────── Motion ───────────────────────── */
@@ -426,14 +534,14 @@ export function ExportPanel() {
 
   return (
     <>
-      <PreviewNote>GLB downloads and PNG renders are coming in Milestone 8.</PreviewNote>
+      <PreviewNote>GLB downloads and PNG renders are coming in Milestone 11.</PreviewNote>
 
-      <Section title="3D model" action={<ComingBadge milestone={8} />}>
+      <Section title="3D model" action={<ComingBadge milestone={11} />}>
         <ExportRow title="GLB · Original" description="Reconstructed geometry and textures" />
         <ExportRow title="GLB · Styled" description="With the current material applied" />
       </Section>
 
-      <Section title="Image" action={<ComingBadge milestone={8} />}>
+      <Section title="Image" action={<ComingBadge milestone={11} />}>
         <Field label="Size" labelId="png-size-label">
           <Segmented
             ariaLabelledBy="png-size-label"

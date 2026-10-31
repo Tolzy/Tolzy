@@ -3,6 +3,7 @@
 import { useThree } from "@react-three/fiber";
 import { useEffect, useLayoutEffect, useMemo } from "react";
 import { Color, Mesh, PlaneGeometry, ShaderMaterial, type WebGLRenderer } from "three";
+import { hexToRgba } from "@/lib/color/color";
 import type { Background } from "@/lib/studio/settings";
 
 /** Layer the backdrop lives on, so helper cameras (contact shadows) never see it. */
@@ -79,9 +80,16 @@ export function TransmissionBackdrop({ background, active }: { background: Backg
           ? [background.color, background.color]
           : [TRANSPARENT_FALLBACK, TRANSPARENT_FALLBACK];
     const u = (mesh.material as ShaderMaterial).uniforms;
-    // Keep the raw sRGB values: the shader converts after interpolating.
-    (u.from.value as Color).setStyle(from, "srgb-linear");
-    (u.to.value as Color).setStyle(to, "srgb-linear");
+    // Keep raw sRGB values (the shader converts after interpolating). A
+    // see-through colour is composited over the dark stage, as on screen.
+    const over = (hex: string, target: Color) => {
+      const c = hexToRgba(hex) ?? { r: 0, g: 0, b: 0, a: 1 };
+      const base = hexToRgba(TRANSPARENT_FALLBACK)!;
+      const mix = (v: number, b: number) => (v * c.a + b * (1 - c.a)) / 255;
+      target.setRGB(mix(c.r, base.r), mix(c.g, base.g), mix(c.b, base.b), "srgb-linear");
+    };
+    over(from, u.from.value as Color);
+    over(to, u.to.value as Color);
     invalidate();
   }, [background, mesh, invalidate]);
 

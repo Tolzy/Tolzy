@@ -2,8 +2,9 @@
  * Portrait customisation settings.
  *
  * This document is stored separately from the GLB (see docs/data-model.md §4).
- * A Zod schema mirroring these types is added when settings are persisted
- * server-side; until then the types below are the single source of truth.
+ * `schema.ts` validates it (versioned) wherever it is persisted: on this
+ * device today, in `portrait_settings` once accounts exist. Colours are sRGB
+ * hex strings, "#rrggbb" or "#rrggbbaa".
  */
 
 import type { LightingPreset } from "./lighting";
@@ -21,11 +22,18 @@ export interface PortraitSettings {
   material: { preset: MaterialPreset } & MaterialParams;
   lighting: {
     preset: LightingPreset;
-    /** Multiplier, 0–3. */
+    /** Multiplier for the direct lights, 0–3. */
     intensity: number;
-    /** Environment yaw in degrees, −180–180. */
+    /** Light rig and environment yaw in degrees, −180–180. */
     rotation: number;
+    /** Tint applied to the key, fill and rim lights (sRGB hex). */
+    color: string;
+    /** Multiplier for ambient fill and environment light, 0–2. */
+    ambient: number;
+    /** Contact shadow under the bust. */
     shadows: boolean;
+    /** 0–1: strength of the model's cast shadows and the contact shadow. */
+    shadowIntensity: number;
   };
   background: Background;
   motion: {
@@ -54,9 +62,14 @@ export function materialSettings(preset: MaterialPreset): PortraitSettings["mate
   return { preset, ...MATERIAL_PRESET_DEFS[preset].defaults };
 }
 
+/** Settings for a lighting preset with its default adjustments ("Reset to preset"). */
+export function lightingSettings(preset: LightingPreset): PortraitSettings["lighting"] {
+  return { preset, intensity: 1, rotation: 0, color: "#ffffff", ambient: 1, shadows: true, shadowIntensity: 1 };
+}
+
 export const DEFAULT_SETTINGS: PortraitSettings = {
   material: materialSettings("original"),
-  lighting: { preset: "studio", intensity: 1, rotation: 0, shadows: true },
+  lighting: lightingSettings("studio"),
   background: { type: "gradient", from: "#1f1f23", to: "#0b0b0c" },
   motion: {
     tracking: true,
@@ -82,4 +95,11 @@ export function backgroundToCss(bg: Background): string | undefined {
     case "transparent":
       return undefined;
   }
+}
+
+/** Whether the background lets the checkerboard (transparency) show through. */
+export function backgroundIsTranslucent(bg: Background): boolean {
+  if (bg.type === "transparent") return true;
+  const colors = bg.type === "solid" ? [bg.color] : [bg.from, bg.to];
+  return colors.some((c) => c.length === 9 && c.slice(7).toLowerCase() !== "ff");
 }

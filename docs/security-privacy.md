@@ -19,6 +19,15 @@ state laws (e.g. Illinois BIPA, Texas CUBI).
    provider's. A separate, explicit, revocable consent would be required, and
    is not collected in the initial product.
 
+## 1a. Photo checks run on the device (M5)
+
+Photo validation on the New Portrait page runs entirely in the browser
+(file signature, size, decoding, resolution, MediaPipe Face Landmarker served
+from our own origin). No photo data is sent anywhere — verified by a browser
+test that records every request. Uploading is disabled until sign-in and the
+private storage backend exist (ADR 0007); the interface says so rather than
+simulating an upload.
+
 ## 2. Controls
 
 | Area           | Control                                                                                                                      |

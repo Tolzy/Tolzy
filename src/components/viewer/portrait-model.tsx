@@ -57,7 +57,7 @@ export function PortraitModel({ url, framing, material, onReady, onMaterials }: 
     scene.position.set(-center.x * scale, -(box.min.y + size.y * framing.pivot) * scale, -center.z * scale);
 
     scene.traverse((obj) => {
-      if ((obj as Mesh).isMesh) {
+      if ((obj as Mesh).isMesh && !obj.userData.helper) {
         const mesh = obj as Mesh;
         mesh.userData.originalMaterial ??= mesh.material;
         mesh.castShadow = true;
@@ -73,12 +73,12 @@ export function PortraitModel({ url, framing, material, onReady, onMaterials }: 
   const materials = useMemo(() => new MaterialSystem(scene), [scene]);
   useEffect(() => () => materials.dispose(), [materials]);
 
-  const { preset, tint, roughness, metalness, clearcoat, thickness } = material;
+  const { preset, tint, roughness, metalness, clearcoat, thickness, opacity } = material;
   useLayoutEffect(() => {
-    const summary = materials.apply(preset, { tint, roughness, metalness, clearcoat, thickness });
+    const summary = materials.apply(preset, { tint, roughness, metalness, clearcoat, thickness, opacity });
     onMaterials?.(summary);
     invalidate();
-  }, [materials, preset, tint, roughness, metalness, clearcoat, thickness, onMaterials, invalidate]);
+  }, [materials, preset, tint, roughness, metalness, clearcoat, thickness, opacity, onMaterials, invalidate]);
 
   // Keep only the current model in the loader cache.
   useEffect(() => {

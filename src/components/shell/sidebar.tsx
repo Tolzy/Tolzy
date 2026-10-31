@@ -1,5 +1,6 @@
 "use client";
 
+import { ThemeMenu } from "@/components/theme/theme-menu";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Folder, HardDrive, LayoutGrid, Plus, Search, Settings, UserRound } from "lucide-react";
@@ -93,7 +94,7 @@ export function SidebarContent() {
         </NavItem>
       </div>
 
-      <div className="border-line border-t px-3 py-3">
+      <div className="border-line flex items-center gap-1 border-t px-3 py-3">
         <Tooltip
           side="right"
           content={
@@ -102,7 +103,7 @@ export function SidebarContent() {
             </span>
           }
         >
-          <button type="button" className="flex w-full items-center gap-2.5 rounded-md text-left">
+          <button type="button" className="flex min-w-0 flex-1 items-center gap-2.5 rounded-md text-left">
             <span className="bg-sunken text-subtle ring-line flex size-7 items-center justify-center rounded-full ring-1 [&_svg]:size-4">
               <UserRound />
             </span>
@@ -112,6 +113,7 @@ export function SidebarContent() {
             <Badge tone="outline">Preview</Badge>
           </button>
         </Tooltip>
+        <ThemeMenu side="right" />
       </div>
     </div>
   );

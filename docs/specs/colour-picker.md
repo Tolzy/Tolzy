@@ -1,7 +1,8 @@
 # Spec — Advanced colour picker
 
-Milestone: **M4** (re-opened). Status: planned, not implemented.
-Replaces the current `ColorField` (hex text + native `<input type="color">`).
+Milestone: **M4**. Status: **implemented** (ADR 0007) — except the viewport
+sampler fallback for browsers without the EyeDropper API (deferred; the
+eyedropper is hidden there). Replaces the native `<input type="color">`.
 
 ## 1. Goal
 
@@ -69,12 +70,12 @@ material's base colour; the UI says "Picks the colour as rendered".
 
 ## 5. Targets and what alpha means
 
-| Target                                          | Alpha | Renderer effect                                                                                                                                   |
-| ----------------------------------------------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Material tint (Chrome, Obsidian, Ceramic, Gold) | Yes   | Surface **opacity**. Rendered with a depth pre-pass so a translucent head shows no inner-face sorting artefacts. 100 % keeps today's opaque path. |
-| Glass tint                                      | No    | Absorption colour (transmission already provides see-through).                                                                                    |
-| Background solid / gradient stops               | Yes   | CSS background over the checkerboard; glass backdrop and PNG export use the same value.                                                           |
-| Eye glow, effect colours (M8)                   | Yes   | Shader uniforms (`vec4`), premultiplied at the boundary.                                                                                          |
+| Target                                          | Alpha         | Renderer effect                                                                         |
+| ----------------------------------------------- | ------------- | --------------------------------------------------------------------------------------- |
+| Material tint (Chrome, Obsidian, Ceramic, Gold) | No (as built) | Opacity is a separate **Opacity** slider (0–100 %, depth pre-pass), per the M4 brief.   |
+| Glass tint                                      | No            | Absorption colour (transmission already provides see-through).                          |
+| Background solid / gradient stops               | Yes           | CSS background over the checkerboard; glass backdrop and PNG export use the same value. |
+| Eye glow, effect colours (M8)                   | Yes           | Shader uniforms (`vec4`), premultiplied at the boundary.                                |
 
 ## 6. Architecture
 

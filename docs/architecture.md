@@ -60,7 +60,7 @@ src/
     (focus)/create/         * focused creation flow (upload + validation in M5)
     (studio)/studio/[portraitId]/ * full-screen 3D editor (Suspense + skeleton)
     dev/components/         * design-system gallery, development only
-    e/[slug]/               public embed (M11, separate minimal layout)
+    e/[slug]/               public embed (M12, separate minimal layout)
     api/                    route handlers (uploads, generation, webhooks, cron, exports)
     globals.css             * design tokens (Tailwind v4 @theme)
   components/
@@ -72,11 +72,14 @@ src/
     studio/                 * studio layout, inspector panels, viewport toolbar, share dialog
     viewer/                 * R3F: LazyViewer, Viewer, PortraitModel, StudioLighting, framing maths
                               interaction controller + rig (M3), MaterialSystem (M4),
-                              geometry-system (M7), effects/ runtime + modules (M8)
+                              geometry-system (M7), effects/ runtime (M8) + modules (M9)
     ui/color/               advanced colour picker (M4)
   lib/
     studio/                 * settings types/defaults, materials ✅, lighting ✅, presets;
-                              geometry (M7), effects (M8)
+                              geometry (M7), effects (M8–M9), schema.ts (settings validation)
+    photos/                 * on-device photo checks: file signature, limits, MediaPipe face
+                              analysis, focus/exposure (M5)
+    uploads/                * upload availability switch (server upload arrives with accounts)
     color/                  colour conversion, parsing, formatting, three.js boundary (M4)
     reconstruction/         provider interface + adapters (server-only)
     storage/                R2 + Supabase storage helpers (server-only)
@@ -118,7 +121,7 @@ settings ──▶ │ geometry │ material │ lighting │ scene │ motion �
 ### Scene graph
 
 ```
-<StudioLayout>                             viewer lives in the layout (M8): Design and Effects
+<StudioLayout>                             viewer lives in the layout (M9): Design and Effects
                                            workspaces share it without reloading the model
   <Canvas frameloop="demand">              camera: perspective, fov 26°, fixed (M2)
     <StudioLighting rig />                 ✅ direct lights + hemisphere + persistent procedural environment
@@ -129,9 +132,9 @@ settings ──▶ │ geometry │ material │ lighting │ scene │ motion �
         GeometrySystem                     (M7) part/cap visibility from the descriptor
         EyeEffects                         (M8) emissive hook + halos at eye anchors
       </PortraitModel>
-      <EffectsLayer stack />               (M8) model-relative effects rotate with the head
+      <EffectsLayer stack />               (M9) model-relative effects rotate with the head
     </InteractionRig>
-    <EffectsLayer world />                 (M8) world-fixed effects (fog, floor smoke)
+    <EffectsLayer world />                 (M9) world-fixed effects (fog, floor smoke)
     <StudioShadow />                       ✅ contact shadow at the visible floor
   </Canvas>
 </StudioLayout>
@@ -210,9 +213,9 @@ As built in Milestone 4: see ADR 0005.
 - `components/viewer/scene-probe.tsx` — mirrors live scene state (lights,
   environment version, GPU counts) onto data attributes for tests.
 
-## 5a. Colour (M4)
+## 5a. Colour (M4, implemented)
 
-Spec: `docs/specs/colour-picker.md`. Colours are stored as sRGB
+Spec: `docs/specs/colour-picker.md`, ADR 0007. Colours are stored as sRGB
 `#RRGGBB`/`#RRGGBBAA`; HSB/HSL/RGB are UI views; `lib/color/three.ts` is the
 single conversion point to linear three.js colours and alpha.
 
@@ -224,7 +227,7 @@ primitives, `scene.extras.portraitStudio`) and in `model_assets.manifest`.
 The browser's `GeometrySystem` only toggles visibility and reports visible
 bounds to framing, shadows and effects. Clipping planes are a fallback only.
 
-## 5c. Effects (M8)
+## 5c. Effects (M8 Eye Effects, M9 Effects Studio)
 
 Specs: `docs/specs/eye-effects.md`, `docs/specs/effects-studio.md`. Effect
 modules implement `create / update / tick / animated / dispose`; simulation

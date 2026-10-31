@@ -22,17 +22,17 @@ test("a setting change can be undone and redone", async ({ page, isMobile }) => 
 
 test("controls that do not work yet are disabled and labelled", async ({ page }) => {
   const rail = page.getByRole("navigation", { name: "Properties" });
-  // Exports: Milestone 8.
+  // Exports: Milestone 11.
   await rail.getByRole("button", { name: "Export" }).click();
-  await expect(page.getByText("GLB downloads and PNG renders are coming in Milestone 8.")).toBeVisible();
+  await expect(page.getByText("GLB downloads and PNG renders are coming in Milestone 11.")).toBeVisible();
   for (const name of ["1×", "2×", "4×"]) await expect(page.getByRole("radio", { name })).toBeDisabled();
   await expect(page.getByRole("button", { name: "Render PNG" })).toHaveAttribute("aria-disabled", "true");
   await expect(page.getByRole("button", { name: "Download GLB · Original" })).toHaveAttribute("aria-disabled", "true");
 
-  // Public embeds: Milestone 9.
+  // Public embeds: Milestone 12.
   await page.getByRole("button", { name: "Share and embed" }).click();
   await expect(page.getByRole("radio", { name: /Public embed/ })).toBeDisabled();
-  await expect(page.getByText(/Public embeds are coming in Milestone 9/)).toBeVisible();
+  await expect(page.getByText(/Public embeds are coming in Milestone 12/)).toBeVisible();
 });
 
 test("context rail switches inspector panels", async ({ page }) => {
@@ -48,8 +48,8 @@ test("context rail switches inspector panels", async ({ page }) => {
 test("background setting drives the viewport", async ({ page }) => {
   await page.getByRole("navigation", { name: "Properties" }).getByRole("button", { name: "Scene" }).click();
   await page.getByRole("radio", { name: "Solid" }).click();
-  await page.getByRole("radio", { name: "Paper" }).click();
-  await expect(page.getByRole("region", { name: "3D viewport" })).toHaveCSS("background-color", "rgb(244, 243, 239)");
+  await page.getByRole("radiogroup", { name: "Background colour" }).getByRole("radio", { name: "Paper" }).click();
+  await expect(page.getByTestId("viewport-background")).toHaveCSS("background-color", "rgb(244, 243, 239)");
 });
 
 test("viewport toolbar controls zoom and cursor tracking", async ({ page }) => {

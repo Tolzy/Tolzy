@@ -13,7 +13,9 @@ const nextConfig: NextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
   poweredByHeader: false,
-  devIndicators: { position: "bottom-right" },
+  // The floating Next.js dev-tools button is off: its own "Preferences → Theme"
+  // was mistaken for the app theme during review (ADR 0006 §7).
+  devIndicators: false,
   turbopack: {
     rules: {
       "*.css": {

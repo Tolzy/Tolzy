@@ -21,17 +21,19 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useSyncExternalStore, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
-import { backgroundToCss, DEFAULT_SETTINGS } from "@/lib/studio/settings";
+import { backgroundIsTranslucent, backgroundToCss } from "@/lib/studio/settings";
 import { useStudioStore, type InspectorContext, ZOOM_MAX, ZOOM_MIN } from "@/stores/studio-store";
 import { Badge } from "@/components/ui/display";
 import { Button } from "@/components/ui/button";
 import { Tooltip } from "@/components/ui/tooltip";
 import { LazyViewer } from "@/components/viewer/lazy-viewer";
 import { SAMPLE_MODEL, type ModelFraming } from "@/lib/studio/sample-model";
+import { ThemeMenu } from "@/components/theme/theme-menu";
 import { ExportPanel, LightPanel, MaterialPanel, MotionPanel, ScenePanel } from "./inspector-panels";
 import { ShareDialog } from "./share-dialog";
 import { StudioModelContext } from "./studio-context";
 import { usePrefersReducedMotion } from "./use-studio";
+import { useSettingsPersistence } from "./use-settings-persistence";
 
 const CONTEXTS: {
   id: InspectorContext;
@@ -78,6 +80,8 @@ const CONTEXTS: {
 ];
 
 interface StudioProps {
+  /** Settings are saved per portrait. */
+  portraitId: string;
   portraitName: string;
   projectName: string;
   /** GLB to render and how to place it. */
@@ -88,10 +92,18 @@ interface StudioProps {
   isSample?: boolean;
 }
 
-export function Studio({ portraitName, projectName, modelUrl, framing, thumbnailUrl, isSample }: StudioProps) {
+export function Studio({
+  portraitId,
+  portraitName,
+  projectName,
+  modelUrl,
+  framing,
+  thumbnailUrl,
+  isSample,
+}: StudioProps) {
   const inspectorOpen = useStudioStore((s) => s.inspectorOpen);
   useStudioShortcuts();
-  useInitialSettings();
+  useSettingsPersistence(portraitId);
 
   return (
     <StudioModelContext value={{ thumbnailUrl: thumbnailUrl ?? null }}>
@@ -144,6 +156,7 @@ function TopBar({
       </nav>
 
       <div className="ml-auto flex items-center gap-1">
+        <ThemeMenu />
         <div className="mr-1 hidden items-center sm:flex">
           <Tooltip content="Undo" shortcut={["⌘", "Z"]}>
             <Button variant="ghost" iconOnly aria-label="Undo" disabled={!canUndo} onClick={undo}>
@@ -212,10 +225,18 @@ function Viewport({
       data-viewport
       className={cn(
         "bg-vp relative h-[46dvh] shrink-0 overflow-hidden md:h-auto md:min-w-0 md:flex-1",
-        background.type === "transparent" && "checkerboard",
+        backgroundIsTranslucent(background) && "checkerboard",
       )}
-      style={css ? { background: css } : undefined}
     >
+      {/* Background colour layer over the stage (and over the checkerboard when see-through). */}
+      {css && (
+        <div
+          aria-hidden="true"
+          data-testid="viewport-background"
+          className="absolute inset-0"
+          style={{ background: css }}
+        />
+      )}
       <LazyViewer
         url={modelUrl}
         framing={framing}
@@ -453,14 +474,5 @@ function useStudioShortcuts() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
-}
-
-/** Starts each studio session from defaults; tracking is off for reduced-motion users. */
-function useInitialSettings() {
-  useEffect(() => {
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const motion = { ...DEFAULT_SETTINGS.motion, tracking: !reduced };
-    useStudioStore.getState().reset({ ...DEFAULT_SETTINGS, motion });
   }, []);
 }

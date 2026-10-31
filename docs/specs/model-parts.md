@@ -132,7 +132,7 @@ with the Effects "Reveal" transition).
 - Switching parts never changes vertex data (geometry key unchanged) and
   frames the visible parts correctly at 390/1024/1440 px.
 - Failed segmentation degrades to Full bust with a clear message.
-- Exports (M10) include only visible parts.
+- Exports (M11) include only visible parts.
 
 ## 8. Tests
 
