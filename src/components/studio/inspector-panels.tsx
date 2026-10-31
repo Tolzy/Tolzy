@@ -9,7 +9,7 @@ import { DEFAULT_SETTINGS, MATERIAL_DEFAULTS, type Background } from "@/lib/stud
 import { useStudioStore } from "@/stores/studio-store";
 import { Button } from "@/components/ui/button";
 import { ColorField, Field, Segmented, SliderField, SwitchRow } from "@/components/ui/controls";
-import { DisclosureSection, PresetGroup, PresetTile, Section } from "@/components/ui/display";
+import { Badge, DisclosureSection, PresetGroup, PresetTile, Section } from "@/components/ui/display";
 import { usePrefersReducedMotion, useSection } from "./use-studio";
 import { ShareDialog } from "./share-dialog";
 
@@ -28,6 +28,18 @@ function PanelNote({ children }: { children: ReactNode }) {
 
 /* ───────────────────────── Material ───────────────────────── */
 
+/*
+ * Feature availability. Presets render in the panel so the design can be
+ * reviewed, but they stay disabled until the renderer applies them.
+ */
+const MATERIALS_AVAILABLE = false; // Milestone 4
+const LIGHTING_PRESETS_AVAILABLE = false; // Milestone 4
+
+/** Small label marking a section whose controls arrive in a later milestone. */
+function ComingBadge({ milestone }: { milestone: number }) {
+  return <Badge tone="outline">Milestone {milestone}</Badge>;
+}
+
 /** Quiet banner for settings that the renderer does not apply yet. */
 function PreviewNote({ children }: { children: ReactNode }) {
   return (
@@ -45,13 +57,14 @@ export function MaterialPanel() {
   return (
     <>
       <PreviewNote>
-        Material presets aren’t applied to the model yet. The viewport shows the original textures.
+        Material presets are coming in Milestone 4. Until then the model keeps its original textures.
       </PreviewNote>
-      <Section title="Preset">
+      <Section title="Preset" action={<ComingBadge milestone={4} />}>
         <PresetGroup
           label="Material preset"
           value={value.preset}
           onChange={(preset) => set({ preset, ...MATERIAL_DEFAULTS[preset] })}
+          disabled={!MATERIALS_AVAILABLE}
         >
           {MATERIAL_PRESETS.map((p) => (
             <PresetTile key={p.id} value={p.id} label={p.label} preview={<Sphere background={p.swatch} />} />
@@ -65,7 +78,9 @@ export function MaterialPanel() {
       <DisclosureSection title="Adjust">
         {value.preset === "original" ? (
           <PanelNote>
-            Original keeps the reconstructed skin and hair textures. Choose another material to adjust its surface.
+            {MATERIALS_AVAILABLE
+              ? "Original keeps the reconstructed skin and hair textures. Choose another material to adjust its surface."
+              : "Surface adjustments arrive with material presets in Milestone 4."}
           </PanelNote>
         ) : (
           <>
@@ -101,10 +116,15 @@ export function LightPanel() {
   return (
     <>
       <PreviewNote>
-        Lighting presets aren’t applied yet. Shadow, intensity and rotation update the viewport.
+        Lighting presets are coming in Milestone 4. Contact shadow, intensity and rotation already update the viewport.
       </PreviewNote>
-      <Section title="Preset">
-        <PresetGroup label="Lighting preset" value={value.preset} onChange={(preset) => set({ preset })}>
+      <Section title="Preset" action={<ComingBadge milestone={4} />}>
+        <PresetGroup
+          label="Lighting preset"
+          value={value.preset}
+          onChange={(preset) => set({ preset })}
+          disabled={!LIGHTING_PRESETS_AVAILABLE}
+        >
           {LIGHTING_PRESETS.map((p) => (
             <PresetTile key={p.id} value={p.id} label={p.label} preview={<Sphere background={p.swatch} />} />
           ))}
@@ -386,23 +406,23 @@ export function ExportPanel() {
 
   return (
     <>
-      <PreviewNote>GLB and PNG exports aren’t enabled in this preview yet.</PreviewNote>
+      <PreviewNote>GLB downloads and PNG renders are coming in Milestone 8.</PreviewNote>
 
-      <Section title="3D model">
+      <Section title="3D model" action={<ComingBadge milestone={8} />}>
         <ExportRow title="GLB · Original" description="Reconstructed geometry and textures" />
         <ExportRow title="GLB · Styled" description="With the current material applied" />
       </Section>
 
-      <Section title="Image">
+      <Section title="Image" action={<ComingBadge milestone={8} />}>
         <Field label="Size" labelId="png-size-label">
           <Segmented
             ariaLabelledBy="png-size-label"
             value={scale}
             onChange={setScale}
             options={[
-              { value: "1", label: "1×" },
-              { value: "2", label: "2×" },
-              { value: "4", label: "4×" },
+              { value: "1", label: "1×", disabled: true },
+              { value: "2", label: "2×", disabled: true },
+              { value: "4", label: "4×", disabled: true },
             ]}
           />
         </Field>

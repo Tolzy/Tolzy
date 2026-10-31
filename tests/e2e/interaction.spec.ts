@@ -72,9 +72,12 @@ test.describe("cursor tracking (desktop)", () => {
   test("the toolbar can switch cursor tracking off", async ({ page }) => {
     const box = await openStudio(page);
     await page.getByRole("toolbar", { name: "Viewport" }).getByRole("button", { name: "Cursor tracking" }).click();
+    // Clicking the button tracked the cursor near the toolbar; let the head ease back first.
+    await expect(surface(page)).toHaveAttribute("data-settled", "true", { timeout: SETTLE_TIMEOUT });
     await hover(page, box, 0.99, 0.01);
     await page.waitForTimeout(800);
     expect(Math.abs(await num(page, "yaw"))).toBeLessThan(0.5);
+    expect(Math.abs(await num(page, "pitch"))).toBeLessThan(0.5);
   });
 });
 
@@ -105,24 +108,27 @@ test.describe("manual rotation", () => {
     await page.getByRole("radio", { name: "Hold" }).click();
 
     await hover(page, box, 0.9, 0.45);
-    await expect(surface(page)).toHaveAttribute("data-settled", "true", { timeout: 8000 });
+    await expect(surface(page)).toHaveAttribute("data-settled", "true", { timeout: SETTLE_TIMEOUT });
     const trackBefore = await num(page, "track-yaw");
     expect(trackBefore).toBeGreaterThan(15);
 
     await page.mouse.down();
     await hover(page, box, 0.6, 0.45); // dragging left also moves the cursor left…
-    await page.waitForTimeout(400);
+    await expect.poll(() => num(page, "manual-yaw"), { timeout: SETTLE_TIMEOUT }).toBeLessThan(-30);
     // …but tracking is frozen during the drag; only the manual offset changes.
     expect(Math.abs((await num(page, "track-yaw")) - trackBefore)).toBeLessThan(1.5);
-    expect(await num(page, "manual-yaw")).toBeLessThan(-30);
     await page.mouse.up();
 
     // Tracking resumes towards the cursor; the held manual offset is kept.
-    await expect.poll(() => num(page, "track-yaw")).toBeLessThan(trackBefore - 3);
-    expect(await num(page, "manual-yaw")).toBeLessThan(-30);
-    const yaw = await num(page, "yaw");
-    const sum = (await num(page, "track-yaw")) + (await num(page, "manual-yaw"));
-    expect(Math.abs(yaw - sum)).toBeLessThan(0.2);
+    await expect.poll(() => num(page, "track-yaw"), { timeout: SETTLE_TIMEOUT }).toBeLessThan(trackBefore - 3);
+    // Read all three values from the same frame.
+    const frame = await surface(page).evaluate((el) => ({
+      yaw: Number(el.dataset.yaw),
+      track: Number(el.dataset.trackYaw),
+      manual: Number(el.dataset.manualYaw),
+    }));
+    expect(frame.manual).toBeLessThan(-30);
+    expect(Math.abs(frame.yaw - (frame.track + frame.manual))).toBeLessThan(0.05);
   });
 
   test("reset view returns the head to neutral", async ({ page, isMobile }) => {
@@ -208,6 +214,7 @@ test.describe("touch sensitivity", () => {
   }
 
   test("short, medium and long swipes rotate about 45 % less than a mouse drag", async ({ page }) => {
+    test.setTimeout(90_000); // three swipes with holds and returns on software WebGL
     await openStudio(page);
     // Mouse: 220° per viewport width. Touch default: 55 % of that.
     for (const [fraction, expected] of [
@@ -244,7 +251,7 @@ test("mouse drag rate is unchanged by the touch setting", async ({ page, isMobil
   await hover(page, box, 0.4, 0.45);
   await page.mouse.down();
   await hover(page, box, 0.65, 0.45); // a quarter of the width
-  await page.waitForTimeout(800);
+  await page.waitForTimeout(2500); // hold still; motion is time-based, frames may be slow
   const angle = await num(page, "manual-yaw");
   await page.mouse.up();
   expect(angle).toBeGreaterThan(55 - 3); // 0.25 × 220°

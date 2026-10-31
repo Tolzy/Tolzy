@@ -64,7 +64,9 @@ export function ShareDialog({ trigger }: { trigger: ReactNode }) {
           disabled
         />
       </RadioGroup.Root>
-      <p className="text-muted mt-4 text-xs">Publishing becomes available once your portrait has been generated.</p>
+      <p className="text-muted mt-4 text-xs">
+        Public embeds are coming in Milestone 9, for generated portraits. Everything stays private until then.
+      </p>
     </Dialog>
   );
 }

@@ -119,15 +119,28 @@ interface PresetGroupProps<T extends string> {
   value: T;
   onChange: (value: T) => void;
   columns?: 3 | 4;
+  /**
+   * Shows the presets but makes them unavailable: not clickable or focusable,
+   * dimmed, with the current value still marked.
+   */
+  disabled?: boolean;
   children: ReactNode;
 }
 
 /** Radio group of visual presets with arrow-key navigation. */
-export function PresetGroup<T extends string>({ label, value, onChange, columns = 3, children }: PresetGroupProps<T>) {
+export function PresetGroup<T extends string>({
+  label,
+  value,
+  onChange,
+  columns = 3,
+  disabled,
+  children,
+}: PresetGroupProps<T>) {
   return (
     <RadioGroup.Root
       aria-label={label}
       value={value}
+      disabled={disabled}
       onValueChange={(v) => onChange(v as T)}
       className={cn(
         "grid gap-x-2.5 gap-y-3",
@@ -150,17 +163,23 @@ interface PresetTileProps {
 
 export function PresetTile({ value, label, preview }: PresetTileProps) {
   return (
-    <RadioGroup.Item value={value} className="group flex flex-col items-center gap-1.5 rounded-lg outline-offset-2">
+    <RadioGroup.Item
+      value={value}
+      className={cn(
+        "group flex flex-col items-center gap-1.5 rounded-lg outline-offset-2",
+        "data-[disabled]:cursor-not-allowed data-[disabled]:data-[state=unchecked]:opacity-40",
+      )}
+    >
       <span
         className={cn(
           "relative flex aspect-square w-full items-center justify-center overflow-hidden rounded-lg bg-[#141416]",
-          "group-hover:ring-line-strong ring-1 ring-black/5 transition-shadow duration-[120ms]",
+          "group-enabled:group-hover:ring-line-strong ring-1 ring-black/5 transition-shadow duration-[120ms]",
           "group-data-[state=checked]:ring-accent group-data-[state=checked]:ring-offset-surface group-data-[state=checked]:ring-2 group-data-[state=checked]:ring-offset-2",
         )}
       >
         {preview}
       </span>
-      <span className="text-2xs text-muted group-hover:text-fg group-data-[state=checked]:text-fg group-data-[state=checked]:font-medium">
+      <span className="text-2xs text-muted group-enabled:group-hover:text-fg group-data-[state=checked]:text-fg group-data-[state=checked]:font-medium">
         {label}
       </span>
     </RadioGroup.Item>

@@ -3,18 +3,52 @@ import { expect, test } from "@playwright/test";
 test.beforeEach(async ({ page }) => {
   await page.goto("/studio/sample");
   await expect(page.getByRole("radiogroup", { name: "Material preset" })).toBeVisible();
+  // The panel is server-rendered; the 3D viewer only mounts once the page is
+  // interactive, so wait for it before using keyboard shortcuts.
+  await expect(page.getByTestId("viewer-surface")).toBeVisible();
 });
 
-test("selecting a material can be undone and redone", async ({ page, isMobile }) => {
-  const chrome = page.getByRole("radio", { name: "Chrome" });
-  await chrome.click();
-  await expect(chrome).toHaveAttribute("aria-checked", "true");
-
-  if (isMobile) return; // undo/redo live in the desktop top bar
+test("a setting change can be undone and redone", async ({ page, isMobile }) => {
+  test.skip(isMobile, "undo/redo live in the desktop top bar");
+  await page.getByRole("navigation", { name: "Properties" }).getByRole("button", { name: "Scene" }).click();
+  const solid = page.getByRole("radio", { name: "Solid" });
+  await solid.click();
+  await expect(solid).toHaveAttribute("aria-checked", "true");
   await page.getByRole("button", { name: "Undo" }).click();
-  await expect(page.getByRole("radio", { name: "Original" })).toHaveAttribute("aria-checked", "true");
+  await expect(page.getByRole("radio", { name: "Gradient" })).toHaveAttribute("aria-checked", "true");
   await page.getByRole("button", { name: "Redo" }).click();
-  await expect(chrome).toHaveAttribute("aria-checked", "true");
+  await expect(solid).toHaveAttribute("aria-checked", "true");
+});
+
+test("controls that do not work yet are disabled and labelled", async ({ page }) => {
+  // Material presets: Milestone 4. Original stays marked as the current look.
+  const materials = page.getByRole("radiogroup", { name: "Material preset" });
+  await expect(page.getByText("Material presets are coming in Milestone 4.")).toBeVisible();
+  for (const name of ["Chrome", "Obsidian", "Ceramic", "Glass", "Gold"]) {
+    await expect(materials.getByRole("radio", { name })).toBeDisabled();
+  }
+  await expect(materials.getByRole("radio", { name: "Original" })).toHaveAttribute("aria-checked", "true");
+  await materials.getByRole("radio", { name: "Chrome" }).click({ force: true });
+  await expect(materials.getByRole("radio", { name: "Original" })).toHaveAttribute("aria-checked", "true");
+
+  const rail = page.getByRole("navigation", { name: "Properties" });
+  // Lighting presets: Milestone 4. Shadow, intensity and rotation stay live.
+  await rail.getByRole("button", { name: "Light" }).click();
+  const lights = page.getByRole("radiogroup", { name: "Lighting preset" });
+  await expect(lights.getByRole("radio", { name: "Dramatic" })).toBeDisabled();
+  await expect(page.getByRole("switch", { name: "Contact shadow" })).toBeEnabled();
+
+  // Exports: Milestone 8.
+  await rail.getByRole("button", { name: "Export" }).click();
+  await expect(page.getByText("GLB downloads and PNG renders are coming in Milestone 8.")).toBeVisible();
+  for (const name of ["1×", "2×", "4×"]) await expect(page.getByRole("radio", { name })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Render PNG" })).toHaveAttribute("aria-disabled", "true");
+  await expect(page.getByRole("button", { name: "Download GLB · Original" })).toHaveAttribute("aria-disabled", "true");
+
+  // Public embeds: Milestone 9.
+  await page.getByRole("button", { name: "Share and embed" }).click();
+  await expect(page.getByRole("radio", { name: /Public embed/ })).toBeDisabled();
+  await expect(page.getByText(/Public embeds are coming in Milestone 9/)).toBeVisible();
 });
 
 test("context rail switches inspector panels", async ({ page }) => {
