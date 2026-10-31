@@ -289,7 +289,13 @@ function faceChecks(
   }
 
   // Head covering: the band just above the forehead (where hair or a hat is).
-  if (slot === "front" || isThreeQuarter(slot)) checks.push(headwearCheck(face, canvas, metrics));
+  if (slot === "front" || isThreeQuarter(slot)) {
+    const headwear = headwearCheck(face, canvas, metrics);
+    checks.push(headwear);
+    // Don't claim the hairline is visible when a covering hides it.
+    const visible = checks.find((c) => c.id === "visible");
+    if (headwear.status !== "pass" && visible?.status === "pass") visible.message = "Face and jaw are in frame.";
+  }
 
   // Expression (main photo only).
   if (slot === "front") {

@@ -226,6 +226,8 @@ test("consent is required; progression stops honestly before upload", async ({ p
 test("the review step lists suggestions instead of claiming every check passed", async ({ page }) => {
   await chooseFront(page, "headwear.jpg");
   await expect(status(page)).toHaveAttribute("data-photo-status", "warn");
+  // No contradiction: the framing check no longer claims the hairline is visible.
+  await expect(check(page, "[data-testid=front-photo]", "visible")).toHaveText(/Face and jaw are in frame/);
   await page.getByRole("checkbox", { name: /I am the person in this photo/ }).check();
   await page.getByRole("button", { name: /Continue/ }).click();
   await expect(page.getByRole("heading", { name: "Usable, with suggestions" })).toBeVisible();
