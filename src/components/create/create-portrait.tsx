@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, ImageOff, Info, Lock, RefreshCw, Trash2, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, CircleAlert, ImageOff, Info, Lock, RefreshCw, Trash2, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/cn";
 import { analyzePhoto } from "@/lib/photos/analyze";
@@ -361,6 +361,10 @@ function ReviewStep() {
     { id: "front" as const, label: "Front" },
     ...ANGLE_SLOTS.map((a) => ({ id: a.id, label: a.short })),
   ].filter((s) => slots[s.id]);
+  const suggestions = chosen.flatMap((s) =>
+    (slots[s.id]!.result?.checks ?? []).filter((c) => c.status === "warn").map((check) => ({ slot: s.label, check })),
+  );
+  const count = suggestions.length === 1 ? "One suggestion" : `${suggestions.length} suggestions`;
 
   return (
     <div className="max-w-[720px]">
@@ -368,11 +372,30 @@ function ReviewStep() {
         <ArrowLeft />
         Back to photos
       </Button>
-      <h2 className="mt-4 text-xl font-semibold tracking-[-0.015em]">Ready for secure upload</h2>
+      <h2 className="mt-4 text-xl font-semibold tracking-[-0.015em]">
+        {suggestions.length ? "Usable, with suggestions" : "Ready for secure upload"}
+      </h2>
       <p className="text-muted mt-2 text-sm">
-        Your photos passed the checks on this device and consent is confirmed. The next step uploads them privately to
-        your account and starts the 3D reconstruction.
+        {suggestions.length
+          ? `Your photos can be used and consent is confirmed. ${count} below could give a better likeness — go back to change a photo, or keep them as they are.`
+          : "Your photos passed every check on this device and consent is confirmed."}{" "}
+        The next step uploads them privately to your account and starts the 3D reconstruction.
       </p>
+      {suggestions.length > 0 && (
+        <ul className="mt-5 space-y-2" aria-label="Suggestions" data-testid="review-suggestions">
+          {suggestions.map(({ slot, check }) => (
+            <li key={`${slot}-${check.id}`} className="flex gap-2.5 text-sm">
+              <CircleAlert className="text-warning mt-0.5 size-4 shrink-0" aria-hidden="true" />
+              <span>
+                <span className="text-fg font-medium">
+                  {slot} · {check.label}
+                </span>
+                <span className="text-muted"> — {check.message}</span>
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
 
       <ul className="mt-8 grid grid-cols-3 gap-3 sm:grid-cols-5" aria-label="Selected photos">
         {chosen.map((s) => (

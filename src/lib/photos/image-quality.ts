@@ -99,6 +99,58 @@ export function regionMean(
   return n ? sum / n : 0;
 }
 
+export interface ColorStats {
+  /** Mean colour 0–255. */
+  r: number;
+  g: number;
+  b: number;
+  /** Hasler–Süsstrunk colourfulness: ~0 for greys, > 40 for vivid colour. */
+  colourfulness: number;
+  /** Standard deviation of luma: high for patterns and stripes. */
+  lumaSpread: number;
+}
+
+/** Colour statistics of RGBA pixels (used for the head-covering check). */
+export function colorStats(rgba: Uint8ClampedArray): ColorStats {
+  const n = rgba.length / 4 || 1;
+  let r = 0,
+    g = 0,
+    b = 0,
+    rg = 0,
+    yb = 0,
+    rg2 = 0,
+    yb2 = 0,
+    l = 0,
+    l2 = 0;
+  for (let i = 0; i < rgba.length; i += 4) {
+    const [R, G, B] = [rgba[i], rgba[i + 1], rgba[i + 2]];
+    r += R;
+    g += G;
+    b += B;
+    const a = R - G;
+    const c = 0.5 * (R + G) - B;
+    rg += a;
+    yb += c;
+    rg2 += a * a;
+    yb2 += c * c;
+    const y = 0.2126 * R + 0.7152 * G + 0.0722 * B;
+    l += y;
+    l2 += y * y;
+  }
+  const mrg = rg / n;
+  const myb = yb / n;
+  const srg = Math.sqrt(Math.max(0, rg2 / n - mrg * mrg));
+  const syb = Math.sqrt(Math.max(0, yb2 / n - myb * myb));
+  const ml = l / n;
+  return {
+    r: r / n,
+    g: g / n,
+    b: b / n,
+    colourfulness: Math.hypot(srg, syb) + 0.3 * Math.hypot(mrg, myb),
+    lumaSpread: Math.sqrt(Math.max(0, l2 / n - ml * ml)),
+  };
+}
+
 /**
  * Stretches luma so its 2nd–98th percentiles span 0–255. Focus is then
  * measured independently of exposure and skin tone (a dark or low-contrast
@@ -127,4 +179,11 @@ export const QUALITY = {
   brightP5: 185,
   clippedShare: 0.3,
   unevenRatio: 2.2,
+  /** Head covering above the forehead (calibrated on headwear.jpg vs front.jpg). */
+  /** Colourfulness above the cheeks' own, for a vivid covering. */
+  headwearExtraColourfulness: 18,
+  /** Luma spread of a patterned covering (stripes, prints). */
+  headwearSpread: 55,
+  /** Minimum colour distance from the skin. */
+  headwearSkinDistance: 70,
 };

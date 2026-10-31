@@ -61,6 +61,7 @@ test("a good front photo passes every check, with a preview", async ({ page }) =
     "pose",
     "visible",
     "eyes",
+    "headwear",
     "expression",
     "sharpness",
     "lighting",
@@ -148,11 +149,12 @@ test.describe("face checks", () => {
     }
   });
 
-  test("suggests fixes without blocking: dark lighting, turned head, distant face", async ({ page }) => {
+  test("suggests fixes without blocking: dark lighting, turned head, distant face, head covering", async ({ page }) => {
     const cases: [string, string, RegExp][] = [
       ["dark.jpg", "lighting", /too dark/],
       ["three-quarter.jpg", "pose", /head is turned away/],
       ["distant-face.jpg", "faceSize", /quite small/],
+      ["headwear.jpg", "headwear", /top of the head looks covered/],
     ];
     for (const [file, id, message] of cases) {
       await chooseFront(page, file);
@@ -218,6 +220,17 @@ test("consent is required; progression stops honestly before upload", async ({ p
 
   await page.getByRole("button", { name: "Back to photos" }).click();
   await expect(front(page)).toContainText("front.jpg");
+});
+
+test("the review step lists suggestions instead of claiming every check passed", async ({ page }) => {
+  await chooseFront(page, "headwear.jpg");
+  await expect(status(page)).toHaveAttribute("data-photo-status", "warn");
+  await page.getByRole("checkbox", { name: /I am the person in this photo/ }).check();
+  await page.getByRole("button", { name: /Continue/ }).click();
+  await expect(page.getByRole("heading", { name: "Usable, with suggestions" })).toBeVisible();
+  await expect(page.getByText(/passed every check/)).toHaveCount(0);
+  await expect(page.getByTestId("review-suggestions")).toContainText("Front · Head uncovered");
+  await expect(page.getByTestId("upload-unavailable")).toContainText("Nothing has been uploaded");
 });
 
 for (const theme of ["dark", "light"] as const) {

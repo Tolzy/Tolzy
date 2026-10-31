@@ -31,6 +31,7 @@ export type CheckId =
   | "pose"
   | "visible"
   | "eyes"
+  | "headwear"
   | "expression"
   | "sharpness"
   | "lighting";
@@ -61,7 +62,23 @@ export interface PhotoResult {
   /** True only when the face checks actually ran (model loaded and executed). */
   faceChecksRan: boolean;
   /** Raw measurements behind the checks (for diagnostics and tests). */
-  metrics?: Partial<Record<"sharpness" | "p5" | "p95" | "mean" | "sideRatio" | "yaw" | "pitch" | "faceHeight", number>>;
+  metrics?: Partial<
+    Record<
+      | "sharpness"
+      | "p5"
+      | "p95"
+      | "mean"
+      | "sideRatio"
+      | "yaw"
+      | "pitch"
+      | "faceHeight"
+      | "crownColourfulness"
+      | "crownSpread"
+      | "crownSkinDistance"
+      | "skinColourfulness",
+      number
+    >
+  >;
 }
 
 export function worstStatus(checks: PhotoCheck[]): CheckStatus {

@@ -60,7 +60,7 @@ lines are filtered so they don't surface as errors.
 face (front photo), more than one face, face too small (< 300 px or < 14 % of
 the height), heavy blur. Warn (allowed): head turned, face partly cut off or
 hairline missing, eyes closed or covered, non-neutral expression, slight
-softness, exposure and uneven light. Profile photos are checked for format,
+softness, exposure and uneven light, head covering. Profile photos are checked for format,
 resolution and sharpness only (face detection is for front-facing views).
 If the face model cannot load, the result says the face was not checked.
 
@@ -69,6 +69,15 @@ the inner face (no background), never by average brightness, and focus is
 measured after contrast normalisation — so darker and lighter skin tones are
 treated the same. Found in testing: an average-brightness rule flagged the
 correctly lit sample head (deep skin tone) as "too dark".
+
+**Head coverings** (added after product-owner testing with a real photo): a
+band just above the forehead, located from the face landmarks, is compared
+with the person's own cheeks. Natural hair is about as colourful as the skin
+and fairly uniform; fabric coverings are much more colourful, or patterned
+and clearly unlike the skin. The result is only ever a suggestion worded "if
+you can" — many people wear head coverings for religious or cultural reasons
+— and plain dark hats cannot be told from dark hair. The review step now
+lists outstanding suggestions instead of saying every check passed.
 
 **Test fixtures** are renders of the CC0 sample head (front, ¾, profile) and
 derived variants (`tests/fixtures/photos`), so no real person's photo is

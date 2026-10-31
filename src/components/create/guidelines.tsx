@@ -9,7 +9,11 @@ const GUIDELINES = [
     title: "Hairline and jawline visible",
     text: "Leave space around the head; hair off the face.",
   },
-  { icon: <Glasses />, title: "No sunglasses or hats", text: "Nothing covering the eyes, forehead or ears." },
+  {
+    icon: <Glasses />,
+    title: "No sunglasses or hats",
+    text: "Nothing covering the eyes, hairline or ears, if you can.",
+  },
   { icon: <User />, title: "One person in the frame", text: "Crop out anyone else." },
   { icon: <Focus />, title: "Sharp focus", text: "At least 1024 px on the short side; no blur." },
 ];

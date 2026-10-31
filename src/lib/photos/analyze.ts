@@ -2,7 +2,15 @@
 
 import { detectFaces, type DetectedFace } from "./face-detector";
 import { fileChecks, resolutionCheck, sniffFormat } from "./file-checks";
-import { laplacianVariance, lightStats, normalizeContrast, QUALITY, regionMean, toGray } from "./image-quality";
+import {
+  colorStats,
+  laplacianVariance,
+  lightStats,
+  normalizeContrast,
+  QUALITY,
+  regionMean,
+  toGray,
+} from "./image-quality";
 import { worstStatus, type PhotoCheck, type PhotoResult, type SlotId } from "./types";
 
 /** Long edge of the copy the checks run on (keeps analysis fast on phones). */
@@ -280,6 +288,9 @@ function faceChecks(
     else checks.push({ id: "eyes", label: "Eyes visible", status: "pass", message: "Eyes are open and unobstructed." });
   }
 
+  // Head covering: the band just above the forehead (where hair or a hat is).
+  if (slot === "front" || isThreeQuarter(slot)) checks.push(headwearCheck(face, canvas, metrics));
+
   // Expression (main photo only).
   if (slot === "front") {
     const smile = Math.max(face.blend.mouthSmileLeft ?? 0, face.blend.mouthSmileRight ?? 0);
@@ -306,6 +317,75 @@ function faceChecks(
   };
   checks.push(lightingCheck(cropGray(canvas, inner), metrics));
   return checks;
+}
+
+/** Mean RGBA statistics of a canvas region (clamped to the canvas). */
+function regionColor(canvas: HTMLCanvasElement, x: number, y: number, w: number, h: number) {
+  const x0 = Math.max(0, Math.floor(x));
+  const y0 = Math.max(0, Math.floor(y));
+  const x1 = Math.min(canvas.width, Math.ceil(x + w));
+  const y1 = Math.min(canvas.height, Math.ceil(y + h));
+  if (x1 - x0 < 2 || y1 - y0 < 2) return null;
+  const data = canvas.getContext("2d", { willReadFrequently: true })!.getImageData(x0, y0, x1 - x0, y1 - y0).data;
+  return colorStats(data);
+}
+
+/**
+ * Hats, caps and wraps hide the hairline and the shape of the head. The band
+ * above the forehead (from the face landmarks) is compared with the skin:
+ * natural hair is low in colourfulness, while most fabric coverings are
+ * vivid, patterned, or clearly unlike both. A suggestion only — many people
+ * wear head coverings, and plain dark hats can't be told from dark hair.
+ */
+function headwearCheck(face: DetectedFace, canvas: HTMLCanvasElement, metrics: Metrics): PhotoCheck {
+  const pass: PhotoCheck = {
+    id: "headwear",
+    label: "Head uncovered",
+    status: "pass",
+    message: "Hairline and the top of the head are visible.",
+  };
+  const top = face.points[10];
+  const left = face.points[109];
+  const right = face.points[338];
+  const cheekL = face.points[50];
+  const cheekR = face.points[280];
+  if (!top || !left || !right || !cheekL || !cheekR) return pass;
+  const h = face.box.height;
+  const x0 = Math.min(left.x, right.x);
+  const width = Math.abs(right.x - left.x);
+  // Close above the forehead, so short hair never lets the background in.
+  const band = regionColor(canvas, x0 + width * 0.1, top.y - h * 0.26, width * 0.8, h * 0.18);
+  const r = h * 0.05;
+  const skinA = regionColor(canvas, cheekL.x - r, cheekL.y - r, 2 * r, 2 * r);
+  const skinB = regionColor(canvas, cheekR.x - r, cheekR.y - r, 2 * r, 2 * r);
+  if (!band || !skinA || !skinB) return pass;
+  const skin = {
+    r: (skinA.r + skinB.r) / 2,
+    g: (skinA.g + skinB.g) / 2,
+    b: (skinA.b + skinB.b) / 2,
+    colourfulness: (skinA.colourfulness + skinB.colourfulness) / 2,
+  };
+  const distance = Math.hypot(band.r - skin.r, band.g - skin.g, band.b - skin.b);
+  Object.assign(metrics, {
+    crownColourfulness: band.colourfulness,
+    crownSpread: band.lumaSpread,
+    crownSkinDistance: distance,
+  });
+  // Relative to this person's own skin, so skin tone never triggers it.
+  const vivid =
+    band.colourfulness > skin.colourfulness + QUALITY.headwearExtraColourfulness &&
+    distance > QUALITY.headwearSkinDistance;
+  const patterned = band.lumaSpread > QUALITY.headwearSpread && distance > QUALITY.headwearSkinDistance;
+  metrics.skinColourfulness = skin.colourfulness;
+  if (vivid || patterned)
+    return {
+      id: "headwear",
+      label: "Head uncovered",
+      status: "warn",
+      message:
+        "The top of the head looks covered (hat, cap or wrap?). If you can, remove it — it hides the hairline and the shape of the head.",
+    };
+  return pass;
 }
 
 function cropGray(canvas: HTMLCanvasElement, r: { x: number; y: number; width: number; height: number }): Float32Array {

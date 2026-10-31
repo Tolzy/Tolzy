@@ -178,7 +178,7 @@ not available yet and that nothing has been uploaded. Validation runs **on
 the device**: file signature (not extension), 20 MB limit, decoding (HEIC
 where the browser can), 1024 px minimum, then MediaPipe Face Landmarker
 (self-hosted runtime and model) for face count, face size, pose, framing,
-eyes, expression, plus focus and exposure measured on the face. Exposure uses
+eyes, expression, head covering, plus focus and exposure measured on the face. Exposure uses
 percentiles and clipping, never average brightness, so skin tone does not
 affect the result.
 **Remaining (needs the Supabase project — product-owner dependency):**

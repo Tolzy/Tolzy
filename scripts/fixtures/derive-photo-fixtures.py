@@ -42,6 +42,23 @@ def framed(scale, canvas):
 framed(0.45, 2200).save(f"{OUT}/small-face.jpg", quality=88)  # face ≈ 13 % of the height
 framed(0.5, 2000).save(f"{OUT}/distant-face.jpg", quality=88)  # face ≈ 16 %
 
+# Patterned cap drawn over the hair (red / white / navy zigzag, like a kufi
+# or knitted cap). Synthetic — tests the "head covered" suggestion.
+from PIL import ImageDraw
+
+capped = front.copy()
+mask = Image.new("L", capped.size, 0)
+ImageDraw.Draw(mask).chord((420, 200, 900, 690), 180, 360, fill=255)
+ImageDraw.Draw(mask).rectangle((420, 440, 900, 455), fill=255)
+pattern = Image.new("RGB", capped.size, (245, 240, 235))
+pd = ImageDraw.Draw(pattern)
+for i, y in enumerate(range(190, 470, 28)):
+    colour = [(176, 30, 40), (30, 34, 70), (245, 240, 235)][i % 3]
+    points = [(x, y + (14 if (x // 28) % 2 else 0)) for x in range(400, 930, 28)]
+    pd.line(points, fill=colour, width=12)
+capped.paste(pattern, (0, 0), mask)
+capped.save(f"{OUT}/headwear.jpg", quality=88)
+
 grad = Image.linear_gradient("L").resize((1600, 1200)).convert("RGB")
 grad.save(f"{OUT}/no-face.jpg", quality=88)
 

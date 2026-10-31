@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { laplacianVariance, lightStats, normalizeContrast, regionMean } from "./image-quality";
+import { colorStats, laplacianVariance, lightStats, normalizeContrast, regionMean } from "./image-quality";
 
 const N = 64;
 function image(f: (x: number, y: number) => number) {
@@ -73,5 +73,30 @@ describe("lightStats", () => {
         N,
       ),
     ).toBeCloseTo(1.5);
+  });
+});
+
+describe("colorStats (head covering)", () => {
+  const pixels = (f: (i: number) => [number, number, number]) => {
+    const a = new Uint8ClampedArray(64 * 4);
+    for (let i = 0; i < 64; i++) a.set([...f(i), 255], i * 4);
+    return a;
+  };
+  it("rates dark hair as dull and a striped red/white/navy cap as vivid and patterned", () => {
+    const hair = colorStats(pixels(() => [28, 24, 22]));
+    const cap = colorStats(
+      pixels(
+        (i) =>
+          [
+            [176, 30, 40],
+            [245, 240, 235],
+            [30, 34, 70],
+          ][i % 3] as [number, number, number],
+      ),
+    );
+    expect(hair.colourfulness).toBeLessThan(10);
+    expect(hair.lumaSpread).toBeLessThan(1);
+    expect(cap.colourfulness).toBeGreaterThan(50);
+    expect(cap.lumaSpread).toBeGreaterThan(55);
   });
 });
