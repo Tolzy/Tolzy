@@ -75,7 +75,8 @@ export interface PhotoResult {
       | "crownColourfulness"
       | "crownSpread"
       | "crownSkinDistance"
-      | "skinColourfulness",
+      | "skinColourfulness"
+      | "crownBright",
       number
     >
   >;

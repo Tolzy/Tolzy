@@ -108,6 +108,8 @@ export interface ColorStats {
   colourfulness: number;
   /** Standard deviation of luma: high for patterns and stripes. */
   lumaSpread: number;
+  /** Share of near-white pixels (luma > 170): threads, prints, light fabric. */
+  brightShare: number;
 }
 
 /** Colour statistics of RGBA pixels (used for the head-covering check). */
@@ -121,7 +123,8 @@ export function colorStats(rgba: Uint8ClampedArray): ColorStats {
     rg2 = 0,
     yb2 = 0,
     l = 0,
-    l2 = 0;
+    l2 = 0,
+    bright = 0;
   for (let i = 0; i < rgba.length; i += 4) {
     const [R, G, B] = [rgba[i], rgba[i + 1], rgba[i + 2]];
     r += R;
@@ -136,6 +139,7 @@ export function colorStats(rgba: Uint8ClampedArray): ColorStats {
     const y = 0.2126 * R + 0.7152 * G + 0.0722 * B;
     l += y;
     l2 += y * y;
+    if (y > 170) bright++;
   }
   const mrg = rg / n;
   const myb = yb / n;
@@ -148,6 +152,7 @@ export function colorStats(rgba: Uint8ClampedArray): ColorStats {
     b: b / n,
     colourfulness: Math.hypot(srg, syb) + 0.3 * Math.hypot(mrg, myb),
     lumaSpread: Math.sqrt(Math.max(0, l2 / n - ml * ml)),
+    brightShare: bright / n,
   };
 }
 
@@ -182,8 +187,10 @@ export const QUALITY = {
   /** Head covering above the forehead (calibrated on headwear.jpg vs front.jpg). */
   /** Colourfulness above the cheeks' own, for a vivid covering. */
   headwearExtraColourfulness: 18,
-  /** Luma spread of a patterned covering (stripes, prints). */
-  headwearSpread: 55,
+  /** Luma spread of a patterned covering (stripes, prints). Hair ≈ 20–35. */
+  headwearSpread: 50,
+  /** Share of near-white pixels in a patterned covering (dark hair ≈ 0). */
+  headwearBrightShare: 0.08,
   /** Minimum colour distance from the skin. */
   headwearSkinDistance: 70,
 };

@@ -155,6 +155,7 @@ test.describe("face checks", () => {
       ["three-quarter.jpg", "pose", /head is turned away/],
       ["distant-face.jpg", "faceSize", /quite small/],
       ["headwear.jpg", "headwear", /top of the head looks covered/],
+      ["headwear-dark.jpg", "headwear", /top of the head looks covered/],
     ];
     for (const [file, id, message] of cases) {
       await chooseFront(page, file);

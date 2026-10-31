@@ -74,7 +74,11 @@ correctly lit sample head (deep skin tone) as "too dark".
 band just above the forehead, located from the face landmarks, is compared
 with the person's own cheeks. Natural hair is about as colourful as the skin
 and fairly uniform; fabric coverings are much more colourful, or patterned
-and clearly unlike the skin. The result is only ever a suggestion worded "if
+and clearly unlike the skin — or patterned and woven with near-white
+threads, which natural dark hair never is. (The first version missed a dark
+striped fila cap on deep skin in product-owner testing because its colours
+were close to the skin; the thread rule and a matching synthetic fixture
+were added.) The result is only ever a suggestion worded "if
 you can" — many people wear head coverings for religious or cultural reasons
 — and plain dark hats cannot be told from dark hair. The review step now
 lists outstanding suggestions instead of saying every check passed.

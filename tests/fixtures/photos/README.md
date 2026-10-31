@@ -10,19 +10,20 @@ node scripts/fixtures/render-photo-fixtures.mjs
 python3 scripts/fixtures/derive-photo-fixtures.py
 ```
 
-| File               | Purpose                                                       |
-| ------------------ | ------------------------------------------------------------- |
-| front.jpg/png/webp | Good front-facing photo in each supported format              |
-| three-quarter.jpg  | Head turned ≈ 40°                                             |
-| profile.jpg        | Side view                                                     |
-| blurry.jpg         | Strong blur → "too blurry"                                    |
-| dark.jpg           | Underexposed → lighting suggestion                            |
-| low-res.jpg        | 600 × 655 → below the 1024 px minimum                         |
-| two-people.jpg     | Two faces → "one person"                                      |
-| small-face.jpg     | Face ≈ 13 % of the frame → "too small"                        |
-| distant-face.jpg   | Face ≈ 16 % of the frame → suggestion                         |
-| headwear.jpg       | Patterned cap drawn over the hair → "head covered" suggestion |
-| no-face.jpg        | Gradient, no face                                             |
-| unsupported.gif    | Unsupported format                                            |
-| not-an-image.jpg   | Text file named .jpg (signature check)                        |
-| photo.heic         | HEIC signature without decodable data                         |
+| File               | Purpose                                                         |
+| ------------------ | --------------------------------------------------------------- |
+| front.jpg/png/webp | Good front-facing photo in each supported format                |
+| three-quarter.jpg  | Head turned ≈ 40°                                               |
+| profile.jpg        | Side view                                                       |
+| blurry.jpg         | Strong blur → "too blurry"                                      |
+| dark.jpg           | Underexposed → lighting suggestion                              |
+| low-res.jpg        | 600 × 655 → below the 1024 px minimum                           |
+| two-people.jpg     | Two faces → "one person"                                        |
+| small-face.jpg     | Face ≈ 13 % of the frame → "too small"                          |
+| distant-face.jpg   | Face ≈ 16 % of the frame → suggestion                           |
+| headwear.jpg       | Patterned cap drawn over the hair → "head covered" suggestion   |
+| headwear-dark.jpg  | Dark striped cap with white threads → "head covered" suggestion |
+| no-face.jpg        | Gradient, no face                                               |
+| unsupported.gif    | Unsupported format                                              |
+| not-an-image.jpg   | Text file named .jpg (signature check)                          |
+| photo.heic         | HEIC signature without decodable data                           |

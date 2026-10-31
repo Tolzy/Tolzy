@@ -370,12 +370,18 @@ function headwearCheck(face: DetectedFace, canvas: HTMLCanvasElement, metrics: M
     crownColourfulness: band.colourfulness,
     crownSpread: band.lumaSpread,
     crownSkinDistance: distance,
+    crownBright: band.brightShare,
   });
   // Relative to this person's own skin, so skin tone never triggers it.
   const vivid =
     band.colourfulness > skin.colourfulness + QUALITY.headwearExtraColourfulness &&
     distance > QUALITY.headwearSkinDistance;
-  const patterned = band.lumaSpread > QUALITY.headwearSpread && distance > QUALITY.headwearSkinDistance;
+  // Strong patterns that are either unlike the skin or woven with light
+  // threads. Dark fabric on darker skin fails the colour test, but natural
+  // dark hair is never striped with near-white.
+  const patterned =
+    band.lumaSpread > QUALITY.headwearSpread &&
+    (distance > QUALITY.headwearSkinDistance || band.brightShare > QUALITY.headwearBrightShare);
   metrics.skinColourfulness = skin.colourfulness;
   if (vivid || patterned)
     return {
