@@ -5,35 +5,19 @@ import { Download, Info, Share2 } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
 import { BACKGROUND_SWATCHES, LIGHTING_PRESETS, MATERIAL_PRESETS } from "@/lib/studio/presets";
-import { DEFAULT_SETTINGS, MATERIAL_DEFAULTS, type Background } from "@/lib/studio/settings";
+import { CONTROL_LABELS, controlRange, MATERIAL_PRESET_DEFS } from "@/lib/studio/materials";
+import { DEFAULT_SETTINGS, materialSettings, type Background } from "@/lib/studio/settings";
 import { useStudioStore } from "@/stores/studio-store";
 import { Button } from "@/components/ui/button";
 import { ColorField, Field, Segmented, SliderField, SwitchRow } from "@/components/ui/controls";
 import { Badge, DisclosureSection, PresetGroup, PresetTile, Section } from "@/components/ui/display";
 import { usePrefersReducedMotion, useSection } from "./use-studio";
 import { ShareDialog } from "./share-dialog";
-
-function Sphere({ background, className }: { background: string; className?: string }) {
-  return (
-    <span
-      className={cn("block size-[62%] rounded-full shadow-[0_6px_14px_-4px_rgb(0_0_0/0.6)]", className)}
-      style={{ background }}
-    />
-  );
-}
+import { useStudioModel } from "./studio-context";
 
 function PanelNote({ children }: { children: ReactNode }) {
   return <p className="text-2xs text-muted leading-4">{children}</p>;
 }
-
-/* ───────────────────────── Material ───────────────────────── */
-
-/*
- * Feature availability. Presets render in the panel so the design can be
- * reviewed, but they stay disabled until the renderer applies them.
- */
-const MATERIALS_AVAILABLE = false; // Milestone 4
-const LIGHTING_PRESETS_AVAILABLE = false; // Milestone 4
 
 /** Small label marking a section whose controls arrive in a later milestone. */
 function ComingBadge({ milestone }: { milestone: number }) {
@@ -50,53 +34,97 @@ function PreviewNote({ children }: { children: ReactNode }) {
   );
 }
 
+/** A rendered preview filling a preset tile. */
+function PreviewImage({ src, position = "center" }: { src: string; position?: string }) {
+  return (
+    // eslint-disable-next-line @next/next/no-img-element -- small static renders, sized by the tile
+    <img
+      src={src}
+      alt=""
+      width={160}
+      height={160}
+      draggable={false}
+      className="absolute inset-0 size-full object-cover"
+      style={{ objectPosition: position }}
+    />
+  );
+}
+
+/* ───────────────────────── Material ───────────────────────── */
+
+const percent = (v: number) => `${Math.round(v * 100)}%`;
+
 export function MaterialPanel() {
   const { value, set, drag, commit } = useSection("material");
-  const active = MATERIAL_PRESETS.find((p) => p.id === value.preset)!;
+  const { thumbnailUrl } = useStudioModel();
+  const def = MATERIAL_PRESET_DEFS[value.preset];
+  const atDefaults = def.controls.every((c) => value[c] === def.defaults[c]);
 
   return (
     <>
-      <PreviewNote>
-        Material presets are coming in Milestone 4. Until then the model keeps its original textures.
-      </PreviewNote>
-      <Section title="Preset" action={<ComingBadge milestone={4} />}>
-        <PresetGroup
-          label="Material preset"
-          value={value.preset}
-          onChange={(preset) => set({ preset, ...MATERIAL_DEFAULTS[preset] })}
-          disabled={!MATERIALS_AVAILABLE}
-        >
+      <Section title="Preset">
+        <PresetGroup label="Material preset" value={value.preset} onChange={(preset) => set(materialSettings(preset))}>
           {MATERIAL_PRESETS.map((p) => (
-            <PresetTile key={p.id} value={p.id} label={p.label} preview={<Sphere background={p.swatch} />} />
+            <PresetTile
+              key={p.id}
+              value={p.id}
+              label={p.label}
+              preview={
+                p.preview ? (
+                  <PreviewImage src={p.preview} />
+                ) : thumbnailUrl ? (
+                  // Original: the model's own look, cropped to the face.
+                  <span className="absolute inset-x-[-38%] top-[-4%] bottom-[-72%]">
+                    <PreviewImage src={thumbnailUrl} position="50% 30%" />
+                  </span>
+                ) : null
+              }
+            />
           ))}
         </PresetGroup>
         <p className="text-muted pt-2 text-xs" aria-live="polite">
-          {active.description}
+          {def.description}
         </p>
       </Section>
 
       <DisclosureSection title="Adjust">
-        {value.preset === "original" ? (
-          <PanelNote>
-            {MATERIALS_AVAILABLE
-              ? "Original keeps the reconstructed skin and hair textures. Choose another material to adjust its surface."
-              : "Surface adjustments arrive with material presets in Milestone 4."}
-          </PanelNote>
+        {def.controls.length === 0 ? (
+          <PanelNote>Original shows the model’s own textures. Choose a material to adjust its surface.</PanelNote>
         ) : (
           <>
-            <SliderField
-              label="Roughness"
-              value={value.roughness}
-              min={0}
-              max={1}
-              step={0.01}
-              format={(v) => v.toFixed(2)}
-              onChange={(roughness) => drag({ roughness })}
-              onCommit={commit}
-            />
-            <ColorField label="Tint" value={value.tint} onChange={(tint) => set({ tint })} />
+            {def.controls.map((control) => {
+              if (control === "tint") {
+                return (
+                  <ColorField
+                    key={control}
+                    label={CONTROL_LABELS.tint}
+                    value={value.tint}
+                    onChange={(tint) => set({ tint })}
+                  />
+                );
+              }
+              const [min, max] = controlRange(value.preset, control);
+              return (
+                <SliderField
+                  key={control}
+                  label={CONTROL_LABELS[control]}
+                  value={value[control]}
+                  min={min}
+                  max={max}
+                  step={0.01}
+                  format={control === "thickness" ? (v) => v.toFixed(2) : percent}
+                  onChange={(v) => drag({ [control]: v })}
+                  onCommit={commit}
+                />
+              );
+            })}
             <div className="flex justify-end pt-1">
-              <Button variant="ghost" size="sm" onClick={() => set(MATERIAL_DEFAULTS[value.preset])}>
+              <Button
+                variant="ghost"
+                size="sm"
+                disabled={atDefaults}
+                onClick={() => set(materialSettings(value.preset))}
+              >
                 Reset to preset
               </Button>
             </div>
@@ -115,18 +143,10 @@ export function LightPanel() {
 
   return (
     <>
-      <PreviewNote>
-        Lighting presets are coming in Milestone 4. Contact shadow, intensity and rotation already update the viewport.
-      </PreviewNote>
-      <Section title="Preset" action={<ComingBadge milestone={4} />}>
-        <PresetGroup
-          label="Lighting preset"
-          value={value.preset}
-          onChange={(preset) => set({ preset })}
-          disabled={!LIGHTING_PRESETS_AVAILABLE}
-        >
+      <Section title="Preset">
+        <PresetGroup label="Lighting preset" value={value.preset} onChange={(preset) => set({ preset })}>
           {LIGHTING_PRESETS.map((p) => (
-            <PresetTile key={p.id} value={p.id} label={p.label} preview={<Sphere background={p.swatch} />} />
+            <PresetTile key={p.id} value={p.id} label={p.label} preview={<PreviewImage src={p.preview!} />} />
           ))}
         </PresetGroup>
         <p className="text-muted pt-2 text-xs" aria-live="polite">

@@ -63,7 +63,7 @@ export function SamplePortraitTile() {
           decoding="async"
           className="absolute inset-0 size-full object-cover transition-transform duration-[240ms] ease-out group-hover:scale-[1.02]"
         />
-        <Badge tone="viewport" className="absolute top-3 left-3">
+        <Badge tone="onImage" className="absolute top-3 left-3">
           Sample
         </Badge>
       </span>
@@ -113,11 +113,11 @@ export function PortraitCard({ portrait, menu }: { portrait: PortraitCardData; m
         {portrait.status !== "ready" && (
           <span className="absolute inset-x-3 bottom-3 flex">
             {portrait.status === "generating" ? (
-              <Badge tone="viewport">
+              <Badge tone="onImage">
                 <Loader className="animate-spin" /> Generating
               </Badge>
             ) : (
-              <Badge tone="viewport" className="text-[#f0675e]">
+              <Badge tone="onImage" className="text-[#f0675e]">
                 <AlertCircle /> Failed
               </Badge>
             )}

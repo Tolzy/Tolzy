@@ -19,19 +19,29 @@ async function heapMB(page: Page) {
 
 async function visitStudio(page: Page) {
   await page.getByRole("link", { name: /Sample head/ }).click();
-  await expect(page.getByRole("img", { name: "3D sample head" })).toBeVisible();
+  await expect(page.getByRole("img", { name: "3D sample head" })).toBeVisible({ timeout: 30_000 });
   await expect(page.getByRole("status").filter({ hasText: "Loading model" })).toHaveCount(0, { timeout: 30_000 });
   const box = (await page.locator("[data-viewport]").boundingBox())!;
   await page.mouse.move(box.x + box.width * 0.8, box.y + box.height * 0.3, { steps: 4 });
   await page.mouse.down();
   await page.mouse.move(box.x + box.width * 0.5, box.y + box.height * 0.4, { steps: 6 });
   await page.mouse.up();
+  // Switch materials so their caches and GPU resources are created, then freed on leave.
+  const presets = page.getByRole("radiogroup", { name: "Material preset" });
+  for (const name of ["Chrome", "Ceramic", "Original"]) {
+    await presets.getByRole("radio", { name }).click();
+    await expect(page.getByTestId("viewer-surface")).toHaveAttribute("data-material", name.toLowerCase(), {
+      timeout: 20_000,
+    });
+  }
   await page.getByRole("link", { name: "Back to portraits" }).click();
   await expect(page).toHaveURL(/\/dashboard$/);
 }
 
-test("repeated studio visits with interaction do not leak memory or log errors", async ({ page }) => {
-  test.setTimeout(180_000);
+test("repeated studio visits with interaction and material changes do not leak memory or log errors", async ({
+  page,
+}) => {
+  test.setTimeout(300_000);
   const errors: string[] = [];
   page.on("console", (m) => m.type() === "error" && errors.push(m.text()));
   page.on("pageerror", (e) => errors.push(e.message));

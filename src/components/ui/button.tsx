@@ -26,8 +26,9 @@ const variants: Record<ButtonVariant, string> = {
     "border border-line bg-surface text-fg shadow-soft hover:border-line-strong hover:bg-hover active:bg-active",
   ghost: "text-muted hover:bg-hover hover:text-fg active:bg-active",
   danger: "bg-danger text-primary-fg hover:bg-danger-hover",
+  // Floating controls over the 3D viewport: follow the app theme.
   viewport:
-    "text-vp-muted hover:bg-vp-chrome-hover hover:text-vp-fg aria-pressed:bg-vp-chrome-hover aria-pressed:text-vp-fg",
+    "text-float-muted hover:bg-float-hover hover:text-float-fg aria-pressed:bg-float-hover aria-pressed:text-float-fg",
 };
 
 const sizes: Record<ButtonSize, string> = {

@@ -68,7 +68,7 @@ export function ComponentGallery() {
           <Badge tone="success">Ready</Badge>
           <Badge tone="warning">Warning</Badge>
           <span className="bg-vp rounded-md p-1.5">
-            <Badge tone="viewport">Viewport</Badge>
+            <Badge tone="float">Floating</Badge>
           </span>
         </div>
       </Block>
@@ -105,7 +105,14 @@ export function ComponentGallery() {
                   key={p.id}
                   value={p.id}
                   label={p.label}
-                  preview={<span className="block size-[62%] rounded-full" style={{ background: p.swatch }} />}
+                  preview={
+                    p.preview ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={p.preview} alt="" className="size-full object-cover" />
+                    ) : (
+                      <span className="bg-sunken block size-full" />
+                    )
+                  }
                 />
               ))}
             </PresetGroup>

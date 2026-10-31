@@ -38,7 +38,11 @@ Application chrome — light values (the dark defaults live in `:root` in `globa
 | `--danger`         | #C93A2F | Destructive actions, errors                                  |
 | `--success`        | #2C8A53 | Passed checks                                                |
 
-Studio viewport (dark by default, independent of the app theme):
+Floating controls over the viewport (toolbar, badges) follow the app theme
+through `--float-bg`, `--float-hover`, `--float-border`, `--float-fg`,
+`--float-muted` (dark: #1B1B1E surfaces; light: white at 96 %).
+
+Studio viewport (always dark, independent of the app theme):
 
 | Token                   | Value             | Use                                |
 | ----------------------- | ----------------- | ---------------------------------- |
@@ -48,8 +52,8 @@ Studio viewport (dark by default, independent of the app theme):
 | `--viewport-text`       | #EDEDEC           | Toolbar values                     |
 | `--viewport-text-muted` | #8C8C93           | Toolbar icons, captions            |
 
-A dark application theme is deferred; tokens are variables so it can be added
-without touching components.
+The application is dark by default with a persisted light option (ADR 0004,
+ADR 0005). The viewport stage itself never changes with the theme.
 
 Primary buttons are near-black (`--text`) with light text, not
 accent-coloured. Switches use near-black when on; the accent is reserved for

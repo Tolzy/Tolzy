@@ -163,27 +163,22 @@ All values live in `portrait_settings.motion` and are validated by Zod.
 
 ## 5. Material system
 
-- On load, each mesh's original material is cloned and stored in a
-  `Map<meshUuid, Material>` — the **Original** preset restores from it, so the
-  skin texture is never lost or modified.
-- Presets are `MeshPhysicalMaterial` instances created once per viewer and
-  shared across meshes; the original `normalMap` (if present) is reused so
-  surface detail survives on Chrome/Gold/Ceramic.
+As built in Milestone 4: see ADR 0005.
 
-| Preset   | Key parameters (starting points)                                                                                                                                        |
-| -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Original | Provider textures, `envMapIntensity` tuned per lighting preset                                                                                                          |
-| Chrome   | color #ffffff, metalness 1, roughness 0.05–0.08, high-contrast studio environment required                                                                              |
-| Obsidian | color #0b0b0c, metalness 0, roughness 0.18, clearcoat 1, clearcoatRoughness 0.05                                                                                        |
-| Ceramic  | color #f2efe9, roughness 0.38, clearcoat 0.5, sheen 0.2                                                                                                                 |
-| Glass    | transmission 1, thickness 0.6, ior 1.5, roughness 0.05, attenuation tint; quality toggle (drei `MeshTransmissionMaterial` on high, physical transmission on low/mobile) |
-| Gold     | color ≈ #f5c66b (sRGB of gold F0), metalness 1, roughness 0.22                                                                                                          |
-
-Reflective presets need a structured environment: a flat or uniform HDRI makes
-chrome look grey. We will build studio environments from drei `Lightformer`s
-(softbox strips, rim cards) rendered into the env map, plus self-hosted CC0
-HDRIs (Poly Haven) as alternatives. drei's built-in `preset` HDRIs load from a
-third-party CDN and will **not** be used in production.
+- `lib/studio/materials.ts` — preset data (defaults, fixed physics, which
+  Adjust controls apply, ranges). `lib/studio/lighting.ts` — light rigs.
+- `components/viewer/material-system.ts` — applies a preset to any loaded
+  model: keeps originals in `userData.originalMaterial`, caches one
+  `MeshPhysicalMaterial` per (preset, source material), updates it in place,
+  classifies meshes generically (surface / cutout / detail), disposes all it
+  created on unmount.
+- `components/viewer/studio-lighting.tsx` — renders a rig: direct lights,
+  hemisphere, one persistent procedural environment (gradient walls +
+  Lightformers) for lighting and reflections only.
+- `components/viewer/transmission-backdrop.tsx` — gives Glass the Scene
+  background to refract (the visible background is CSS).
+- `components/viewer/scene-probe.tsx` — mirrors live scene state (lights,
+  environment version, GPU counts) onto data attributes for tests.
 
 ## 6. Reconstruction provider abstraction
 

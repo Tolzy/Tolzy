@@ -52,7 +52,15 @@
   --tooltip-fg: #f2f2f1;
   --overlay: rgb(0 0 0 / 0.55);
 
-  /* Viewport (dark in both themes) */
+  /* Floating controls over the viewport (toolbar, badges): follow the theme */
+  --float-bg: #1b1b1e;
+  --float-hover: #27272b;
+  --float-border: #2e2e33;
+  --float-fg: #ededec;
+  --float-muted: #9b9a97;
+  --float-shadow: 0 8px 24px -8px rgb(0 0 0 / 0.6);
+
+  /* Viewport canvas (dark in both themes; never themed) */
   --viewport-bg: #111113;
   --viewport-inner: #1d1d21;
   --viewport-outer: #0b0b0c;
@@ -103,8 +111,15 @@
 
   --segment-active: #ffffff;
   --slider-thumb: #ffffff;
-  --tooltip-bg: #1c1c1f;
-  --tooltip-fg: #f2f2f1;
+  --tooltip-bg: #ffffff;
+  --tooltip-fg: #19191b;
+
+  --float-bg: rgb(255 255 255 / 0.96);
+  --float-hover: #efefec;
+  --float-border: #e1e0db;
+  --float-fg: #19191b;
+  --float-muted: #67665f;
+  --float-shadow: 0 1px 2px rgb(16 16 18 / 0.08), 0 10px 28px -10px rgb(0 0 0 / 0.55);
   --overlay: rgb(16 16 18 / 0.28);
 
   --shadow-soft: 0 1px 2px rgb(16 16 18 / 0.06);
@@ -142,6 +157,11 @@
   --color-danger-soft: var(--danger-soft);
   --color-success: var(--success);
   --color-warning: var(--warning);
+  --color-float: var(--float-bg);
+  --color-float-hover: var(--float-hover);
+  --color-float-line: var(--float-border);
+  --color-float-fg: var(--float-fg);
+  --color-float-muted: var(--float-muted);
   --color-vp: var(--viewport-bg);
   --color-vp-chrome: var(--viewport-chrome);
   --color-vp-chrome-hover: var(--viewport-chrome-hover);
@@ -155,6 +175,7 @@
   --shadow-soft: var(--shadow-soft);
   --shadow-float: var(--shadow-float);
   --shadow-dialog: var(--shadow-dialog);
+  --shadow-floating: var(--float-shadow);
   --ease-out: var(--ease-out);
 }
 

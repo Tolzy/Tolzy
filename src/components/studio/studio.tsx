@@ -30,6 +30,7 @@ import { LazyViewer } from "@/components/viewer/lazy-viewer";
 import { SAMPLE_MODEL, type ModelFraming } from "@/lib/studio/sample-model";
 import { ExportPanel, LightPanel, MaterialPanel, MotionPanel, ScenePanel } from "./inspector-panels";
 import { ShareDialog } from "./share-dialog";
+import { StudioModelContext } from "./studio-context";
 import { usePrefersReducedMotion } from "./use-studio";
 
 const CONTEXTS: {
@@ -82,25 +83,29 @@ interface StudioProps {
   /** GLB to render and how to place it. */
   modelUrl: string;
   framing: ModelFraming;
+  /** Rendered thumbnail of this model, shown as the "Original" material preview. */
+  thumbnailUrl?: string;
   isSample?: boolean;
 }
 
-export function Studio({ portraitName, projectName, modelUrl, framing, isSample }: StudioProps) {
+export function Studio({ portraitName, projectName, modelUrl, framing, thumbnailUrl, isSample }: StudioProps) {
   const inspectorOpen = useStudioStore((s) => s.inspectorOpen);
   useStudioShortcuts();
   useInitialSettings();
 
   return (
-    <div className="bg-bg flex h-dvh flex-col">
-      <TopBar portraitName={portraitName} projectName={projectName} isSample={isSample} />
-      <div className="flex min-h-0 flex-1 flex-col md:flex-row">
-        <Viewport isSample={isSample} modelUrl={modelUrl} framing={framing} modelLabel={portraitName} />
-        <div className="bg-surface flex min-h-0 flex-1 flex-col md:flex-none md:flex-row-reverse">
-          <ContextRail />
-          <Inspector className={cn(!inspectorOpen && "md:hidden")} />
+    <StudioModelContext value={{ thumbnailUrl: thumbnailUrl ?? null }}>
+      <div className="bg-bg flex h-dvh flex-col">
+        <TopBar portraitName={portraitName} projectName={projectName} isSample={isSample} />
+        <div className="flex min-h-0 flex-1 flex-col md:flex-row">
+          <Viewport isSample={isSample} modelUrl={modelUrl} framing={framing} modelLabel={portraitName} />
+          <div className="bg-surface flex min-h-0 flex-1 flex-col md:flex-none md:flex-row-reverse">
+            <ContextRail />
+            <Inspector className={cn(!inspectorOpen && "md:hidden")} />
+          </div>
         </div>
       </div>
-    </div>
+    </StudioModelContext>
   );
 }
 
@@ -187,6 +192,7 @@ function Viewport({
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const background = useStudioStore((s) => s.settings.background);
+  const material = useStudioStore((s) => s.settings.material);
   const lighting = useStudioStore((s) => s.settings.lighting);
   const motion = useStudioStore((s) => s.settings.motion);
   const zoom = useStudioStore((s) => s.zoom);
@@ -213,6 +219,8 @@ function Viewport({
       <LazyViewer
         url={modelUrl}
         framing={framing}
+        material={material}
+        background={background}
         lighting={lighting}
         motion={motion}
         reducedMotion={reducedMotion}
@@ -232,7 +240,7 @@ function Viewport({
             }
           >
             <button type="button" className="rounded-[5px]">
-              <Badge tone="viewport">Sample model · {SAMPLE_MODEL.licence}</Badge>
+              <Badge tone="float">Sample model · {SAMPLE_MODEL.licence}</Badge>
             </button>
           </Tooltip>
         </div>
@@ -250,7 +258,7 @@ function toggleFullscreen(el: HTMLElement | null) {
 }
 
 function ToolbarDivider() {
-  return <span className="bg-vp-line mx-0.5 h-4 w-px" aria-hidden="true" />;
+  return <span className="bg-float-line mx-0.5 h-4 w-px" aria-hidden="true" />;
 }
 
 function ViewportToolbar({ fullscreen, onFullscreen }: { fullscreen: boolean; onFullscreen: () => void }) {
@@ -266,7 +274,7 @@ function ViewportToolbar({ fullscreen, onFullscreen }: { fullscreen: boolean; on
     <div
       role="toolbar"
       aria-label="Viewport"
-      className="border-vp-line bg-vp-chrome absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-0.5 rounded-[10px] border p-1 shadow-[0_8px_24px_-8px_rgb(0_0_0/0.6)]"
+      className="border-float-line bg-float shadow-floating absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-0.5 rounded-[10px] border p-1 backdrop-blur-sm"
     >
       <Tooltip content="Reset view" shortcut={["0"]} side="top">
         <Button variant="viewport" size="sm" iconOnly aria-label="Reset view" onClick={resetView}>
@@ -287,7 +295,7 @@ function ViewportToolbar({ fullscreen, onFullscreen }: { fullscreen: boolean; on
         </Button>
       </Tooltip>
       <span
-        className="tabular text-2xs text-vp-fg w-11 text-center font-mono"
+        className="tabular text-2xs text-float-fg w-11 text-center font-mono"
         aria-live="polite"
         aria-label={`Zoom ${zoom}%`}
       >

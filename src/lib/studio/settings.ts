@@ -6,20 +6,19 @@
  * server-side; until then the types below are the single source of truth.
  */
 
-export type MaterialPreset = "original" | "chrome" | "obsidian" | "ceramic" | "glass" | "gold";
-export type LightingPreset = "studio" | "softbox" | "rim" | "dramatic" | "daylight";
+import type { LightingPreset } from "./lighting";
+import { MATERIAL_PRESET_DEFS, type MaterialParams, type MaterialPreset } from "./materials";
+
+export type { LightingPreset } from "./lighting";
+export type { MaterialParams, MaterialPreset } from "./materials";
 export type DragRelease = "return" | "hold";
 
 export type Background =
   { type: "solid"; color: string } | { type: "gradient"; from: string; to: string } | { type: "transparent" };
 
 export interface PortraitSettings {
-  material: {
-    preset: MaterialPreset;
-    /** 0–1. Only applies to non-original presets. */
-    roughness: number;
-    tint: string;
-  };
+  /** Preset plus its adjustable parameters (defaults come from the preset). */
+  material: { preset: MaterialPreset } & MaterialParams;
   lighting: {
     preset: LightingPreset;
     /** Multiplier, 0–3. */
@@ -50,17 +49,13 @@ export interface PortraitSettings {
   };
 }
 
-export const MATERIAL_DEFAULTS: Record<MaterialPreset, { roughness: number; tint: string }> = {
-  original: { roughness: 0.5, tint: "#ffffff" },
-  chrome: { roughness: 0.06, tint: "#ffffff" },
-  obsidian: { roughness: 0.18, tint: "#0b0b0c" },
-  ceramic: { roughness: 0.38, tint: "#f2efe9" },
-  glass: { roughness: 0.05, tint: "#ffffff" },
-  gold: { roughness: 0.22, tint: "#f5c66b" },
-};
+/** Settings for a preset with its default adjustments ("Reset to preset"). */
+export function materialSettings(preset: MaterialPreset): PortraitSettings["material"] {
+  return { preset, ...MATERIAL_PRESET_DEFS[preset].defaults };
+}
 
 export const DEFAULT_SETTINGS: PortraitSettings = {
-  material: { preset: "original", ...MATERIAL_DEFAULTS.original },
+  material: materialSettings("original"),
   lighting: { preset: "studio", intensity: 1, rotation: 0, shadows: true },
   background: { type: "gradient", from: "#1f1f23", to: "#0b0b0c" },
   motion: {

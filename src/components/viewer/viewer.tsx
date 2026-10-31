@@ -17,17 +17,24 @@ import {
 import { NeutralToneMapping, PerspectiveCamera, SRGBColorSpace } from "three";
 import { cn } from "@/lib/cn";
 import type { ModelFraming } from "@/lib/studio/sample-model";
-import type { PortraitSettings } from "@/lib/studio/settings";
+import { MATERIAL_PRESET_DEFS } from "@/lib/studio/materials";
+import type { Background, PortraitSettings } from "@/lib/studio/settings";
 import { clippingPlanes, fitDistance, insetShift, MODEL_HEIGHT, zoomedDistance } from "./framing";
 import { PortraitModel, type ModelBounds } from "./portrait-model";
 import { StudioLighting, StudioShadow } from "./studio-lighting";
 import { InteractionController, type Rotation } from "./interaction";
 import { InteractionRig } from "./interaction-rig";
+import type { MaterialSummary } from "./material-system";
+import { SceneProbe } from "./scene-probe";
+import { TransmissionBackdrop } from "./transmission-backdrop";
 import { ViewerError, ViewerLoading } from "./viewer-states";
 
 export interface ViewerProps {
   url: string;
   framing: ModelFraming;
+  material: PortraitSettings["material"];
+  /** Viewport background (drawn by CSS); glass refracts a copy of it. */
+  background: Background;
   lighting: PortraitSettings["lighting"];
   motion: PortraitSettings["motion"];
   reducedMotion: boolean;
@@ -54,7 +61,18 @@ const TOOLBAR_INSET = 72;
  * downloaded when a studio opens. The canvas is transparent: the viewport
  * background comes from the Scene settings behind it.
  */
-export default function Viewer({ url, framing, lighting, motion, reducedMotion, zoom, resetKey, label }: ViewerProps) {
+export default function Viewer({
+  url,
+  framing,
+  material,
+  background,
+  lighting,
+  motion,
+  reducedMotion,
+  zoom,
+  resetKey,
+  label,
+}: ViewerProps) {
   const [bounds, setBounds] = useState<ModelBounds | null>(null);
   const [attempt, setAttempt] = useState(0);
   const onReady = useCallback((b: ModelBounds) => setBounds(b), []);
@@ -151,6 +169,23 @@ export default function Viewer({ url, framing, lighting, motion, reducedMotion, 
     el.dataset.settled = String(r.settled);
   }, []);
 
+  // Mirror what is actually on the model (read from the Three.js objects).
+  const onMaterials = useCallback((m: MaterialSummary) => {
+    const el = surface.current;
+    if (!el) return;
+    el.dataset.material = m.preset;
+    el.dataset.materialType = m.type;
+    el.dataset.materialColor = m.color;
+    el.dataset.metalness = m.metalness.toFixed(3);
+    el.dataset.roughness = m.roughness.toFixed(3);
+    el.dataset.transmission = m.transmission.toFixed(3);
+    el.dataset.clearcoat = m.clearcoat.toFixed(3);
+    el.dataset.thickness = m.thickness.toFixed(3);
+    el.dataset.hiddenMeshes = String(m.hidden);
+    el.dataset.geometryKey = m.geometryKey;
+    el.dataset.materialsCreated = String(m.created);
+  }, []);
+
   return (
     <ModelErrorBoundary
       key={attempt}
@@ -184,6 +219,7 @@ export default function Viewer({ url, framing, lighting, motion, reducedMotion, 
         onKeyDown={onKeyDown}
       >
         <Canvas
+          shadows="percentage"
           className="!absolute inset-0"
           frameloop="demand"
           dpr={[1, 2]}
@@ -200,10 +236,21 @@ export default function Viewer({ url, framing, lighting, motion, reducedMotion, 
           role="img"
         >
           <CameraRig bounds={bounds} framing={framing} zoom={zoom} />
-          <StudioLighting intensity={lighting.intensity} rotation={lighting.rotation} />
+          <StudioLighting preset={lighting.preset} intensity={lighting.intensity} rotation={lighting.rotation} />
+          <SceneProbe target={surface} />
+          <TransmissionBackdrop
+            background={background}
+            active={MATERIAL_PRESET_DEFS[material.preset].physics.transmission > 0}
+          />
           <Suspense fallback={null}>
             <InteractionRig controller={controller} onRotate={onRotate}>
-              <PortraitModel url={url} framing={framing} onReady={onReady} />
+              <PortraitModel
+                url={url}
+                framing={framing}
+                material={material}
+                onReady={onReady}
+                onMaterials={onMaterials}
+              />
             </InteractionRig>
             {lighting.shadows && bounds && <StudioShadow floorY={floorY} />}
           </Suspense>

@@ -3,7 +3,7 @@ import { expect, test, type Page } from "@playwright/test";
 const MODEL = "**/models/sample-head/sample-head.glb";
 
 async function waitForModel(page: Page) {
-  await expect(page.getByRole("img", { name: "3D sample head" })).toBeVisible();
+  await expect(page.getByRole("img", { name: "3D sample head" })).toBeVisible({ timeout: 30_000 });
   await expect(page.getByRole("status").filter({ hasText: "Loading model" })).toHaveCount(0, { timeout: 30_000 });
 }
 
@@ -71,6 +71,7 @@ test("shows an error for an invalid model and recovers on retry", async ({ page 
 });
 
 test("zoom changes the framing", async ({ page }) => {
+  test.setTimeout(60_000); // screenshots wait for software-rendered frames
   await page.goto("/studio/sample");
   await waitForModel(page);
   const viewport = page.getByRole("region", { name: "3D viewport" });
@@ -82,6 +83,7 @@ test("zoom changes the framing", async ({ page }) => {
 });
 
 test("survives repeated studio visits without errors", async ({ page }) => {
+  test.setTimeout(120_000); // four full studio loads on software WebGL
   const errors: string[] = [];
   page.on("console", (m) => m.type() === "error" && errors.push(m.text()));
   page.on("pageerror", (e) => errors.push(e.message));

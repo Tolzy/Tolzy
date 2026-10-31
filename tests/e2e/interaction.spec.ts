@@ -11,7 +11,7 @@ const num = async (page: Page, key: string) => Number((await surface(page).getAt
 
 async function openStudio(page: Page) {
   await page.goto("/studio/sample");
-  await expect(page.getByRole("img", { name: "3D sample head" })).toBeVisible();
+  await expect(page.getByRole("img", { name: "3D sample head" })).toBeVisible({ timeout: 30_000 });
   await expect(page.getByRole("status").filter({ hasText: "Loading model" })).toHaveCount(0, { timeout: 30_000 });
   return (await page.locator("[data-viewport]").boundingBox())!;
 }
@@ -24,11 +24,19 @@ async function hover(page: Page, box: { x: number; y: number; width: number; hei
 // Generous ceiling: with software WebGL and parallel workers, frames can be
 // seconds apart on CI. Polls resolve as soon as the value arrives.
 const SETTLE_TIMEOUT = 20_000;
+// Multi-step drags wait on real frames; give each test room on slow machines.
+test.describe.configure({ timeout: 90_000 });
 const settlesTo = (page: Page, key: string, value: number, tolerance = 2) =>
   expect
     .poll(() => num(page, key), { timeout: SETTLE_TIMEOUT })
     .toBeGreaterThan(value - tolerance)
     .then(() => expect.poll(() => num(page, key), { timeout: SETTLE_TIMEOUT }).toBeLessThan(value + tolerance));
+
+/** Waits (on the real renderer) until the manual yaw is within tolerance of a value. */
+const expectAngle = (page: Page, expected: number, tolerance: number) =>
+  expect
+    .poll(async () => Math.abs((await num(page, "manual-yaw")) - expected), { timeout: SETTLE_TIMEOUT })
+    .toBeLessThan(tolerance);
 
 test.describe("cursor tracking (desktop)", () => {
   test.skip(({ isMobile }) => isMobile, "mouse hover is a desktop interaction");
@@ -90,9 +98,9 @@ test.describe("manual rotation", () => {
     await hover(page, box, 0.5, 0.45);
     await page.mouse.down();
     await hover(page, box, 0.75, 0.45); // quarter width right
-    await expect.poll(() => num(page, "manual-yaw")).toBeGreaterThan(40);
+    await expect.poll(() => num(page, "manual-yaw"), { timeout: SETTLE_TIMEOUT }).toBeGreaterThan(40);
     await hover(page, box, 0.75, 0.3); // up
-    await expect.poll(() => num(page, "manual-pitch")).toBeGreaterThan(8);
+    await expect.poll(() => num(page, "manual-pitch"), { timeout: SETTLE_TIMEOUT }).toBeGreaterThan(8);
     await page.mouse.up();
     // "Return" mode: eases back to neutral after the idle delay — no snapping.
     const right = await num(page, "manual-yaw");
@@ -195,8 +203,13 @@ test.describe("touch", () => {
 test.describe("touch sensitivity", () => {
   test.skip(({ isMobile }) => !isMobile, "touch runs on the mobile project");
 
-  /** Swipes horizontally by a fraction of the viewport width; returns the angle while the finger is still down. */
-  async function swipe(page: Page, fraction: number) {
+  /**
+   * Swipes horizontally by a fraction of the viewport width and holds the
+   * finger still until the head reaches `expected` degrees (± tolerance).
+   * Motion is time-based, so the angle converges even on slow software frames;
+   * polling waits for that instead of guessing a fixed delay.
+   */
+  async function swipe(page: Page, fraction: number, expected: number, tolerance: number) {
     const box = (await page.locator("[data-viewport]").boundingBox())!;
     const cdp = await page.context().newCDPSession(page);
     const y = box.y + box.height * 0.45;
@@ -205,12 +218,8 @@ test.describe("touch sensitivity", () => {
       cdp.send("Input.dispatchTouchEvent", { type, touchPoints: type === "touchEnd" ? [] : [{ x, y, id: 1 }] });
     await send("touchStart", x0);
     for (let i = 1; i <= 8; i++) await send("touchMove", x0 + box.width * fraction * (i / 8));
-    // Hold the finger still. Motion is time-based, so after 2.5 s the head has
-    // caught up even on slow software-rendered frames.
-    await page.waitForTimeout(2500);
-    const angle = await num(page, "manual-yaw");
+    await expectAngle(page, expected, tolerance);
     await send("touchEnd", 0);
-    return angle;
   }
 
   test("short, medium and long swipes rotate about 45 % less than a mouse drag", async ({ page }) => {
@@ -222,9 +231,7 @@ test.describe("touch sensitivity", () => {
       [0.25, 30.3],
       [0.4, 48.4],
     ]) {
-      const angle = await swipe(page, fraction);
-      expect(angle).toBeGreaterThan(expected - 3);
-      expect(angle).toBeLessThan(expected + 3);
+      await swipe(page, fraction, expected, 3);
       // Smooth, natural return after lifting the finger.
       await settlesTo(page, "manual-yaw", 0, 0.5);
     }
@@ -238,9 +245,7 @@ test.describe("touch sensitivity", () => {
     await speed.focus();
     for (let i = 0; i < 9; i++) await page.keyboard.press("ArrowRight"); // 55 % → 100 %
     await expect(speed).toHaveAttribute("aria-valuetext", "100%");
-    const angle = await swipe(page, 0.25);
-    expect(angle).toBeGreaterThan(55 - 4);
-    expect(angle).toBeLessThan(55 + 4);
+    await swipe(page, 0.25, 55, 4);
   });
 });
 
@@ -251,11 +256,8 @@ test("mouse drag rate is unchanged by the touch setting", async ({ page, isMobil
   await hover(page, box, 0.4, 0.45);
   await page.mouse.down();
   await hover(page, box, 0.65, 0.45); // a quarter of the width
-  await page.waitForTimeout(2500); // hold still; motion is time-based, frames may be slow
-  const angle = await num(page, "manual-yaw");
+  await expectAngle(page, 55, 3); // 0.25 × 220°, while holding still
   await page.mouse.up();
-  expect(angle).toBeGreaterThan(55 - 3); // 0.25 × 220°
-  expect(angle).toBeLessThan(55 + 3);
 });
 
 test.describe("reduced motion", () => {

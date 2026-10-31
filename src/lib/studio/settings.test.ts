@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { backgroundToCss, DEFAULT_SETTINGS, MATERIAL_DEFAULTS } from "./settings";
+import { backgroundToCss, DEFAULT_SETTINGS, materialSettings } from "./settings";
 import { MATERIAL_PRESETS } from "./presets";
 
 describe("settings", () => {
@@ -18,7 +18,10 @@ describe("settings", () => {
   });
 
   it("has defaults and a preview for every material preset", () => {
-    for (const p of MATERIAL_PRESETS) expect(MATERIAL_DEFAULTS[p.id]).toBeDefined();
+    for (const p of MATERIAL_PRESETS) {
+      expect(materialSettings(p.id).preset).toBe(p.id);
+      expect(p.preview === null).toBe(p.id === "original");
+    }
     expect(MATERIAL_PRESETS.map((p) => p.id)).toEqual(["original", "chrome", "obsidian", "ceramic", "glass", "gold"]);
   });
 

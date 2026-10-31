@@ -7,7 +7,7 @@ import { cn } from "@/lib/cn";
 
 /* ───────────────────────── Badge ───────────────────────── */
 
-type BadgeTone = "neutral" | "outline" | "accent" | "success" | "warning" | "viewport";
+type BadgeTone = "neutral" | "outline" | "accent" | "success" | "warning" | "float" | "onImage";
 
 const tones: Record<BadgeTone, string> = {
   neutral: "bg-sunken text-muted ring-1 ring-line ring-inset",
@@ -15,7 +15,10 @@ const tones: Record<BadgeTone, string> = {
   accent: "bg-accent-soft text-accent",
   success: "bg-success-soft text-success",
   warning: "bg-warning-soft text-warning",
-  viewport: "bg-white/[0.06] text-vp-muted ring-1 ring-white/10 ring-inset",
+  /** Floating over the 3D viewport; follows the app theme. */
+  float: "bg-float text-float-muted ring-1 ring-float-line ring-inset backdrop-blur-sm",
+  /** On top of a dark render (thumbnails); always light-on-dark, whatever the theme. */
+  onImage: "bg-black/40 text-white/80 ring-1 ring-white/15 ring-inset backdrop-blur-sm",
 };
 
 export function Badge({

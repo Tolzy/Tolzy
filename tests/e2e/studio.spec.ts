@@ -21,23 +21,7 @@ test("a setting change can be undone and redone", async ({ page, isMobile }) => 
 });
 
 test("controls that do not work yet are disabled and labelled", async ({ page }) => {
-  // Material presets: Milestone 4. Original stays marked as the current look.
-  const materials = page.getByRole("radiogroup", { name: "Material preset" });
-  await expect(page.getByText("Material presets are coming in Milestone 4.")).toBeVisible();
-  for (const name of ["Chrome", "Obsidian", "Ceramic", "Glass", "Gold"]) {
-    await expect(materials.getByRole("radio", { name })).toBeDisabled();
-  }
-  await expect(materials.getByRole("radio", { name: "Original" })).toHaveAttribute("aria-checked", "true");
-  await materials.getByRole("radio", { name: "Chrome" }).click({ force: true });
-  await expect(materials.getByRole("radio", { name: "Original" })).toHaveAttribute("aria-checked", "true");
-
   const rail = page.getByRole("navigation", { name: "Properties" });
-  // Lighting presets: Milestone 4. Shadow, intensity and rotation stay live.
-  await rail.getByRole("button", { name: "Light" }).click();
-  const lights = page.getByRole("radiogroup", { name: "Lighting preset" });
-  await expect(lights.getByRole("radio", { name: "Dramatic" })).toBeDisabled();
-  await expect(page.getByRole("switch", { name: "Contact shadow" })).toBeEnabled();
-
   // Exports: Milestone 8.
   await rail.getByRole("button", { name: "Export" }).click();
   await expect(page.getByText("GLB downloads and PNG renders are coming in Milestone 8.")).toBeVisible();

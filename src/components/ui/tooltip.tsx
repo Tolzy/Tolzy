@@ -31,12 +31,12 @@ export function Tooltip({ content, shortcut, side = "bottom", children }: Toolti
           sideOffset={6}
           collisionPadding={8}
           className={cn(
-            "bg-tooltip text-tooltip-fg z-50 flex items-center gap-2 rounded-md px-2 py-1 text-xs",
+            "bg-tooltip text-tooltip-fg ring-line z-50 flex items-center gap-2 rounded-md px-2 py-1 text-xs ring-1",
             "shadow-float",
           )}
         >
           {content}
-          {shortcut && <Kbd keys={shortcut} tone="dark" />}
+          {shortcut && <Kbd keys={shortcut} />}
         </T.Content>
       </T.Portal>
     </T.Root>

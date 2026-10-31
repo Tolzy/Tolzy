@@ -5,6 +5,8 @@ import { useThree } from "@react-three/fiber";
 import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import { Box3, Group, Material, Mesh, Object3D, Texture, Vector3 } from "three";
 import type { ModelFraming } from "@/lib/studio/sample-model";
+import type { PortraitSettings } from "@/lib/studio/settings";
+import { MaterialSystem, type MaterialSummary } from "./material-system";
 import { MODEL_HEIGHT } from "./framing";
 
 let cachedUrl: string | null = null;
@@ -18,19 +20,22 @@ export interface ModelBounds {
 interface PortraitModelProps {
   url: string;
   framing: ModelFraming;
+  /** Material preset and adjustments to apply (see lib/studio/materials.ts). */
+  material: PortraitSettings["material"];
   /** Reports the normalised size once the model is placed. */
   onReady?: (bounds: ModelBounds) => void;
+  /** Reports what is actually on the model after every material change. */
+  onMaterials?: (summary: MaterialSummary) => void;
 }
 
 /**
  * Loads a GLB and normalises it: applies the orientation fix, scales it to
  * MODEL_HEIGHT and moves the pivot (a fraction of its height) to the origin.
  *
- * Original materials are kept untouched in `userData.originalMaterial` so the
- * material system (Milestone 4) can swap presets and restore them without
- * reloading or modifying geometry.
+ * Material presets are applied by a MaterialSystem, which keeps the original
+ * materials in `userData.originalMaterial` and never modifies geometry.
  */
-export function PortraitModel({ url, framing, onReady }: PortraitModelProps) {
+export function PortraitModel({ url, framing, material, onReady, onMaterials }: PortraitModelProps) {
   // No Draco/meshopt: avoids loading decoders from third-party CDNs.
   const gltf = useGLTF(url, false, false);
   const invalidate = useThree((s) => s.invalidate);
@@ -55,14 +60,25 @@ export function PortraitModel({ url, framing, onReady }: PortraitModelProps) {
       if ((obj as Mesh).isMesh) {
         const mesh = obj as Mesh;
         mesh.userData.originalMaterial ??= mesh.material;
-        mesh.castShadow = false;
-        mesh.receiveShadow = false;
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
       }
     });
 
     onReady?.({ width: size.x * scale, height: MODEL_HEIGHT, depth: size.z * scale });
     invalidate();
   }, [scene, framing, onReady, invalidate]);
+
+  // One material system per loaded model; presets are applied in place.
+  const materials = useMemo(() => new MaterialSystem(scene), [scene]);
+  useEffect(() => () => materials.dispose(), [materials]);
+
+  const { preset, tint, roughness, metalness, clearcoat, thickness } = material;
+  useLayoutEffect(() => {
+    const summary = materials.apply(preset, { tint, roughness, metalness, clearcoat, thickness });
+    onMaterials?.(summary);
+    invalidate();
+  }, [materials, preset, tint, roughness, metalness, clearcoat, thickness, onMaterials, invalidate]);
 
   // Keep only the current model in the loader cache.
   useEffect(() => {

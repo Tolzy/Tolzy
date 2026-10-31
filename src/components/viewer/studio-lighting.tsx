@@ -1,9 +1,13 @@
 "use client";
 
 import { ContactShadows, Environment, Lightformer } from "@react-three/drei";
+import { useEffect, useMemo } from "react";
+import { BackSide, BufferAttribute, Color, SphereGeometry } from "three";
+import { LIGHTING_RIGS, type LightingPreset } from "@/lib/studio/lighting";
 import { MODEL_HEIGHT } from "./framing";
 
 interface StudioLightingProps {
+  preset: LightingPreset;
   /** Overall multiplier from the Light panel (1 = default). */
   intensity: number;
   /** Rotation of the whole light rig around the model, in degrees. */
@@ -11,86 +15,91 @@ interface StudioLightingProps {
 }
 
 /**
- * Default studio light rig: a procedural environment built from softboxes
- * (no external HDR files), a warm key light, a cool rim and a soft fill.
- * Lighting presets (Milestone 4) will swap these parameters.
+ * Renders a lighting rig (see lib/studio/lighting.ts): direct lights, a
+ * hemisphere fill and a procedural environment — gradient studio walls plus
+ * light panels — used for lighting and reflections only. The visible viewport
+ * background is independent (Scene panel).
  */
-export function StudioLighting({ intensity, rotation }: StudioLightingProps) {
+export function StudioLighting({ preset, intensity, rotation }: StudioLightingProps) {
+  const rig = LIGHTING_RIGS[preset];
   const yaw = (rotation * Math.PI) / 180;
 
   return (
     <>
-      <group rotation={[0, yaw, 0]}>
-        {/* Key: upper left, slightly warm */}
-        <directionalLight position={[-2.2, 2.4, 2.6]} intensity={2.1 * intensity} color="#fff3e6" />
-        {/* Rim: behind right, cool — separates the head from a dark background */}
-        <directionalLight position={[2.6, 1.6, -2.4]} intensity={2.4 * intensity} color="#dfe8ff" />
-        {/* Kicker: low left behind for the jaw and neck line */}
-        <directionalLight position={[-2.4, -0.4, -1.8]} intensity={0.7 * intensity} color="#f0f0ff" />
+      <group rotation={[0, yaw, 0]} name={`rig:${rig.id}`}>
+        {rig.lights.map((l, i) => (
+          <directionalLight
+            key={`${rig.id}-${i}`}
+            position={l.position}
+            color={l.color}
+            intensity={l.intensity * intensity}
+            castShadow={!!l.castShadow}
+            shadow-mapSize={[1024, 1024]}
+            shadow-radius={rig.shadowRadius}
+            shadow-bias={-0.0004}
+            shadow-normalBias={0.02}
+            shadow-camera-left={-0.9}
+            shadow-camera-right={0.9}
+            shadow-camera-top={0.9}
+            shadow-camera-bottom={-0.9}
+            shadow-camera-near={0.5}
+            shadow-camera-far={10}
+          />
+        ))}
       </group>
-      <hemisphereLight args={["#e9eef6", "#2a2622", 0.35 * intensity]} />
+      <hemisphereLight args={[rig.hemisphere.sky, rig.hemisphere.ground, rig.hemisphere.intensity * intensity]} />
 
+      {/*
+       * One environment for the viewer's lifetime: it re-renders (frames=1)
+       * whenever the rig changes. Remounting it per preset would leak, because
+       * three.js never frees the reflection map derived from a render target.
+       */}
       <Environment
         resolution={256}
         frames={1}
-        environmentIntensity={0.85 * intensity}
+        environmentIntensity={rig.environment.intensity * intensity}
         environmentRotation={[0, yaw, 0]}
       >
-        {/* Large overhead softbox */}
-        <Lightformer
-          form="rect"
-          intensity={2.2}
-          color="#ffffff"
-          position={[0, 4, 1]}
-          rotation-x={Math.PI / 2}
-          scale={[6, 3, 1]}
-        />
-        {/* Key softbox front left */}
-        <Lightformer
-          form="rect"
-          intensity={3}
-          color="#fff4ea"
-          position={[-3, 1.2, 3]}
-          scale={[2.4, 3.2, 1]}
-          target={[0, 0, 0]}
-        />
-        {/* Fill card front right */}
-        <Lightformer
-          form="rect"
-          intensity={0.9}
-          color="#eef2ff"
-          position={[3.2, 0.4, 2.4]}
-          scale={[2, 3, 1]}
-          target={[0, 0, 0]}
-        />
-        {/* Strip rims behind */}
-        <Lightformer
-          form="rect"
-          intensity={4}
-          color="#e6eeff"
-          position={[2.6, 1, -3]}
-          scale={[0.6, 4, 1]}
-          target={[0, 0, 0]}
-        />
-        <Lightformer
-          form="rect"
-          intensity={2.2}
-          color="#fff1e6"
-          position={[-2.8, 1, -3]}
-          scale={[0.6, 4, 1]}
-          target={[0, 0, 0]}
-        />
-        {/* Dark floor bounce */}
-        <Lightformer
-          form="rect"
-          intensity={0.25}
-          color="#8a7f76"
-          position={[0, -3, 0]}
-          rotation-x={-Math.PI / 2}
-          scale={[8, 8, 1]}
-        />
+        <GradientWalls top={rig.environment.walls[0]} bottom={rig.environment.walls[1]} />
+        {rig.environment.panels.map((p, i) => (
+          <Lightformer
+            key={i}
+            form={p.form}
+            color={p.color}
+            intensity={p.intensity}
+            position={p.position}
+            scale={[p.scale[0], p.scale[1], 1]}
+            {...(p.rotation ? { rotation: p.rotation } : { target: [0, 0, 0] as [number, number, number] })}
+          />
+        ))}
       </Environment>
     </>
+  );
+}
+
+/** Large inverted sphere with a vertical gradient: the "room" metals reflect. */
+function GradientWalls({ top, bottom }: { top: string; bottom: string }) {
+  const geometry = useMemo(() => {
+    const g = new SphereGeometry(20, 32, 16);
+    const pos = g.getAttribute("position");
+    const colors = new Float32Array(pos.count * 3);
+    const a = new Color(bottom);
+    const b = new Color(top);
+    const c = new Color();
+    for (let i = 0; i < pos.count; i++) {
+      const t = Math.min(1, Math.max(0, (pos.getY(i) / 20 + 0.35) / 1.1));
+      c.copy(a).lerp(b, t * t * (3 - 2 * t));
+      colors.set([c.r, c.g, c.b], i * 3);
+    }
+    g.setAttribute("color", new BufferAttribute(colors, 3));
+    return g;
+  }, [top, bottom]);
+  useEffect(() => () => geometry.dispose(), [geometry]);
+
+  return (
+    <mesh geometry={geometry}>
+      <meshBasicMaterial vertexColors side={BackSide} toneMapped={false} />
+    </mesh>
   );
 }
 

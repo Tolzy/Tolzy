@@ -20,8 +20,13 @@ function readPreference(): ThemePreference {
   }
 }
 
+const THEME_COLOR = { dark: "#0e0e10", light: "#f7f7f5" } as const;
+
 function apply(pref: ThemePreference) {
-  document.documentElement.dataset.theme = resolveTheme(pref, window.matchMedia(LIGHT_QUERY).matches);
+  const theme = resolveTheme(pref, window.matchMedia(LIGHT_QUERY).matches);
+  document.documentElement.dataset.theme = theme;
+  // Browser UI colour (mobile address bar) follows the theme too.
+  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", THEME_COLOR[theme]);
 }
 
 function subscribe(cb: () => void) {

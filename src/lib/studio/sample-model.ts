@@ -5,6 +5,7 @@
  */
 export const SAMPLE_MODEL = {
   url: "/models/sample-head/sample-head.glb",
+  thumbnailUrl: "/models/sample-head/thumbnail.webp",
   name: "Sample head",
   licence: "CC0 1.0",
   credit: "Built from MakeHuman assets (CC0)",

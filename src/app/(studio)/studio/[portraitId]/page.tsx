@@ -29,6 +29,7 @@ async function StudioForPortrait({ params }: Pick<PageProps<"/studio/[portraitId
       projectName="Samples"
       modelUrl={SAMPLE_MODEL.url}
       framing={SAMPLE_FRAMING}
+      thumbnailUrl={SAMPLE_MODEL.thumbnailUrl}
       isSample
     />
   );

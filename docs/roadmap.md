@@ -101,7 +101,16 @@ and touch drags use a separate, configurable rate (55 % of mouse by default).
 Covered by asset-geometry unit tests and mobile short/medium/long swipe tests.
 **Deferred:** `touch-action: pan-y` for embeds (Milestone 9).
 
-## M4 — Materials, lighting and customisation
+## M4 — Materials, lighting and customisation (in review)
+
+**As built:** six material presets applied by a reusable `MaterialSystem`
+(originals preserved, geometry untouched, materials cached and updated in
+place), Adjust controls per preset with Reset, five lighting rigs with a
+persistent procedural environment for reflections, Glass refracting the Scene
+background, real rendered preset previews, and the global theme fix (all
+interface chrome follows Dark/Light; the viewport stays dark). See ADR 0005.
+**Deferred:** mobile Glass quality switch; Zod settings schema and saved
+settings move to M7 with persistence.
 
 **Objective:** Studio-quality look controls without regenerating geometry.
 **Scope:** Material presets (Original, Chrome, Obsidian, Ceramic, Glass,
