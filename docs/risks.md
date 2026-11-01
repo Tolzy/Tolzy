@@ -36,6 +36,15 @@ embeds M12, QA M13).
 | R23 | Head-covering check misreads vivid or dyed hair, or misses plain dark hats                                         | Low    | Medium     | Suggestion only, never a blocker; compared with the person's own skin; respectful wording; tune with consenting photos                                                                              | 5                            |
 | R20 | Scope growth delays the core promise (photo → likeness)                                                            | High   | Medium     | Upload and reconstruction (M5–M6) stay ahead of parts and effects; effects milestone can split into M8a/M8b                                                                                         | all                          |
 
+### Added 1 November 2026 (Milestones 6–7, ADR 0008)
+
+| #   | Risk                                                                                                      | Impact | Likelihood | Mitigation                                                                                                                                          | Milestone |
+| --- | --------------------------------------------------------------------------------------------------------- | ------ | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | --------- |
+| R24 | Only fixture output has been tested; real provider meshes may break orientation detection or segmentation | High   | Medium     | Validation gate; orientation confidence stored; segmentation refuses (model shown whole) on open or tangled cuts; golden tests on benchmark outputs | 6, 7      |
+| R25 | Cross-border transfer of biometric photos (NDPA 2023) blocks a hosted provider                            | High   | Medium     | DPA + transfer safeguards; consider in-region self-hosting after licence review; region gate (`PROCESSING_ENABLED_REGIONS`)                         | 6, 13     |
+| R26 | Local backend mistaken for production                                                                     | High   | Low        | Enabled only by `LOCAL_BACKEND=1`, refused when `VERCEL` is set; fixture provider likewise                                                          | 6         |
+| R27 | In-browser segmentation cost on large models                                                              | Low    | Medium     | ~0.1–1 s today; cache a descriptor or move the same code to the server pipeline if models grow                                                      | 7         |
+
 ## Dependencies on the user / business
 
 - Supabase project, Cloudflare account (R2), Vercel project.

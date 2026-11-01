@@ -208,7 +208,8 @@ test("consent is required; progression stops honestly before upload", async ({ p
   await cont.click();
 
   await expect(page.getByRole("heading", { name: "Ready for secure upload" })).toBeVisible();
-  await expect(page.getByTestId("upload-unavailable")).toContainText("Uploading isn’t available yet");
+  // Signed out: nothing can be uploaded until the user has an account.
+  await expect(page.getByTestId("upload-unavailable")).toContainText("Sign in to upload");
   await expect(page.getByTestId("upload-unavailable")).toContainText("Nothing has been uploaded");
   await expect(page.getByRole("button", { name: /upload/i })).toHaveCount(0); // no fake upload button
 

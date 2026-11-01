@@ -1,6 +1,6 @@
 # Spec — Model parts and the Geometry tool
 
-Milestone: **M7** (after reconstruction in M6). Status: planned, not implemented.
+Milestone: **M7** (after reconstruction in M6). Status: **implemented** (1 Nov 2026), with deviations recorded in ADR 0008 §5 — segmentation runs on load in the browser instead of rewriting the GLB, and landmarks are not used yet. As-built architecture: `docs/segmentation-architecture.md`.
 
 ## 1. Goal
 

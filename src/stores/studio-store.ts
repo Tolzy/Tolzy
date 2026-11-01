@@ -1,7 +1,9 @@
 import { create } from "zustand";
+import type { RegionId } from "@/lib/segmentation/regions";
 import { DEFAULT_SETTINGS, type PortraitSettings } from "@/lib/studio/settings";
+import type { GeometryReport } from "@/components/viewer/portrait-model";
 
-export type InspectorContext = "material" | "light" | "scene" | "motion" | "export";
+export type InspectorContext = "model" | "material" | "light" | "scene" | "motion" | "export";
 
 const HISTORY_LIMIT = 100;
 export const ZOOM_MIN = 50;
@@ -22,6 +24,10 @@ interface StudioState {
   zoom: number;
   /** Incremented to ask the viewer to ease the head back to neutral. */
   viewResetKey: number;
+  /** Selected model region (view state, not undoable). Material edits target it. */
+  selectedRegion: RegionId | null;
+  /** What the loaded model supports (from segmentation). */
+  geometryReport: GeometryReport | null;
 
   /** Discrete change: recorded as one undo step immediately. */
   apply: (update: Updater) => void;
@@ -38,6 +44,8 @@ interface StudioState {
   setZoom: (zoom: number) => void;
   /** Zoom back to 100 % and ease the head to neutral. */
   resetView: () => void;
+  selectRegion: (region: RegionId | null) => void;
+  setGeometryReport: (report: GeometryReport | null) => void;
 }
 
 const pushPast = (past: PortraitSettings[], s: PortraitSettings) => [...past, s].slice(-HISTORY_LIMIT);
@@ -51,6 +59,8 @@ export const useStudioStore = create<StudioState>()((set, get) => ({
   inspectorOpen: true,
   zoom: 100,
   viewResetKey: 0,
+  selectedRegion: null,
+  geometryReport: null,
 
   apply: (update) => {
     const { settings, past, pending } = get();
@@ -95,10 +105,13 @@ export const useStudioStore = create<StudioState>()((set, get) => ({
     set({ settings: next, past: pushPast(past, settings), future: rest });
   },
 
-  reset: (settings = DEFAULT_SETTINGS) => set({ settings, past: [], future: [], pending: null, zoom: 100 }),
+  reset: (settings = DEFAULT_SETTINGS) =>
+    set({ settings, past: [], future: [], pending: null, zoom: 100, selectedRegion: null }),
 
   setContext: (context) => set({ context, inspectorOpen: true }),
   toggleInspector: () => set((s) => ({ inspectorOpen: !s.inspectorOpen })),
   setZoom: (zoom) => set({ zoom: Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Math.round(zoom))) }),
   resetView: () => set((s) => ({ zoom: 100, viewResetKey: s.viewResetKey + 1 })),
+  selectRegion: (selectedRegion) => set({ selectedRegion }),
+  setGeometryReport: (geometryReport) => set({ geometryReport }),
 }));

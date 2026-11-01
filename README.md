@@ -52,7 +52,9 @@ screens at desktop, tablet and phone widths for visual review.
 | [Design system](docs/design-system.md)                                | Visual language, tokens, components, screen designs                                               |
 | [Design references](docs/research/design-references.md)               | Mobbin research and extracted patterns                                                            |
 | [Reconstruction providers](docs/research/reconstruction-providers.md) | Provider landscape, criteria, bake-off protocol                                                   |
-| [Privacy and security](docs/security-privacy.md)                      | Controls, retention policy, consent copy                                                          |
+| [Provider comparison](docs/research/provider-comparison.md)           | M6 comparison, costs, licensing gates, recommendation                                             |
+| [Segmentation architecture](docs/segmentation-architecture.md)        | M7 model parts: cuts, caps, regions, guarantees, limitations                                      |
+| [Privacy and security](docs/security-privacy.md)                      | Controls as built, retention, NDPA 2023 checklist, consent copy                                   |
 | [Risks](docs/risks.md)                                                | Ranked risks and mitigations                                                                      |
 | [Sample head asset](scripts/sample-head/README.md)                    | Sources, CC0 licences, build pipeline and stats of the bundled sample model                       |
 | [Decisions](docs/decisions/)                                          | Architecture decision records                                                                     |
@@ -69,3 +71,27 @@ Storage) · Cloudflare R2 · Vercel.
 
 Copy `.env.example` to `.env.local` and fill in the values. Each variable is
 documented in that file. Provider credentials are server-only.
+
+### Trying generation locally (no external service, no cost)
+
+```bash
+LOCAL_BACKEND=1 RECONSTRUCTION_PROVIDER=fixture npm run dev
+```
+
+Sign in with any email (local accounts only), add photos on `/create`, and
+choose **Upload and generate**. The development fixture runs the real
+upload, consent, job, validation and Studio steps. It returns a bundled CC0
+model, not a reconstruction of your photo, and the UI says so. To try other
+cases, add `?scenario=fused`, `fail-once`, `fail`, `invalid-glb` or `slow` to
+`/create`.
+
+| Variable                           | Purpose                                                                   |
+| ---------------------------------- | ------------------------------------------------------------------------- |
+| `LOCAL_BACKEND=1`                  | Enables the local accounts/storage backend (refused when `VERCEL` is set) |
+| `DATA_DIR`                         | Where local data lives (default `.data`, git-ignored)                     |
+| `RECONSTRUCTION_PROVIDER`          | `fixture` (development) or `meshy`                                        |
+| `FIXTURE_DURATION_MS`              | How long the fixture "reconstructs" (default 9000)                        |
+| `RECONSTRUCTION_POLL_MS`           | Provider polling interval (default 2000)                                  |
+| `RECONSTRUCTION_API_KEY`           | Server-only provider key                                                  |
+| `RECONSTRUCTION_PROVIDER_APPROVED` | Must be `1` for an external provider to run: approval of spending         |
+| `CRON_SECRET`                      | Bearer secret for `/api/cron/maintenance` (job polling, photo retention)  |

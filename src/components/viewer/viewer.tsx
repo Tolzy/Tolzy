@@ -1,7 +1,7 @@
 "use client";
 
 import { useGLTF, useProgress } from "@react-three/drei";
-import { Canvas, useThree } from "@react-three/fiber";
+import { Canvas, useThree, type RootState } from "@react-three/fiber";
 import {
   Component,
   Suspense,
@@ -14,13 +14,15 @@ import {
   type PointerEvent,
   type ReactNode,
 } from "react";
-import { NeutralToneMapping, PerspectiveCamera, SRGBColorSpace } from "three";
+import { type Mesh, NeutralToneMapping, PerspectiveCamera, Raycaster, SRGBColorSpace, Vector2 } from "three";
+import type { RegionId } from "@/lib/segmentation/regions";
 import { cn } from "@/lib/cn";
 import type { ModelFraming } from "@/lib/studio/sample-model";
 import { MATERIAL_PRESET_DEFS } from "@/lib/studio/materials";
 import type { Background, PortraitSettings } from "@/lib/studio/settings";
 import { clippingPlanes, fitDistance, insetShift, MODEL_HEIGHT, zoomedDistance } from "./framing";
-import { PortraitModel, type ModelBounds } from "./portrait-model";
+import { PortraitModel, type GeometryReport, type ModelBounds } from "./portrait-model";
+import { SelectionHighlight } from "./selection-highlight";
 import { StudioLighting, StudioShadow } from "./studio-lighting";
 import { InteractionController, type Rotation } from "./interaction";
 import { InteractionRig } from "./interaction-rig";
@@ -43,7 +45,21 @@ export interface ViewerProps {
   resetKey: number;
   /** Accessible name of the model, e.g. "Sample head". */
   label: string;
+  /** Which parts are shown and per-region materials (Milestone 7). */
+  geometry: PortraitSettings["geometry"];
+  regionMaterials: PortraitSettings["regionMaterials"];
+  selectedRegion: RegionId | null;
+  /** Called when the user clicks/taps a part (null: empty space). */
+  onSelectRegion?: (region: RegionId | null) => void;
+  /** Segmentation and visibility report (the Model panel lists regions from it). */
+  onGeometry?: (report: GeometryReport) => void;
+  /** Receives one rendered image of the model once it has loaded (for thumbnails). */
+  onCapture?: (image: Blob) => void;
 }
+
+/** A click or tap selects a part only if the pointer barely moved (otherwise it is a drag). */
+const CLICK_SLOP = 5;
+const CLICK_MS = 450;
 
 /** Keyboard rotation step, degrees. */
 const KEY_YAW = 10;
@@ -72,11 +88,23 @@ export default function Viewer({
   zoom,
   resetKey,
   label,
+  geometry,
+  regionMaterials,
+  selectedRegion,
+  onSelectRegion,
+  onGeometry,
+  onCapture,
 }: ViewerProps) {
   const [bounds, setBounds] = useState<ModelBounds | null>(null);
   const [attempt, setAttempt] = useState(0);
   const onReady = useCallback((b: ModelBounds) => setBounds(b), []);
-  const floorY = -framing.pivot * MODEL_HEIGHT;
+  const floorY = bounds?.minY ?? -framing.pivot * MODEL_HEIGHT;
+  const [parts, setParts] = useState<Mesh[] | null>(null);
+  const three = useRef<(() => RootState) | null>(null);
+  const setThree = useCallback((get: (() => RootState) | null) => {
+    three.current = get;
+  }, []);
+  const press = useRef<{ x: number; y: number; t: number } | null>(null);
   const surface = useRef<HTMLDivElement>(null);
   // A translucent model casts proportionally lighter shadows.
   const modelOpacity = MATERIAL_PRESET_DEFS[material.preset].controls.includes("opacity") ? material.opacity : 1;
@@ -110,6 +138,7 @@ export default function Viewer({
 
   const onPointerDown = (e: PointerEvent<HTMLDivElement>) => {
     if (e.pointerType === "mouse" && e.button !== 0) return;
+    press.current = { x: e.clientX, y: e.clientY, t: performance.now() };
     const rect = e.currentTarget.getBoundingClientRect();
     if (
       controller.dragStart(e.pointerId, e.clientX, e.clientY, rect.width, rect.height, performance.now(), e.pointerType)
@@ -126,7 +155,29 @@ export default function Viewer({
   const onPointerMove = (e: PointerEvent<HTMLDivElement>) => {
     if (controller.dragging) controller.dragMove(e.pointerId, e.clientX, e.clientY, performance.now());
   };
+  /** Picks the part under the pointer (click/tap without dragging). */
+  const pick = (e: PointerEvent<HTMLDivElement>) => {
+    const start = press.current;
+    press.current = null;
+    if (!start || !onSelectRegion || !parts || !three.current) return;
+    if (Math.hypot(e.clientX - start.x, e.clientY - start.y) > CLICK_SLOP || performance.now() - start.t > CLICK_MS)
+      return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const ndc = new Vector2(
+      ((e.clientX - rect.left) / rect.width) * 2 - 1,
+      -((e.clientY - rect.top) / rect.height) * 2 + 1,
+    );
+    const { camera } = three.current();
+    const ray = new Raycaster();
+    ray.setFromCamera(ndc, camera);
+    const hit = ray.intersectObjects(
+      parts.filter((p) => p.visible),
+      false,
+    )[0];
+    onSelectRegion((hit?.object.userData.region as RegionId | undefined) ?? null);
+  };
   const endDrag = (e: PointerEvent<HTMLDivElement>, cancelled: boolean) => {
+    if (!cancelled) pick(e);
     if (!controller.dragging) return;
     const now = performance.now();
     controller.dragEnd(e.pointerId, now, cancelled);
@@ -172,9 +223,10 @@ export default function Viewer({
   }, []);
 
   // Mirror what is actually on the model (read from the Three.js objects).
-  const onMaterials = useCallback((m: MaterialSummary) => {
+  const onMaterials = useCallback((m: MaterialSummary, regions: Record<string, unknown>) => {
     const el = surface.current;
     if (!el) return;
+    el.dataset.regionMaterials = JSON.stringify(regions);
     el.dataset.material = m.preset;
     el.dataset.materialType = m.type;
     el.dataset.materialColor = m.color;
@@ -189,6 +241,26 @@ export default function Viewer({
     el.dataset.opacity = m.opacity.toFixed(3);
     el.dataset.depthPrepass = String(m.depthPrepass);
   }, []);
+
+  const reportGeometry = useCallback(
+    (r: GeometryReport) => {
+      const el = surface.current;
+      if (el) {
+        el.dataset.segmented = String(r.segmented);
+        el.dataset.regions = r.regions
+          .filter((x) => x.available)
+          .map((x) => x.id)
+          .join(",");
+        el.dataset.hiddenRegions = r.hidden.join(",");
+        el.dataset.visibleTriangles = String(r.visibleTriangles);
+      }
+      onGeometry?.(r);
+    },
+    [onGeometry],
+  );
+  useEffect(() => {
+    if (surface.current) surface.current.dataset.selectedRegion = selectedRegion ?? "";
+  }, [selectedRegion]);
 
   return (
     <ModelErrorBoundary
@@ -240,6 +312,9 @@ export default function Viewer({
           role="img"
         >
           <CameraRig bounds={bounds} framing={framing} zoom={zoom} />
+          <ThreeAccess onReady={setThree} />
+          {onCapture && bounds && <CaptureOnce onCapture={onCapture} />}
+          <SelectionHighlight parts={parts} selected={selectedRegion} reducedMotion={reducedMotion} />
           <StudioLighting
             preset={lighting.preset}
             intensity={lighting.intensity}
@@ -259,12 +334,17 @@ export default function Viewer({
                 url={url}
                 framing={framing}
                 material={material}
+                geometry={geometry}
+                regionMaterials={regionMaterials}
                 onReady={onReady}
                 onMaterials={onMaterials}
+                onGeometry={reportGeometry}
+                onParts={setParts}
               />
             </InteractionRig>
             {lighting.shadows && bounds && (
-              <StudioShadow floorY={floorY} opacity={lighting.shadowIntensity * modelOpacity} />
+              // Re-rendered (frames=1) when the visible floor moves (head-only, head & neck).
+              <StudioShadow key={floorY.toFixed(4)} floorY={floorY} opacity={lighting.shadowIntensity * modelOpacity} />
             )}
           </Suspense>
         </Canvas>
@@ -299,7 +379,11 @@ function CameraRig({ bounds, framing, zoom }: { bounds: ModelBounds | null; fram
     const { camera, invalidate } = get() as { camera: PerspectiveCamera; invalidate: () => void };
     // Look at the model's focus height; the model's pivot sits at the origin.
     // Centre the model in the area above the toolbar.
-    const focusY = (framing.focus - framing.pivot) * height - insetShift(distance, FOV, size.height, TOOLBAR_INSET);
+    // Whole bust: the model's focus height. Part of it (head only, head & neck):
+    // the middle of what is visible, slightly raised towards the eyes.
+    const partial = bounds && height < MODEL_HEIGHT * 0.97;
+    const target = partial ? (bounds.minY + bounds.maxY) / 2 + height * 0.04 : (framing.focus - framing.pivot) * height;
+    const focusY = target - insetShift(distance, FOV, size.height, TOOLBAR_INSET);
     camera.position.set(0, focusY + height * 0.02, distance);
     camera.lookAt(0, focusY, 0);
     camera.near = near;
@@ -308,6 +392,34 @@ function CameraRig({ bounds, framing, zoom }: { bounds: ModelBounds | null; fram
     invalidate();
   }, [bounds, framing, zoom, size.width, size.height, get]);
 
+  return null;
+}
+
+/**
+ * Renders one frame and snapshots the canvas in the same tick (the drawing
+ * buffer is not preserved between frames), after materials and environment
+ * have settled.
+ */
+function CaptureOnce({ onCapture }: { onCapture: (image: Blob) => void }) {
+  const get = useThree((s) => s.get);
+  useEffect(() => {
+    const id = window.setTimeout(() => {
+      const { gl, scene, camera } = get();
+      gl.render(scene, camera);
+      gl.domElement.toBlob((blob) => blob && onCapture(blob), "image/png");
+    }, 1200);
+    return () => window.clearTimeout(id);
+  }, [get, onCapture]);
+  return null;
+}
+
+/** Lets event handlers outside the canvas reach the camera (for picking). */
+function ThreeAccess({ onReady }: { onReady: (get: (() => RootState) | null) => void }) {
+  const get = useThree((s) => s.get);
+  useEffect(() => {
+    onReady(get);
+    return () => onReady(null);
+  }, [get, onReady]);
   return null;
 }
 

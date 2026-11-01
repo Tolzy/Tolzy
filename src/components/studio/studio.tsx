@@ -16,6 +16,7 @@ import {
   Plus,
   Redo2,
   RotateCcw,
+  Shapes,
   Share2,
   Undo2,
 } from "lucide-react";
@@ -29,7 +30,7 @@ import { Tooltip } from "@/components/ui/tooltip";
 import { LazyViewer } from "@/components/viewer/lazy-viewer";
 import { SAMPLE_MODEL, type ModelFraming } from "@/lib/studio/sample-model";
 import { ThemeMenu } from "@/components/theme/theme-menu";
-import { ExportPanel, LightPanel, MaterialPanel, MotionPanel, ScenePanel } from "./inspector-panels";
+import { ExportPanel, LightPanel, MaterialPanel, ModelPanel, MotionPanel, ScenePanel } from "./inspector-panels";
 import { ShareDialog } from "./share-dialog";
 import { StudioModelContext } from "./studio-context";
 import { usePrefersReducedMotion } from "./use-studio";
@@ -42,6 +43,13 @@ const CONTEXTS: {
   icon: ReactNode;
   panel: () => ReactNode;
 }[] = [
+  {
+    id: "model",
+    label: "Model",
+    title: "Model parts",
+    icon: <Shapes />,
+    panel: ModelPanel,
+  },
   {
     id: "material",
     label: "Material",
@@ -90,6 +98,8 @@ interface StudioProps {
   /** Rendered thumbnail of this model, shown as the "Original" material preview. */
   thumbnailUrl?: string;
   isSample?: boolean;
+  /** Short label next to the name, e.g. "Fixture" for development-fixture portraits. */
+  badge?: string;
 }
 
 export function Studio({
@@ -100,6 +110,7 @@ export function Studio({
   framing,
   thumbnailUrl,
   isSample,
+  badge,
 }: StudioProps) {
   const inspectorOpen = useStudioStore((s) => s.inspectorOpen);
   useStudioShortcuts();
@@ -108,7 +119,7 @@ export function Studio({
   return (
     <StudioModelContext value={{ thumbnailUrl: thumbnailUrl ?? null }}>
       <div className="bg-bg flex h-dvh flex-col">
-        <TopBar portraitName={portraitName} projectName={projectName} isSample={isSample} />
+        <TopBar portraitName={portraitName} projectName={projectName} isSample={isSample} badge={badge} />
         <div className="flex min-h-0 flex-1 flex-col md:flex-row">
           <Viewport isSample={isSample} modelUrl={modelUrl} framing={framing} modelLabel={portraitName} />
           <div className="bg-surface flex min-h-0 flex-1 flex-col md:flex-none md:flex-row-reverse">
@@ -127,7 +138,8 @@ function TopBar({
   portraitName,
   projectName,
   isSample,
-}: Pick<StudioProps, "portraitName" | "projectName" | "isSample">) {
+  badge,
+}: Pick<StudioProps, "portraitName" | "projectName" | "isSample" | "badge">) {
   const undo = useStudioStore((s) => s.undo);
   const redo = useStudioStore((s) => s.redo);
   const canUndo = useStudioStore((s) => s.past.length > 0 || s.pending !== null);
@@ -153,6 +165,7 @@ function TopBar({
           {portraitName}
         </h1>
         {isSample && <Badge tone="outline">Sample</Badge>}
+        {badge && <Badge tone="warning">{badge}</Badge>}
       </nav>
 
       <div className="ml-auto flex items-center gap-1">
@@ -206,6 +219,11 @@ function Viewport({
   const ref = useRef<HTMLDivElement>(null);
   const background = useStudioStore((s) => s.settings.background);
   const material = useStudioStore((s) => s.settings.material);
+  const geometry = useStudioStore((s) => s.settings.geometry);
+  const regionMaterials = useStudioStore((s) => s.settings.regionMaterials);
+  const selectedRegion = useStudioStore((s) => s.selectedRegion);
+  const selectRegion = useStudioStore((s) => s.selectRegion);
+  const setGeometryReport = useStudioStore((s) => s.setGeometryReport);
   const lighting = useStudioStore((s) => s.settings.lighting);
   const motion = useStudioStore((s) => s.settings.motion);
   const zoom = useStudioStore((s) => s.zoom);
@@ -241,6 +259,11 @@ function Viewport({
         url={modelUrl}
         framing={framing}
         material={material}
+        geometry={geometry}
+        regionMaterials={regionMaterials}
+        selectedRegion={selectedRegion}
+        onSelectRegion={selectRegion}
+        onGeometry={setGeometryReport}
         background={background}
         lighting={lighting}
         motion={motion}

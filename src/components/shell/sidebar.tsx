@@ -3,7 +3,12 @@
 import { ThemeMenu } from "@/components/theme/theme-menu";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Folder, HardDrive, LayoutGrid, Plus, Search, Settings, UserRound } from "lucide-react";
+import { Folder, HardDrive, LayoutGrid, LogOut, Plus, Search, Settings, UserRound } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useAccount } from "@/stores/account-store";
+import { useAppStatus } from "@/components/account/use-account";
+import { SignInDialog } from "@/components/account/sign-in-dialog";
+import { Menu, MenuContent, MenuItem, MenuTrigger } from "@/components/ui/overlays";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
 import { Badge } from "@/components/ui/display";
@@ -95,26 +100,82 @@ export function SidebarContent() {
       </div>
 
       <div className="border-line flex items-center gap-1 border-t px-3 py-3">
-        <Tooltip
-          side="right"
-          content={
-            <span className="block max-w-[220px] leading-4">
-              Preview build. Accounts, photo upload and generation are not enabled yet.
-            </span>
-          }
-        >
-          <button type="button" className="flex min-w-0 flex-1 items-center gap-2.5 rounded-md text-left">
-            <span className="bg-sunken text-subtle ring-line flex size-7 items-center justify-center rounded-full ring-1 [&_svg]:size-4">
-              <UserRound />
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="text-fg block truncate text-sm">Not signed in</span>
-            </span>
-            <Badge tone="outline">Preview</Badge>
-          </button>
-        </Tooltip>
+        <AccountArea />
         <ThemeMenu side="right" />
       </div>
     </div>
+  );
+}
+
+/** Signed-in user, a sign-in button (local backend), or the preview-build note. */
+function AccountArea() {
+  const status = useAppStatus();
+  const signOut = useAccount((s) => s.signOut);
+  const router = useRouter();
+  const avatar = (
+    <span className="bg-sunken text-subtle ring-line flex size-7 shrink-0 items-center justify-center rounded-full ring-1 [&_svg]:size-4">
+      <UserRound />
+    </span>
+  );
+  if (status?.user)
+    return (
+      <Menu>
+        <MenuTrigger asChild>
+          <button
+            type="button"
+            className="hover:bg-hover flex min-w-0 flex-1 items-center gap-2.5 rounded-md p-0.5 text-left"
+          >
+            {avatar}
+            <span className="min-w-0 flex-1">
+              <span className="text-fg block truncate text-sm">{status.user.name}</span>
+              <span className="text-muted text-2xs block truncate">{status.user.email}</span>
+            </span>
+          </button>
+        </MenuTrigger>
+        <MenuContent align="start">
+          <MenuItem
+            icon={<LogOut />}
+            onSelect={async () => {
+              await signOut();
+              router.refresh();
+            }}
+          >
+            Sign out
+          </MenuItem>
+        </MenuContent>
+      </Menu>
+    );
+  if (status?.backend === "local")
+    return (
+      <SignInDialog
+        trigger={
+          <button
+            type="button"
+            className="hover:bg-hover flex min-w-0 flex-1 items-center gap-2.5 rounded-md p-0.5 text-left"
+          >
+            {avatar}
+            <span className="text-fg min-w-0 flex-1 truncate text-sm">Sign in</span>
+            <Badge tone="outline">Local</Badge>
+          </button>
+        }
+      />
+    );
+  return (
+    <Tooltip
+      side="right"
+      content={
+        <span className="block max-w-[220px] leading-4">
+          Preview build. Accounts, photo upload and generation are not enabled yet.
+        </span>
+      }
+    >
+      <button type="button" className="flex min-w-0 flex-1 items-center gap-2.5 rounded-md text-left">
+        {avatar}
+        <span className="min-w-0 flex-1">
+          <span className="text-fg block truncate text-sm">Not signed in</span>
+        </span>
+        <Badge tone="outline">Preview</Badge>
+      </button>
+    </Tooltip>
   );
 }

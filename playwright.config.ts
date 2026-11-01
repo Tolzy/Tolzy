@@ -33,5 +33,15 @@ export default defineConfig({
     url: `http://localhost:${PORT}/dashboard`,
     reuseExistingServer: !process.env.CI,
     timeout: 240_000,
+    // Local backend + development fixture provider: the real upload and
+    // generation pipeline without any external service. Data lives in a
+    // throwaway directory; nothing is sent to a reconstruction provider.
+    env: {
+      LOCAL_BACKEND: "1",
+      DATA_DIR: ".data-e2e",
+      RECONSTRUCTION_PROVIDER: "fixture",
+      FIXTURE_DURATION_MS: "4000",
+      RECONSTRUCTION_POLL_MS: "500",
+    },
   },
 });

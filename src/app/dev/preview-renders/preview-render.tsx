@@ -33,6 +33,9 @@ export function PreviewRender() {
         zoom={175}
         resetKey={0}
         label="Preview"
+        geometry={DEFAULT_SETTINGS.geometry}
+        regionMaterials={{}}
+        selectedRegion={null}
       />
     </div>
   );

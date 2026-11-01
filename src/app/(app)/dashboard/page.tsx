@@ -4,6 +4,8 @@ import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NewPortraitTile, SamplePortraitTile } from "@/components/dashboard/portrait-tiles";
 import { PageBody, PageHeader } from "@/components/shell/page-header";
+import { UserPortraits } from "@/components/dashboard/user-portraits";
+import { Suspense } from "react";
 
 export const metadata: Metadata = { title: "Portraits" };
 
@@ -41,6 +43,9 @@ export default function DashboardPage() {
       <section aria-label="Your portraits" className="mt-10">
         <div className="grid grid-cols-2 gap-x-5 gap-y-8 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
           <NewPortraitTile />
+          <Suspense fallback={null}>
+            <UserPortraits />
+          </Suspense>
           <SamplePortraitTile />
         </div>
       </section>

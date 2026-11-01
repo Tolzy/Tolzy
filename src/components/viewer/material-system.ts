@@ -32,7 +32,11 @@ import {
   type Object3D,
   type Texture,
 } from "three";
+import { lineage, type RegionId } from "@/lib/segmentation/regions";
 import { MATERIAL_PRESET_DEFS, type MaterialParams, type MaterialPreset } from "@/lib/studio/materials";
+import { setHiddenBy } from "./visibility";
+
+export type RegionMaterial = { preset: MaterialPreset } & MaterialParams;
 
 export type MeshRole = "surface" | "cutout" | "detail";
 
@@ -100,14 +104,15 @@ export class MaterialSystem {
   constructor(root: Object3D) {
     root.traverse((obj) => {
       const mesh = obj as Mesh;
-      if (!mesh.isMesh) return;
+      if (!mesh.isMesh || mesh.userData.helper) return;
       mesh.userData.originalMaterial ??= mesh.material;
       const original = mesh.userData.originalMaterial as MeshStandardMaterial;
       this.entries.push({
         mesh,
         original,
         role: classifyMaterial(original),
-        vertexCount: mesh.geometry.getAttribute("position")?.count ?? 0,
+        // Triangles drawn by this mesh (parts share one vertex buffer, so count the index).
+        vertexCount: mesh.geometry.index?.count ?? mesh.geometry.getAttribute("position")?.count ?? 0,
       });
     });
     this.entries.sort((a, b) => b.vertexCount - a.vertexCount);
@@ -119,38 +124,72 @@ export class MaterialSystem {
     return Object.fromEntries(this.entries.map((e) => [e.mesh.name || e.mesh.uuid, e.role]));
   }
 
-  apply(preset: MaterialPreset, params: MaterialParams): MaterialSummary {
+  /**
+   * Applies the whole-model material, plus optional per-region overrides
+   * (Milestone 7). A mesh tagged with a region uses the nearest override in
+   * its lineage (eye → face → head), otherwise the whole-model setting.
+   */
+  apply(
+    preset: MaterialPreset,
+    params: MaterialParams,
+    overrides: Partial<Record<RegionId, RegionMaterial>> = {},
+  ): MaterialSummary {
     this.current = preset;
+    for (const e of this.entries) {
+      const region = e.mesh.userData.region as RegionId | undefined;
+      const scope = region ? lineage(region).find((r) => overrides[r]) : undefined;
+      const s = scope ? overrides[scope]! : { preset, ...params };
+      this.applyTo(e, s.preset, s, scope ?? "*");
+    }
+    return this.summary(preset);
+  }
+
+  private applyTo(e: Entry, preset: MaterialPreset, params: MaterialParams, scope: string) {
     const glass = MATERIAL_PRESET_DEFS[preset].physics.transmission > 0;
     // Glass has no opacity control: transmission is its transparency.
     const opacity = glass ? 1 : Math.min(1, Math.max(0, params.opacity));
     const translucent = opacity < 0.999;
-
-    for (const e of this.entries) {
-      if (preset === "original") {
-        e.mesh.material = translucent ? this.translucentOriginal(e, opacity) : e.original;
-        e.mesh.visible = true;
-        e.mesh.castShadow = e.role !== "detail";
-        // Already-transparent originals (eyes, brows) blend as before; a depth
-        // twin would hide the eyeball behind its own cornea.
-        this.setPrepass(e, translucent && !e.original.transparent);
-        continue;
-      }
-      if (e.role === "detail") {
-        e.mesh.visible = false;
-        this.setPrepass(e, false);
-        continue;
-      }
-      const mat = this.materialFor(preset, e);
-      this.update(mat, preset, params, e.original);
-      this.setOpacity(mat, opacity);
-      e.mesh.material = mat;
-      e.mesh.visible = true;
-      // Transmissive glass should not cast solid shadows.
-      e.mesh.castShadow = !glass;
-      this.setPrepass(e, translucent);
+    e.mesh.userData.appliedPreset = preset;
+    e.mesh.userData.materialScope = scope;
+    if (preset === "original") {
+      e.mesh.material = translucent ? this.translucentOriginal(e, opacity, scope) : e.original;
+      setHiddenBy(e.mesh, "material", false);
+      e.mesh.castShadow = e.role !== "detail" && !e.mesh.userData.cap;
+      // Already-transparent originals (eyes, brows) blend as before; a depth
+      // twin would hide the eyeball behind its own cornea.
+      this.setPrepass(e, translucent && !e.original.transparent);
+      return;
     }
-    return this.summary(preset);
+    if (e.role === "detail") {
+      setHiddenBy(e.mesh, "material", true);
+      this.setPrepass(e, false);
+      return;
+    }
+    const mat = this.materialFor(preset, e, scope);
+    this.update(mat, preset, params, e.original);
+    this.setOpacity(mat, opacity);
+    e.mesh.material = mat;
+    setHiddenBy(e.mesh, "material", false);
+    // Transmissive glass should not cast solid shadows.
+    e.mesh.castShadow = !glass && !e.mesh.userData.cap;
+    this.setPrepass(e, translucent);
+  }
+
+  /** What each region shows right now (for tests and diagnostics). */
+  regionSummary(): Partial<Record<RegionId, { preset: string; type: string; color: string; opacity: number }>> {
+    const out: Partial<Record<RegionId, { preset: string; type: string; color: string; opacity: number }>> = {};
+    for (const e of this.entries) {
+      const region = e.mesh.userData.region as RegionId | undefined;
+      if (!region || e.mesh.userData.cap || out[region]) continue;
+      const m = e.mesh.material as MeshPhysicalMaterial;
+      out[region] = {
+        preset: e.mesh.userData.appliedPreset,
+        type: m.type,
+        color: `#${m.color.getHexString()}`,
+        opacity: m.transparent ? m.opacity : 1,
+      };
+    }
+    return out;
   }
 
   summary(preset: MaterialPreset = this.current): MaterialSummary {
@@ -166,7 +205,7 @@ export class MaterialSystem {
       clearcoat: m?.clearcoat ?? 0,
       thickness: m?.thickness ?? 0,
       envMapIntensity: m?.envMapIntensity ?? 1,
-      hidden: this.entries.filter((e) => !e.mesh.visible).length,
+      hidden: this.entries.filter((e) => e.mesh.userData.hiddenBy?.has("material")).length,
       geometryKey: this.geometryKey,
       created: this.cache.size,
       opacity: m?.transparent ? m.opacity : 1,
@@ -178,7 +217,7 @@ export class MaterialSystem {
   dispose() {
     for (const e of this.entries) {
       e.mesh.material = e.original;
-      e.mesh.visible = true;
+      setHiddenBy(e.mesh, "material", false);
     }
     for (const [mesh, twin] of this.prepass) {
       mesh.remove(twin);
@@ -203,8 +242,8 @@ export class MaterialSystem {
   }
 
   /** A cached translucent copy of a source material (textures shared, not copied). */
-  private translucentOriginal(e: Entry, opacity: number): MeshStandardMaterial {
-    const key = `original|${e.original.uuid}`;
+  private translucentOriginal(e: Entry, opacity: number, scope: string): MeshStandardMaterial {
+    const key = `original|${e.original.uuid}|${scope}`;
     let mat = this.cache.get(key);
     if (!mat) {
       mat = e.original.clone();
@@ -245,8 +284,8 @@ export class MaterialSystem {
     twin.visible = true;
   }
 
-  private materialFor(preset: MaterialPreset, e: Entry): MeshPhysicalMaterial {
-    const key = `${preset}|${e.original.uuid}`;
+  private materialFor(preset: MaterialPreset, e: Entry, scope: string): MeshPhysicalMaterial {
+    const key = `${preset}|${e.original.uuid}|${scope}`;
     const cached = this.cache.get(key);
     if (cached) return cached as MeshPhysicalMaterial;
     const mat = new MeshPhysicalMaterial({ name: `${preset} · ${e.original.name || "material"}` });

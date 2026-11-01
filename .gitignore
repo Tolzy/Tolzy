@@ -52,3 +52,7 @@ __pycache__/
 *.pyc
 /public/vendor/
 tests/fixtures/photos/source/
+
+# Local development backend data (photos, models — never commit)
+/.data/
+/.data-*/

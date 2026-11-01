@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { REGION_DEFS, type RegionId } from "@/lib/segmentation/regions";
 import { LIGHTING_PRESET_ORDER } from "./lighting";
 import { MATERIAL_PRESET_ORDER } from "./materials";
 import { DEFAULT_SETTINGS, lightingSettings, materialSettings, type PortraitSettings } from "./settings";
@@ -53,6 +54,12 @@ const Motion = z.object({
   touchSensitivity: z.number().min(0.2).max(1),
 });
 
+const RegionIdSchema = z.enum(Object.keys(REGION_DEFS) as [RegionId, ...RegionId[]]);
+const Geometry = z.object({
+  preset: z.enum(["head", "headNeck", "bust"]),
+  hidden: z.array(RegionIdSchema).max(20),
+});
+
 /** Parses a stored document; invalid or missing sections fall back to defaults. */
 export function parseSettings(input: unknown, defaults: PortraitSettings = DEFAULT_SETTINGS): PortraitSettings {
   const doc = (typeof input === "object" && input !== null ? input : {}) as Record<string, unknown>;
@@ -63,7 +70,22 @@ export function parseSettings(input: unknown, defaults: PortraitSettings = DEFAU
   // Older documents without newer fields: fill them from the preset's defaults first.
   const material = doc.material as Record<string, unknown> | undefined;
   const lighting = doc.lighting as Record<string, unknown> | undefined;
+  const regionMaterials: PortraitSettings["regionMaterials"] = {};
+  const rm = doc.regionMaterials;
+  if (rm && typeof rm === "object") {
+    for (const [id, value] of Object.entries(rm as Record<string, unknown>)) {
+      if (!RegionIdSchema.safeParse(id).success) continue;
+      const v = value as Record<string, unknown> | undefined;
+      const parsed =
+        v && MATERIAL_PRESET_ORDER.includes(v.preset as never)
+          ? Material.safeParse({ ...materialSettings(v.preset as never), ...v })
+          : null;
+      if (parsed?.success) regionMaterials[id as RegionId] = parsed.data as PortraitSettings["material"];
+    }
+  }
   return {
+    geometry: pick(Geometry, doc.geometry, defaults.geometry),
+    regionMaterials,
     material: pick(
       Material,
       material && MATERIAL_PRESET_ORDER.includes(material.preset as never)

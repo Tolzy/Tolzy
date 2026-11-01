@@ -7,6 +7,7 @@
  * hex strings, "#rrggbb" or "#rrggbbaa".
  */
 
+import type { RegionId, ShowPreset } from "@/lib/segmentation/regions";
 import type { LightingPreset } from "./lighting";
 import { MATERIAL_PRESET_DEFS, type MaterialParams, type MaterialPreset } from "./materials";
 
@@ -18,6 +19,14 @@ export type Background =
   { type: "solid"; color: string } | { type: "gradient"; from: string; to: string } | { type: "transparent" };
 
 export interface PortraitSettings {
+  /** Which parts of the model are shown (Milestone 7). */
+  geometry: {
+    preset: ShowPreset;
+    /** Further regions hidden on their own (e.g. hair). */
+    hidden: RegionId[];
+  };
+  /** Material overrides for individual regions; others use `material`. */
+  regionMaterials: Partial<Record<RegionId, PortraitSettings["material"]>>;
   /** Preset plus its adjustable parameters (defaults come from the preset). */
   material: { preset: MaterialPreset } & MaterialParams;
   lighting: {
@@ -68,6 +77,8 @@ export function lightingSettings(preset: LightingPreset): PortraitSettings["ligh
 }
 
 export const DEFAULT_SETTINGS: PortraitSettings = {
+  geometry: { preset: "bust", hidden: [] },
+  regionMaterials: {},
   material: materialSettings("original"),
   lighting: lightingSettings("studio"),
   background: { type: "gradient", from: "#1f1f23", to: "#0b0b0c" },

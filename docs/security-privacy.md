@@ -1,8 +1,10 @@
 # Privacy and security
 
-Status: Milestone 0 policy draft. Needs legal review before public launch —
-photos of faces are biometric-adjacent personal data under GDPR and some US
-state laws (e.g. Illinois BIPA, Texas CUBI).
+Status: policy draft, updated for Milestones 6–7 (1 Nov 2026). Needs legal
+review before public launch — photos of faces and 3D models derived from them
+are biometric or biometric-adjacent personal data under the Nigeria Data
+Protection Act 2023, GDPR and some US state laws (e.g. Illinois BIPA, Texas
+CUBI). User consent alone does not discharge every obligation (§7).
 
 ## 1. Principles
 
@@ -23,10 +25,29 @@ state laws (e.g. Illinois BIPA, Texas CUBI).
 
 Photo validation on the New Portrait page runs entirely in the browser
 (file signature, size, decoding, resolution, MediaPipe Face Landmarker served
-from our own origin). No photo data is sent anywhere — verified by a browser
-test that records every request. Uploading is disabled until sign-in and the
-private storage backend exist (ADR 0007); the interface says so rather than
-simulating an upload.
+from our own origin). No photo data leaves the device during the checks — verified by a browser
+test that records every request. Uploading starts only after sign-in, consent
+and the provider disclosure (§1b).
+
+## 1b. As built in Milestone 6 (local backend)
+
+| Requirement                        | Implementation                                                                                                                                                                                                                                                                                                                     |
+| ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Authentication before upload       | Every upload, generation, photo, portrait and model route calls `requireUser()`; 401 otherwise (tested). Session: random token, only its SHA-256 stored; httpOnly, SameSite=Lax cookie, 14 days.                                                                                                                                   |
+| Explicit consent before processing | Generation refuses without `consent.accepted` and the current `CONSENT_VERSION`; each consent is stored with version, time and photo ids.                                                                                                                                                                                          |
+| Provider disclosure                | The review step names the provider, where it processes photos and that photos are never used for training, before “Upload and generate”.                                                                                                                                                                                           |
+| No spending without approval       | External providers are disabled unless `RECONSTRUCTION_API_KEY` **and** `RECONSTRUCTION_PROVIDER_APPROVED=1` are set; neither is set anywhere.                                                                                                                                                                                     |
+| Keys never in the browser          | Provider code is `server-only`; `/api/status` returns availability only; e2e test checks status and pages for key material.                                                                                                                                                                                                        |
+| Private by default                 | Photos and models are stored outside `public/`; served only to their owner by authenticated routes with `Cache-Control: no-store`; other users get 404 (tested). There are no public model URLs.                                                                                                                                   |
+| Upload hygiene                     | Signature sniffing, 20 MB cap, decode check, minimum resolution; re-encoded with Sharp (orientation applied, all metadata incl. EXIF/GPS dropped, ≤ 2048 px).                                                                                                                                                                      |
+| Retention                          | Photos: deleted 30 days after a successful generation unless the owner keeps them; 7 days after a failed or cancelled one; 1 day after upload if no generation used them. Enforced by `/api/cron/maintenance` and opportunistically. Owners can delete all photos (`DELETE /api/photos`) or a portrait with or without its photos. |
+| Temporary files                    | Provider results are downloaded into memory, validated and written once; nothing is staged on disk. Remote provider copies are deleted after download where the provider supports it (Meshy adapter: `DELETE` task).                                                                                                               |
+| Original asset preserved           | The model is stored byte-for-byte as returned; normalisation is metadata (manifest), applied on load.                                                                                                                                                                                                                              |
+
+The local backend (JSON + files under `DATA_DIR`) is for development and tests
+only and is refused on hosted deployments. Production needs managed auth and
+private object storage (Supabase Auth/Storage + R2, `docs/data-model.md`) with
+encryption at rest and signed, short-lived URLs.
 
 ## 2. Controls
 
@@ -48,7 +69,7 @@ simulating an upload.
 | Data                      | Retention                                                                                                                                         |
 | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Source photos             | Deleted **30 days** after a successful generation, or immediately on user request. Users may choose "Keep my photos" to allow regeneration later. |
-| Failed-job photos         | Deleted after 7 days.                                                                                                                             |
+| Failed-job photos         | Deleted after 7 days (unused uploads: 1 day).                                                                                                     |
 | Provider copies           | Deleted via provider API right after result download, where supported; provider retention terms recorded per provider.                            |
 | Generated models, exports | Kept until the user deletes the portrait or account.                                                                                              |
 | Public embed copies       | Deleted immediately on unpublish or portrait deletion.                                                                                            |
@@ -70,17 +91,43 @@ The consent version is recorded in `consents`.
 
 ## 5. Regions
 
-Nigeria is the first market. The Nigeria Data Protection Act 2023 treats
-biometric data as sensitive personal data, and photographs sent to a provider
-outside Nigeria are a cross-border transfer. Production image processing is
-enabled per region by configuration only after provider availability,
-licensing and privacy requirements are reviewed for that region. Nothing is
-hard-coded per country.
+Nigeria is the first market. Production image processing is enabled per region
+by configuration only after provider availability, licensing and privacy
+requirements are reviewed for that region. Nothing is hard-coded per country.
 
-## 6. Open items
+## 6. Open items (blocking production)
 
 - Legal review of biometric-data obligations per launch region.
 - Data Processing Agreement with the chosen reconstruction provider.
 - Abuse policy: generating portraits of people without consent (public
   figures, minors). Minimum: consent attestation, reporting route, takedown of
   public embeds.
+- Written answers from the chosen provider on training, retention and
+  deletion of inputs/outputs; DPA signed (`docs/research/provider-comparison.md` §3).
+- Account deletion flow (all rows and files) — routes for photo and portrait
+  deletion exist; whole-account deletion arrives with M10.
+- Separate, opt-in consent for any use of photos to improve models — not
+  collected; photos are never used for training.
+
+## 7. Nigeria Data Protection Act 2023 — requirements to resolve
+
+The NDPA 2023 is enforced by the Nigeria Data Protection Commission (NDPC).
+This is an engineering checklist, not legal advice; a Nigerian data-protection
+practitioner should confirm it.
+
+| Topic                             | Why it applies                                                                                                  | Status                                                                                                                                    |
+| --------------------------------- | --------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| Sensitive personal data           | Face photos processed to build a 3D likeness are biometric data, a category of sensitive personal data.         | Explicit, versioned consent collected; lawful basis to be confirmed by counsel.                                                           |
+| Consent quality                   | Consent must be informed, specific and withdrawable; the person in the photo may not be the uploader.           | Attestation (“I am the person or have their permission”); withdrawal = delete photos/portrait. Third-party subjects need a review.        |
+| Data Protection Impact Assessment | Large-scale processing of biometric data with a new technology is high-risk processing.                         | **Not done** — required before launch.                                                                                                    |
+| Cross-border transfer             | Hosted providers (e.g. Meshy, US) receive photos outside Nigeria.                                               | **Open** — needs an adequacy basis or appropriate safeguards (contractual clauses/DPA), and disclosure. Self-hosting in-region avoids it. |
+| Registration with the NDPC        | Controllers/processors “of major importance” must register; thresholds are set by the Commission.               | **Open** — assess once volumes are known.                                                                                                 |
+| Data Protection Officer           | Required for controllers of major importance.                                                                   | **Open**.                                                                                                                                 |
+| Data subject rights               | Access, rectification, erasure, objection, portability.                                                         | Erasure of photos and portraits implemented; export (M11) and access request process open.                                                |
+| Security and breach notification  | Appropriate technical measures; breaches notified to the NDPC promptly (72-hour window) and to affected people. | Access control and private storage implemented; incident process **open**.                                                                |
+| Retention limitation              | Keep data no longer than necessary.                                                                             | Implemented (§1b).                                                                                                                        |
+| Processor contracts               | The reconstruction provider is a processor.                                                                     | **Open** — DPA with the selected provider.                                                                                                |
+
+Consent does not settle licensing either: provider output rights and every
+model/library licence in the pipeline must allow commercial use independently
+of what the user agrees to (ADR 0008, provider comparison §3).

@@ -1,8 +1,27 @@
 # Data model
 
-Status: Milestone 0 proposal. Implemented as Supabase migrations in
-Milestone 5–7. All tables live in the `public` schema with Row Level Security
-enabled; every policy is scoped to `auth.uid()`.
+Status: Milestone 0 proposal (production target: Supabase migrations with Row
+Level Security, every policy scoped to `auth.uid()`). Milestone 6 implements
+the subset below on the local development backend (§0); the Supabase
+migrations follow once the project exists.
+
+## 0. As built in Milestone 6 (local backend, `src/lib/server/store.ts`)
+
+| Table       | Fields (as built)                                                                                                                                                                                                         | Maps to (§2)              |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------- |
+| `users`     | id, email, name, createdAt                                                                                                                                                                                                | `auth.users` + `profiles` |
+| `sessions`  | tokenHash (SHA-256), userId, expiresAt                                                                                                                                                                                    | Supabase Auth sessions    |
+| `photos`    | id, ownerId, slot, path, bytes, width, height, createdAt, **deleteAfter**, **keep**                                                                                                                                       | `source_images`           |
+| `consents`  | id, ownerId, version, providerId, photoIds, acceptedAt                                                                                                                                                                    | `consents`                |
+| `jobs`      | id, ownerId, portraitId, providerId, providerJobId, status, progress, photoIds, consentId, attempts, error {code, message, retryable}, scenario (fixture only), createdAt, updatedAt, submittedAt, finishedAt, nextPollAt | `generation_jobs`         |
+| `portraits` | id, ownerId, name, status (generating / ready / failed), providerId, jobId, assetId, thumbnailPath, createdAt                                                                                                             | `portraits`               |
+| `assets`    | id, ownerId, portraitId, path (original GLB), bytes, triangles, **manifest** (orientation, confidence, framing, counts, profile)                                                                                          | `model_assets`            |
+
+Every read and write is filtered by `ownerId` in code (the equivalent of
+RLS); routes return 404 for other users' rows. Files live under
+`DATA_DIR/files/{userId}/…` (photos, models, thumbnails), outside `public/`,
+and are served only by authenticated routes. Portrait settings (including
+M7 `geometry` and `regionMaterials`) remain in browser storage until M10.
 
 ## 1. Entity overview
 

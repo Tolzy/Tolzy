@@ -1,13 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, CircleAlert, ImageOff, Info, Lock, RefreshCw, Trash2, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, CircleAlert, ImageOff, Lock, RefreshCw, Trash2, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/cn";
 import { analyzePhoto } from "@/lib/photos/analyze";
 import { formatBytes, formatName } from "@/lib/photos/file-checks";
 import { ANGLE_SLOTS, type PhotoCheck, type SlotId } from "@/lib/photos/types";
-import { UPLOADS } from "@/lib/uploads/availability";
 import { readiness, usePhotoIntake, type SlotState } from "@/stores/photo-intake-store";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/controls";
@@ -16,6 +15,8 @@ import { ThemeMenu } from "@/components/theme/theme-menu";
 import { CheckList, PhotoStatus } from "./check-list";
 import { DropTarget, MainDropZone, SlotDropZone, useFilePicker } from "./drop-zone";
 import { PhotoGuidelines } from "./guidelines";
+import { GenerateAction } from "./generate-action";
+import { useAppStatus } from "@/components/account/use-account";
 
 const STEPS = ["Photos", "Upload", "Generate"] as const;
 
@@ -28,6 +29,7 @@ const STEPS = ["Photos", "Upload", "Generate"] as const;
 export function CreatePortrait() {
   const step = usePhotoIntake((s) => s.step);
   const reset = usePhotoIntake((s) => s.reset);
+  const status = useAppStatus();
   // Leaving the page discards the selection and frees preview memory.
   useEffect(() => reset, [reset]);
 
@@ -78,8 +80,9 @@ export function CreatePortrait() {
       <div className="border-line bg-sunken/70 border-b">
         <p className="text-muted mx-auto flex max-w-[1080px] items-center gap-2 px-5 py-2.5 text-xs sm:px-8">
           <Lock className="size-3.5 shrink-0" aria-hidden="true" />
-          Photos are checked on this device and are not uploaded. Uploading needs an account, which isn’t enabled in
-          this preview build.
+          {status?.backend === "local"
+            ? "Photos are checked on this device first. They’re uploaded privately only when you choose Upload and generate."
+            : "Photos are checked on this device and are not uploaded. Uploading needs an account, which isn’t enabled in this preview build."}
         </p>
       </div>
 
@@ -409,19 +412,7 @@ function ReviewStep() {
         ))}
       </ul>
 
-      <div
-        role="status"
-        data-testid="upload-unavailable"
-        className="border-line bg-sunken mt-8 flex gap-3 rounded-xl border p-4"
-      >
-        <Info className="text-muted mt-0.5 size-4 shrink-0" aria-hidden="true" />
-        <div className="text-sm">
-          <p className="text-fg font-medium">Uploading isn’t available yet</p>
-          <p className="text-muted mt-1">
-            {UPLOADS.reason} Nothing has been uploaded — your photos are still only on this device.
-          </p>
-        </div>
-      </div>
+      <GenerateAction />
     </div>
   );
 }

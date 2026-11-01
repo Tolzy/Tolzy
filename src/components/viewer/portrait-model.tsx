@@ -2,10 +2,13 @@
 
 import { useGLTF } from "@react-three/drei";
 import { useThree } from "@react-three/fiber";
-import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Box3, Group, Material, Mesh, Object3D, Texture, Vector3 } from "three";
 import type { ModelFraming } from "@/lib/studio/sample-model";
 import type { PortraitSettings } from "@/lib/studio/settings";
+import type { RegionId } from "@/lib/segmentation/regions";
+import type { RegionReport } from "@/lib/segmentation/segment";
+import { GeometrySystem } from "./geometry-system";
 import { MaterialSystem, type MaterialSummary } from "./material-system";
 import { MODEL_HEIGHT } from "./framing";
 
@@ -15,6 +18,17 @@ export interface ModelBounds {
   width: number;
   height: number;
   depth: number;
+  /** Visible extent in model space (y up, pivot at 0). Narrower than the model when parts are hidden. */
+  minY: number;
+  maxY: number;
+}
+
+export interface GeometryReport {
+  segmented: boolean;
+  reason: string | null;
+  regions: RegionReport[];
+  hidden: RegionId[];
+  visibleTriangles: number;
 }
 
 interface PortraitModelProps {
@@ -25,7 +39,15 @@ interface PortraitModelProps {
   /** Reports the normalised size once the model is placed. */
   onReady?: (bounds: ModelBounds) => void;
   /** Reports what is actually on the model after every material change. */
-  onMaterials?: (summary: MaterialSummary) => void;
+  onMaterials?: (summary: MaterialSummary, regions: ReturnType<MaterialSystem["regionSummary"]>) => void;
+  /** Which parts are shown (Milestone 7). */
+  geometry: PortraitSettings["geometry"];
+  /** Per-region material overrides (Milestone 7). */
+  regionMaterials: PortraitSettings["regionMaterials"];
+  /** Reports segmentation and visibility after every change. */
+  onGeometry?: (report: GeometryReport) => void;
+  /** Gives the viewer the part meshes (for picking and highlighting). */
+  onParts?: (parts: Mesh[] | null) => void;
 }
 
 /**
@@ -35,12 +57,24 @@ interface PortraitModelProps {
  * Material presets are applied by a MaterialSystem, which keeps the original
  * materials in `userData.originalMaterial` and never modifies geometry.
  */
-export function PortraitModel({ url, framing, material, onReady, onMaterials }: PortraitModelProps) {
+export function PortraitModel({
+  url,
+  framing,
+  material,
+  geometry,
+  regionMaterials,
+  onReady,
+  onMaterials,
+  onGeometry,
+  onParts,
+}: PortraitModelProps) {
   // No Draco/meshopt: avoids loading decoders from third-party CDNs.
   const gltf = useGLTF(url, false, false);
   const invalidate = useThree((s) => s.invalidate);
   const scene = useMemo(() => gltf.scene.clone(true), [gltf.scene]);
   const normalizer = useRef<Group>(null);
+  const full = useRef<Pick<ModelBounds, "width" | "height" | "depth">>({ width: 1, height: MODEL_HEIGHT, depth: 1 });
+  const [systems, setSystems] = useState<{ geometry: GeometrySystem; materials: MaterialSystem } | null>(null);
 
   useLayoutEffect(() => {
     scene.rotation.set(...framing.orientation);
@@ -65,20 +99,73 @@ export function PortraitModel({ url, framing, material, onReady, onMaterials }: 
       }
     });
 
-    onReady?.({ width: size.x * scale, height: MODEL_HEIGHT, depth: size.z * scale });
+    full.current = { width: size.x * scale, height: MODEL_HEIGHT, depth: size.z * scale };
+    // Split into regions, then put materials on the resulting parts.
+    const geometrySystem = new GeometrySystem(scene);
+    const materialSystem = new MaterialSystem(scene);
+    // Systems wrap the loaded three.js scene (an external, mutable object), so
+    // they are created after normalisation here and published via state.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSystems({ geometry: geometrySystem, materials: materialSystem });
+    onParts?.(geometrySystem.segmentation.ok ? geometrySystem.partMeshes() : null);
     invalidate();
-  }, [scene, framing, onReady, invalidate]);
+    return () => {
+      materialSystem.dispose();
+      geometrySystem.dispose();
+      onParts?.(null);
+    };
+  }, [scene, framing, invalidate, onParts]);
 
-  // One material system per loaded model; presets are applied in place.
-  const materials = useMemo(() => new MaterialSystem(scene), [scene]);
-  useEffect(() => () => materials.dispose(), [materials]);
+  // Visibility of parts; framing follows what is visible.
+  const hiddenKey = geometry.hidden.join(",");
+  useLayoutEffect(() => {
+    if (!systems) return;
+    const g = systems.geometry;
+    const hidden = g.show(geometry.preset, hiddenKey ? (hiddenKey.split(",") as RegionId[]) : []);
+    const box = g.visibleBounds();
+    const pivotY = -framing.pivot * MODEL_HEIGHT;
+    onReady?.({
+      ...full.current,
+      width: box ? box.max.x - box.min.x : full.current.width,
+      height: box ? box.max.y - box.min.y : full.current.height,
+      minY: box ? box.min.y : pivotY,
+      maxY: box ? box.max.y : pivotY + MODEL_HEIGHT,
+    });
+    onGeometry?.({
+      segmented: g.segmentation.ok,
+      reason: g.segmentation.reason ?? null,
+      regions: g.regions(),
+      hidden: [...hidden],
+      visibleTriangles: g.visibleTriangles(),
+    });
+    invalidate();
+  }, [systems, geometry.preset, hiddenKey, framing.pivot, onReady, onGeometry, invalidate]);
 
   const { preset, tint, roughness, metalness, clearcoat, thickness, opacity } = material;
+  const overridesKey = JSON.stringify(regionMaterials);
   useLayoutEffect(() => {
-    const summary = materials.apply(preset, { tint, roughness, metalness, clearcoat, thickness, opacity });
-    onMaterials?.(summary);
+    if (!systems) return;
+    const overrides = JSON.parse(overridesKey) as PortraitSettings["regionMaterials"];
+    const summary = systems.materials.apply(
+      preset,
+      { tint, roughness, metalness, clearcoat, thickness, opacity },
+      overrides,
+    );
+    onMaterials?.(summary, systems.materials.regionSummary());
     invalidate();
-  }, [materials, preset, tint, roughness, metalness, clearcoat, thickness, opacity, onMaterials, invalidate]);
+  }, [
+    systems,
+    preset,
+    tint,
+    roughness,
+    metalness,
+    clearcoat,
+    thickness,
+    opacity,
+    overridesKey,
+    onMaterials,
+    invalidate,
+  ]);
 
   // Keep only the current model in the loader cache.
   useEffect(() => {

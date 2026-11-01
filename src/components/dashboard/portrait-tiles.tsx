@@ -88,8 +88,12 @@ export interface PortraitCardData {
   name: string;
   status: PortraitStatus;
   meta: string;
-  /** Rendered PNG thumbnail URL, when available. */
+  /** Rendered thumbnail URL, when available. */
   thumbnailUrl?: string;
+  /** Where the card leads (default: the Studio). */
+  href?: string;
+  /** Short label over the image, e.g. "Fixture". */
+  badge?: string;
 }
 
 /** Card for a user's portrait in the dashboard grid. */
@@ -97,7 +101,7 @@ export function PortraitCard({ portrait, menu }: { portrait: PortraitCardData; m
   return (
     <div className="group relative flex flex-col gap-2.5">
       <Link
-        href={`/studio/${portrait.id}`}
+        href={portrait.href ?? `/studio/${portrait.id}`}
         className={cn(
           thumbBase,
           "block bg-[radial-gradient(110%_80%_at_50%_30%,#26262b_0%,#0d0d0f_100%)] outline-offset-4",
@@ -109,6 +113,11 @@ export function PortraitCard({ portrait, menu }: { portrait: PortraitCardData; m
           <img src={portrait.thumbnailUrl} alt="" className="size-full object-cover" />
         ) : (
           <BustSilhouette className="absolute inset-x-[14%] bottom-0 w-[72%] opacity-60" />
+        )}
+        {portrait.badge && (
+          <Badge tone="onImage" className="absolute top-3 left-3">
+            {portrait.badge}
+          </Badge>
         )}
         {portrait.status !== "ready" && (
           <span className="absolute inset-x-3 bottom-3 flex">

@@ -1,7 +1,8 @@
 # Technical architecture
 
-Status: Milestone 0 proposal, updated through Milestone 4 and the expanded
-scope of 31 October 2026 (ADR 0006). Decisions marked **(ADR)** have a record
+Status: Milestone 0 proposal, updated through Milestones 6–7 (ADR 0008) and
+the expanded scope of 31 October 2026 (ADR 0006). As built, the server side
+runs on a local development backend; the diagram shows the production target. Decisions marked **(ADR)** have a record
 in `docs/decisions/`; feature specs live in `docs/specs/`.
 
 ## 1. System overview
@@ -12,9 +13,10 @@ in `docs/decisions/`; feature specs live in `docs/specs/`.
  Dashboard / Create / Studio  ──fetch──▶  Route handlers & server actions  ──▶  Supabase (Auth, Postgres, Storage)
    React Three Fiber viewport             ├─ /api/uploads/*   (signed upload URLs)
    Zustand stores                         ├─ /api/portraits/* (CRUD, settings)        ──▶  Cloudflare R2 (GLB, PNG)
-   MediaPipe face pre-check (WASM)        ├─ /api/generation/* (start, status)
-                                          ├─ /api/webhooks/[provider] ◀──────────────────  Reconstruction provider(s)
- Embed page (/e/[slug])  ◀── public ───   ├─ /api/cron/poll-jobs (fallback polling)
+   MediaPipe face pre-check (WASM)        ├─ /api/generations/* (start, status, retry, cancel)
+   GeometrySystem (parts, M7)             ├─ /api/portraits/[id]/model (private GLB, owner only)
+                                          ├─ /api/webhooks/[provider] (planned) ◀────────  Reconstruction provider(s)
+ Embed page (/e/[slug])  ◀── public ───   ├─ /api/cron/maintenance (polling, retention)
    minimal viewer bundle                  └─ lib/reconstruction (provider adapters, server-only)
 ```
 
@@ -219,13 +221,20 @@ Spec: `docs/specs/colour-picker.md`, ADR 0007. Colours are stored as sRGB
 `#RRGGBB`/`#RRGGBBAA`; HSB/HSL/RGB are UI views; `lib/color/three.ts` is the
 single conversion point to linear three.js colours and alpha.
 
-## 5b. Model geometry and parts (M7)
+## 5b. Model geometry and parts (M7, implemented)
 
-Spec: `docs/specs/model-parts.md`. Segmentation runs once per asset in the
-server pipeline and is stored in the GLB (primitives per part, cap
-primitives, `scene.extras.portraitStudio`) and in `model_assets.manifest`.
-The browser's `GeometrySystem` only toggles visibility and reports visible
-bounds to framing, shadows and effects. Clipping planes are a fallback only.
+Details: `docs/segmentation-architecture.md`, ADR 0008 §5–6. `lib/segmentation`
+(pure TypeScript) splits any loaded model into regions on load. Body
+surfaces are cut exactly along a head plane and a shoulder plane, then
+closed with caps. Separate meshes are labelled by role. Face, ears and
+shoulders are labelled areas of the skin. `components/viewer/geometry-system.ts`
+builds part meshes that share the source vertex buffers, toggles presets
+(Head / Head & neck / Bust) and reports visible bounds to framing and the
+shadow. `selection-highlight.tsx` draws the selected part's rim. Per-region
+materials (`settings.regionMaterials`) are applied by the M4 MaterialSystem.
+If segmentation is impossible, the model is shown whole with the reason.
+(The spec's server-side GLB rewrite was deferred: the original asset stays
+untouched.)
 
 ## 5c. Effects (M8 Eye Effects, M9 Effects Studio)
 
@@ -237,56 +246,71 @@ animates and the viewport is visible; quality tiers and reduced-motion
 behaviour per module. Placement is anchor-relative, so effect stacks are
 reusable across portraits.
 
-## 6. Reconstruction provider abstraction
+## 6. Reconstruction provider abstraction (M6, implemented)
+
+Details: ADR 0008, provider comparison `docs/research/provider-comparison.md`.
 
 ```ts
 // lib/reconstruction/types.ts (server-only)
 interface ReconstructionProvider {
-  id: ProviderId;
-  capabilities: { multiImage: boolean; webhooks: boolean; maxImages: number };
-  submit(input: ReconstructionInput): Promise<{ providerJobId: string }>;
-  getStatus(providerJobId: string): Promise<ProviderStatus>; // polling fallback
-  parseWebhook(req: Request): Promise<ProviderStatus | null>; // verifies signature
-  fetchResult(providerJobId: string): Promise<ReadableStream>; // raw model bytes
-  deleteRemoteData?(providerJobId: string): Promise<void>;
+  id: string;
+  capabilities: {
+    maxImages: number;
+    progress: boolean;
+    cancelQueued: boolean;
+    cancelProcessing: boolean;
+    deletesRemoteData: boolean;
+  };
+  submit(input: ReconstructionInput): Promise<{ providerJobId: string }>; // front view first
+  getStatus(providerJobId: string): Promise<ProviderStatus>; // polling
+  fetchResult(providerJobId: string): Promise<Buffer>; // raw GLB
+  cancel?(providerJobId: string): Promise<void>;
+  deleteRemote?(providerJobId: string): Promise<void>;
 }
+// Errors: ProviderError { code, message (user-safe), retryable }
 ```
 
-- Inputs reference our storage via short-lived signed URLs, never public URLs.
-- A registry chooses the provider from `RECONSTRUCTION_PROVIDER` (env) and
-  stores `provider` on each job, so jobs finish on the provider that started
-  them even after a switch.
-- A `pipeline` provider can compose several adapters (see research doc §4).
-- A `fixture` provider that returns a bundled, licensed sample head exists for
-  local development and tests only; it is disabled in production by an env
-  guard and labelled in the UI as a development fixture.
+- `registry.ts` picks the provider from `RECONSTRUCTION_PROVIDER`. Each job
+  stores its provider id, so a job finishes on the provider that started it.
+- `providers/fixture.ts`: development and tests only, refused on hosted
+  deployments. Runs the real stages and timing and returns bundled CC0
+  models. Its scenarios cover failure paths.
+- `providers/meshy.ts`: Multi-Image to 3D adapter. It is disabled unless a
+  key and `RECONSTRUCTION_PROVIDER_APPROVED=1` are both set, and it has never
+  been called live.
+- Photos are sent as base64 data URIs (or, in production, as short-lived
+  signed URLs). They are never sent as public URLs.
+- Webhooks are deferred until a provider is chosen. Polling covers every
+  case.
 
-## 7. Generation job lifecycle
+## 7. Generation job lifecycle (M6, implemented)
 
 ```
-pending ──submit ok──▶ processing ──result ok──▶ completed
-   │                       │
-   └──submit error──▶ failed ◀──provider error / timeout / pipeline error
+queued → preparing → submitted → processing → downloading → validating → completed
+   └──────────────┴────────── any step ──────────────┴──────────→ failed (retryable?) / cancelled
 ```
 
-1. `POST /api/generation` validates ownership + images, inserts a `pending` job,
-   submits to the provider, moves to `processing`.
-2. Completion arrives by **webhook** (signature-verified, idempotent on
-   `provider_job_id`) or by **polling**: a Vercel Cron route checks
-   `processing` jobs older than N seconds with exponential backoff.
-3. On success: download result → glTF Transform pipeline as named, versioned
-   stages (validate → normalise → segment (M7) → dedupe, prune, weld,
-   optional simplify per primitive, texture resize to 2048/1024, meshopt
-   compression → thumbnail) →
-   upload to R2 under `models/{userId}/{portraitId}/{assetId}.glb` → insert
-   `model_assets` row → job `completed` → portrait points to the new asset.
-4. Timeouts (e.g. 20 min) mark the job `failed` with a user-facing reason.
-5. The client watches the job via Supabase Realtime on `generation_jobs`
-   (fallback: polling the status route every 5 s).
+| Stage (UI)     | Job states        | Work                                                                                                     |
+| -------------- | ----------------- | -------------------------------------------------------------------------------------------------------- |
+| Prepare photos | queued, preparing | load owned photos; front first, extra angles after (max per provider)                                    |
+| Send           | submitted         | `provider.submit`                                                                                        |
+| Reconstruct    | processing        | poll `getStatus` every `RECONSTRUCTION_POLL_MS`; provider % if reported                                  |
+| Receive        | downloading       | `fetchResult` (size-capped)                                                                              |
+| Check model    | validating        | `inspectModel`: GLB structure, no external URIs, limits, finite geometry, orientation + framing manifest |
+| Finish         | completed         | store original GLB + manifest, portrait → ready, photo retention clock, `deleteRemote`                   |
 
-Vercel function duration limits apply to step 3. If optimisation of large
-outputs exceeds them, the pipeline moves to a background worker (documented
-risk R5).
+- `lib/server/generation.ts`. `advanceJob` moves one job forward and is
+  serialised per job. It is called by `GET /api/generations/[id]` (the
+  generation screen polls every 1.5 s), by the dashboard render, and by
+  `/api/cron/maintenance` (Bearer `CRON_SECRET`).
+- Limits: 3 attempts and a 30-minute timeout. Errors are stored as
+  `{code, message, retryable}`.
+- After completion, the generation screen renders a thumbnail from the real
+  model and `PUT`s it. The portrait opens in `/studio/[portraitId]` (owner
+  only) and appears on the dashboard. Fixture portraits carry a badge.
+- Storage (local backend): `lib/server/store.ts`, JSON tables and private
+  files under `DATA_DIR`. Production swaps in Supabase + R2 behind the same
+  functions.
 
 ## 8. Exports
 

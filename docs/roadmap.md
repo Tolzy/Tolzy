@@ -15,21 +15,26 @@ product owner the same day):** advanced colour picker (M4), model parts /
 Geometry tool (M7), Eye Effects (M8), Effects Studio (M9). Later milestones
 were renumbered:
 
-| Milestone                          | Original | Now     |
-| ---------------------------------- | -------- | ------- |
-| Materials, lighting, colour, theme | M4       | M4 ✅   |
-| Photo upload and validation        | M5       | M5 ✅\* |
-| AI reconstruction                  | M6       | M6      |
-| Model parts and Geometry tool      | —        | **M7**  |
-| Eye Effects                        | —        | **M8**  |
-| Effects Studio                     | —        | **M9**  |
-| Dashboard and project management   | M7       | M10     |
-| GLB and PNG exports                | M8       | M11     |
-| Embedding and publishing           | M9       | M12     |
-| Quality assurance and deployment   | M10      | M13     |
+| Milestone                          | Original | Now       |
+| ---------------------------------- | -------- | --------- |
+| Materials, lighting, colour, theme | M4       | M4 ✅     |
+| Photo upload and validation        | M5       | M5 ✅\*   |
+| AI reconstruction                  | M6       | M6 ✅†    |
+| Model parts and Geometry tool      | —        | **M7** ✅ |
+| Eye Effects                        | —        | **M8**    |
+| Effects Studio                     | —        | **M9**    |
+| Dashboard and project management   | M7       | M10       |
+| GLB and PNG exports                | M8       | M11       |
+| Embedding and publishing           | M9       | M12       |
+| Quality assurance and deployment   | M10      | M13       |
 
-\* M5's on-device selection and validation are complete; the secure server
-upload waits for accounts (Supabase project) — see M5 below.
+\* M5's on-device selection and validation are complete; the server upload
+now exists on the local development backend (M6); production storage waits
+for the Supabase project.
+
+† M6 is built and tested end to end with the development fixture provider;
+selecting and switching on a real provider awaits the paid benchmark and
+product-owner approval (ADR 0008, `docs/research/provider-comparison.md`).
 
 Feature dependencies: `docs/feature-dependencies.md`.
 
@@ -196,46 +201,72 @@ limit, each face check, replace/remove, independent angles, consent,
 no-upload guarantee, axe in both themes). Fixtures are renders of the CC0
 sample head — no real person's photo.
 
-## M6 — AI reconstruction integration
+## M6 — AI reconstruction integration ✅ (in review; provider awaiting approval)
 
 **Objective:** Turn validated photos into normalised GLB assets asynchronously.
-**Scope:** Step 1 provider shortlist from free tiers, published samples and
-vendor conversations, then a budget request to the product owner for the
-paid bake-off with consenting volunteers (see research doc §5), and an ADR. Step 2 provider
-interface + chosen adapter(s); generation_jobs + model_assets migrations;
-start route; webhook route; cron polling fallback; glTF Transform pipeline
-built as named, versioned stages (normalise → segment slot for M7 → optimise
-→ thumbnail) so later stages can be added and back-filled;
-R2 upload; progress UI with Realtime; failures and retries; rate limits.
-**Acceptance:**
 
-- Provider chosen by documented evaluation; licence and data gates passed.
-- End-to-end: upload → completed GLB visible in the studio, with webhook and
-  with polling only.
-- Duplicate webhooks are idempotent; timeouts mark jobs failed with a clear
-  message; provider keys absent from client bundles (verified by build scan).
+**Built (ADR 0008):**
 
-**Testing:** Adapter contract tests with recorded fixtures; webhook signature
-tests; job state machine unit tests; one real end-to-end run per release.
+- Provider comparison and recommendation. No provider is selected yet; the
+  shortlist goes to a paid benchmark that needs approval.
+- Provider interface, registry, fixture provider (development and tests
+  only) and a Meshy adapter that is off by default.
+- Local backend: accounts, sessions, private photos, consents, jobs,
+  portraits and assets.
+- Polling job state machine with retry, cancel, timeout, attempt limit and
+  cron route.
+- Model validation and orientation/framing manifest.
+- Generation screen showing real stages and provider %.
+- Thumbnail, dashboard entry, owner-only Studio and private model route.
+- Retention: 30 days after success, 7 after failure; delete routes.
 
-## M7 — Model parts and Geometry tool
+**Acceptance status:**
 
-**Objective:** Show head only, head and neck, full bust or a custom set of
-parts on any portrait, with clean closed geometry.
-**Scope** (`docs/specs/model-parts.md`): segmentation stage in the asset
-pipeline (landmarks by render-and-detect with MediaPipe, cross-section
-profile, exact triangle splits, cap generation, validation); glTF primitives
-per part + Model Descriptor metadata (`model_assets.manifest`); backfill of
-existing assets; sample head rebuilt with the same labels; client
-`GeometrySystem`; Model panel (presets, custom part list, hover highlight);
-framing and contact shadow from visible bounds; clipping-plane fallback for
-unsegmentable models.
-**Depends on:** M5 (MediaPipe), M6 (versioned pipeline, real outputs).
-**Acceptance:** presets work with closed caps under every material on the
-sample and ≥ 3 generated models; vertex data never changes; failed
-segmentation degrades to Full bust with a message.
-**Testing:** unit tests for profile/cut/cap maths; pipeline golden tests on
-fixtures; browser tests for presets, framing and caps.
+- ✅ End to end with polling: upload → completed GLB in the Studio and
+  dashboard (fixture provider; integration + browser tests).
+- ✅ Failures, retries, cancel, invalid models, access isolation, no keys
+  in the client (tested).
+- ⏳ Provider chosen by documented evaluation. The comparison is done; the
+  benchmark needs budget approval.
+- ⏳ Production storage (Supabase/R2), webhooks and rate limits come with
+  the chosen provider and hosted backend.
+
+**Testing:** `src/lib/server/__tests__/generation.integration.test.ts`,
+`model-pipeline.test.ts`, `providers/meshy.test.ts` (mocked HTTP),
+`tests/e2e/reconstruction.spec.ts`.
+
+## M7 — Model parts and Geometry tool ✅ (in review)
+
+**Objective:** Show head only, head and neck or full bust on any portrait,
+with clean closed geometry, and select parts for per-region styling.
+
+**Built (`docs/segmentation-architecture.md`, ADR 0008 §5–6):**
+
+- Geometry-aware segmentation into head, face, hair, ears, eyes, brows,
+  lashes, neck, shoulders and upper bust. It uses exact cuts with closed
+  caps and reports regions it can't separate.
+- Model panel: Show presets, parts list with visibility toggles, and an
+  explanation where a part can't be hidden.
+- Selection from the viewport or the list, with a rim highlight and
+  deselect.
+- Per-region materials that inherit from the parent region, on shared
+  geometry.
+- Framing and contact shadow follow the visible bounds.
+
+**Deviation from spec:** segmentation runs on load in the browser (the same
+pure-TS code runs in Node tests). The GLB is not rewritten, and MediaPipe
+landmarks are not used yet.
+
+**Acceptance status:**
+
+- ✅ Presets work with closed caps on the sample and on a fused,
+  provider-like model.
+- ✅ Vertex data never changes.
+- ✅ Failed segmentation keeps the model whole, with a message.
+- ⏳ "≥ 3 generated models" needs real provider output (benchmark).
+
+**Testing:** `src/lib/segmentation/segment.test.ts`,
+`components/viewer/geometry-system.test.ts`, `tests/e2e/segmentation.spec.ts`.
 
 ## M8 — Eye Effects
 

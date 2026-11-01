@@ -1,7 +1,7 @@
 "use client";
 
 import { RadioGroup } from "radix-ui";
-import { Download, Info, Share2 } from "lucide-react";
+import { Download, Eye, EyeOff, Info, Share2 } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
 import { BACKGROUND_PRESETS, BACKGROUND_SWATCHES, LIGHTING_PRESETS, MATERIAL_PRESETS } from "@/lib/studio/presets";
@@ -22,6 +22,9 @@ import { Badge, DisclosureSection, PresetGroup, PresetTile, Section } from "@/co
 import { usePrefersReducedMotion, useSection } from "./use-studio";
 import { ShareDialog } from "./share-dialog";
 import { useStudioModel } from "./studio-context";
+import { useMaterialScope } from "./use-material-scope";
+import { HIDEABLE, lineage, REGION_DEFS, REGION_ORDER, SHOW_PRESETS, type RegionId } from "@/lib/segmentation/regions";
+import { Tooltip } from "@/components/ui/tooltip";
 
 function PanelNote({ children }: { children: ReactNode }) {
   return <p className="text-2xs text-muted leading-4">{children}</p>;
@@ -63,13 +66,15 @@ function PreviewImage({ src, position = "center" }: { src: string; position?: st
 const percent = (v: number) => `${Math.round(v * 100)}%`;
 
 export function MaterialPanel() {
-  const { value, set, drag, commit } = useSection("material");
+  const scope = useMaterialScope();
+  const { value, set, drag, commit } = scope;
   const { thumbnailUrl } = useStudioModel();
   const def = MATERIAL_PRESET_DEFS[value.preset];
   const atDefaults = def.controls.every((c) => value[c] === def.defaults[c]);
 
   return (
     <>
+      <ScopeBar />
       <Section title="Preset">
         <PresetGroup label="Material preset" value={value.preset} onChange={(preset) => set(materialSettings(preset))}>
           {MATERIAL_PRESETS.map((p) => (
@@ -142,6 +147,188 @@ function ResetRow({ disabled, onReset }: { disabled: boolean; onReset: () => voi
         Reset to preset
       </Button>
     </div>
+  );
+}
+
+/** Shows what the Material panel edits: the whole model or one selected part. */
+function ScopeBar() {
+  const scope = useMaterialScope();
+  if (!scope.region)
+    return (
+      <div className="border-line text-2xs text-muted border-b px-4 py-2.5" data-testid="material-scope">
+        Editing the whole model. Select a part in the viewport or the Model panel to style it on its own.
+      </div>
+    );
+  return (
+    <div className="border-line bg-accent-soft/50 border-b px-4 py-2.5" data-testid="material-scope">
+      <div className="flex items-center gap-2">
+        <span className="text-fg text-xs font-medium">Editing: {scope.regionName}</span>
+        <span className="text-2xs text-muted">
+          {scope.own
+            ? "own material"
+            : scope.inheritedFrom
+              ? `follows ${REGION_DEFS[scope.inheritedFrom].name}`
+              : "follows the whole model"}
+        </span>
+        <Button variant="ghost" size="sm" className="ml-auto" onClick={scope.deselect}>
+          Whole model
+        </Button>
+      </div>
+      {scope.own && (
+        <button
+          type="button"
+          onClick={scope.clearOverride}
+          className="text-2xs text-muted hover:text-fg mt-1 underline underline-offset-2"
+        >
+          Use the {scope.inheritedFrom ? REGION_DEFS[scope.inheritedFrom].name.toLowerCase() : "whole-model"} material
+          again
+        </button>
+      )}
+    </div>
+  );
+}
+
+/* ───────────────────────── Model (parts) ───────────────────────── */
+
+export function ModelPanel() {
+  const geometry = useStudioStore((s) => s.settings.geometry);
+  const report = useStudioStore((s) => s.geometryReport);
+  const selected = useStudioStore((s) => s.selectedRegion);
+  const regionMaterials = useStudioStore((s) => s.settings.regionMaterials);
+  const apply = useStudioStore((s) => s.apply);
+  const selectRegion = useStudioStore((s) => s.selectRegion);
+  const setContext = useStudioStore((s) => s.setContext);
+  const setGeometry = (patch: Partial<typeof geometry>) =>
+    apply((s) => ({ ...s, geometry: { ...s.geometry, ...patch } }));
+
+  if (!report)
+    return (
+      <Section title="Parts">
+        <PanelNote>Analysing the model…</PanelNote>
+      </Section>
+    );
+  if (!report.segmented)
+    return (
+      <Section title="Parts">
+        <PanelNote>
+          This model couldn’t be split into parts: {report.reason} The whole model can still be styled.
+        </PanelNote>
+      </Section>
+    );
+
+  const available = (id: RegionId) => report.regions.find((r) => r.id === id)?.available ?? false;
+  const hiddenNow = new Set(report.hidden);
+  const toggleHidden = (id: RegionId) =>
+    setGeometry({
+      hidden: geometry.hidden.includes(id) ? geometry.hidden.filter((r) => r !== id) : [...geometry.hidden, id],
+    });
+  const depth = (id: RegionId) => lineage(id).length - 1;
+
+  return (
+    <>
+      <Section title="Show">
+        <Segmented
+          ariaLabel="Show"
+          value={geometry.preset}
+          onChange={(preset) => setGeometry({ preset })}
+          options={SHOW_PRESETS.map((p) => ({
+            value: p.id,
+            label: p.label,
+            disabled: p.id === "bust" ? false : !available("neck") || (p.id === "head" && !available("head")),
+          }))}
+        />
+        <PanelNote>
+          {geometry.preset === "head"
+            ? "Head only, cut cleanly under the jaw and closed."
+            : geometry.preset === "headNeck"
+              ? "Head and neck, closed above the shoulders."
+              : "The full bust."}
+        </PanelNote>
+      </Section>
+
+      <Section
+        title="Parts"
+        action={
+          selected ? (
+            <Button variant="ghost" size="sm" onClick={() => selectRegion(null)}>
+              Deselect
+            </Button>
+          ) : null
+        }
+      >
+        <ul aria-label="Model parts" className="-mx-2 space-y-0.5">
+          {REGION_ORDER.map((id) => {
+            const r = report.regions.find((x) => x.id === id)!;
+            const hideable = HIDEABLE.includes(id) && r.available;
+            const hidden = hiddenNow.has(id);
+            const isSelected = selected === id;
+            return (
+              <li key={id} data-region={id} className="flex items-center gap-1" style={{ paddingLeft: depth(id) * 12 }}>
+                <button
+                  type="button"
+                  disabled={!r.available || hidden}
+                  aria-pressed={isSelected}
+                  onClick={() => selectRegion(isSelected ? null : id)}
+                  title={r.available ? undefined : r.reason}
+                  className={cn(
+                    "flex h-7 min-w-0 flex-1 items-center gap-2 rounded-md px-2 text-left text-xs",
+                    "enabled:hover:bg-hover disabled:text-subtle aria-pressed:bg-accent-soft aria-pressed:text-fg",
+                    r.available ? "text-fg" : "",
+                  )}
+                >
+                  <span className="truncate">{REGION_DEFS[id].name}</span>
+                  {regionMaterials[id] && (
+                    <span className="bg-accent size-1.5 shrink-0 rounded-full" aria-label="has its own material" />
+                  )}
+                  {!r.available && <span className="text-2xs text-subtle ml-auto shrink-0">Not separable</span>}
+                </button>
+                {hideable && (
+                  <Tooltip
+                    content={
+                      hidden
+                        ? `Show ${REGION_DEFS[id].name.toLowerCase()}`
+                        : `Hide ${REGION_DEFS[id].name.toLowerCase()}`
+                    }
+                  >
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      iconOnly
+                      aria-label={`${hidden ? "Show" : "Hide"} ${REGION_DEFS[id].name.toLowerCase()}`}
+                      aria-pressed={hidden}
+                      onClick={() =>
+                        id === "hair"
+                          ? toggleHidden("hair")
+                          : setGeometry({
+                              preset: id === "neck" ? (hidden ? "headNeck" : "head") : hidden ? "bust" : "headNeck",
+                            })
+                      }
+                    >
+                      {hidden ? <EyeOff /> : <Eye />}
+                    </Button>
+                  </Tooltip>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+        <PanelNote>
+          Face, ears and shoulders are areas of one continuous surface: they can be styled on their own but not hidden,
+          which would leave an opening.
+        </PanelNote>
+      </Section>
+
+      {selected && (
+        <Section title={REGION_DEFS[selected].name}>
+          <PanelNote>Material changes now apply to this part only; everything else keeps its look.</PanelNote>
+          <div className="flex gap-2 pt-1">
+            <Button variant="secondary" size="sm" onClick={() => setContext("material")}>
+              Edit material
+            </Button>
+          </div>
+        </Section>
+      )}
+    </>
   );
 }
 
