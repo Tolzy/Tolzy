@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 
 /*
@@ -196,4 +197,24 @@ test("Storage settings show the user's files and delete photographs on request",
   await expect(page.getByText(/^0 files ·/)).toBeVisible();
   // The portrait itself is unaffected.
   expect((await page.request.get(`/api/portraits/${job.portraitId}/model`)).status()).toBe(200);
+});
+
+test("the generation screen and the Model panel have no serious accessibility violations", async ({ page }) => {
+  const serious = async () =>
+    (await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze()).violations
+      .filter((v) => v.impact === "serious" || v.impact === "critical")
+      .map((v) => v.id);
+  await signIn(page, "a11y");
+  const job = await startJob(page, "fail");
+  await page.goto(`/generate/${job.id}`);
+  await expect(stage(page, "reconstruct")).toHaveAttribute("data-state", /active|failed/, { timeout: 30_000 });
+  expect(await serious()).toEqual([]);
+  await expect(page.getByRole("button", { name: "Try again" })).toBeVisible({ timeout: 60_000 });
+  expect(await serious()).toEqual([]);
+
+  await page.goto("/studio/sample");
+  await expect(studioSurface(page)).toHaveAttribute("data-segmented", "true", { timeout: 60_000 });
+  await page.getByRole("navigation", { name: "Properties" }).getByRole("button", { name: "Model" }).click();
+  await page.getByRole("list", { name: "Model parts" }).getByRole("button", { name: "Face", exact: true }).click();
+  expect(await serious()).toEqual([]);
 });
